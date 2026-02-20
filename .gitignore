@@ -1,0 +1,8 @@
+﻿.gradle/
+build/
+**/build/
+.idea/
+*.iml
+run/
+dev-runtime/plugins/*.jar
+dev-runtime/giga-plugins/*.jar

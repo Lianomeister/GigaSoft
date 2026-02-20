@@ -1,0 +1,6 @@
+﻿FROM itzg/minecraft-server:java21
+
+ENV TYPE=PAPER
+ENV VERSION=LATEST
+ENV EULA=TRUE
+ENV MEMORY=2G

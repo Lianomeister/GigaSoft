@@ -1,0 +1,17 @@
+﻿services:
+  gigasoft-server:
+    build: .
+    container_name: gigasoft-server
+    ports:
+      - "25565:25565"
+    environment:
+      TYPE: PAPER
+      VERSION: LATEST
+      EULA: "TRUE"
+      MEMORY: 2G
+    volumes:
+      - ./dev-runtime/world:/data/world
+      - ./dev-runtime/plugins:/data/plugins
+      - ./dev-runtime/config:/data/config
+    tty: true
+    stdin_open: true

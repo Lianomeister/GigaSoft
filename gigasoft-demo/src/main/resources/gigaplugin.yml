@@ -1,0 +1,7 @@
+﻿id: gigasoft-demo
+name: GigaSoft Demo
+version: 0.1.0-rc.1
+main: com.gigasoft.demo.DemoGigaPlugin
+apiVersion: 1
+dependencies: []
+permissions: []
