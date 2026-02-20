@@ -7,6 +7,7 @@ class RuntimePluginContext(
     override val logger: GigaLogger,
     override val scheduler: Scheduler,
     override val registry: RegistryFacade,
+    override val adapters: ModAdapterRegistry,
     override val storage: StorageProvider,
     override val commands: CommandRegistry,
     override val events: EventBus

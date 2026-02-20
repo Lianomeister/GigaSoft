@@ -33,6 +33,7 @@ class GigaRuntime(
     private val normalizedDataDirectory = dataDirectory.toAbsolutePath().normalize()
     private val maxPluginJarBytes = 64L * 1024L * 1024L
     private val loaded = ConcurrentHashMap<String, LoadedPlugin>()
+    private val metrics = RuntimeMetrics()
     @Volatile
     private var lastScanRejected: Map<String, String> = emptyMap()
     @Volatile
@@ -179,6 +180,15 @@ class GigaRuntime(
     }
 
     fun loadedPlugins(): List<LoadedPlugin> = loaded.values.sortedBy { it.manifest.id }
+
+    fun recordSystemTick(pluginId: String, systemId: String, durationNanos: Long, success: Boolean) {
+        metrics.recordSystemTick(pluginId, systemId, durationNanos, success)
+    }
+
+    fun profile(pluginId: String): PluginRuntimeProfile? {
+        val plugin = loaded[pluginId] ?: return null
+        return metrics.snapshot(pluginId, plugin.scheduler.activeTaskIds())
+    }
 
     fun diagnostics(): RuntimeDiagnostics {
         val descriptors = loaded.values
@@ -338,17 +348,30 @@ class GigaRuntime(
         val loader = URLClassLoader(arrayOf(runtimeJarPath.toUri().toURL()), javaClass.classLoader)
         try {
             val plugin = instantiatePlugin(manifest, loader)
-            val scheduler = RuntimeScheduler(manifest.id)
+            val scheduler = RuntimeScheduler(
+                pluginId = manifest.id,
+                runObserver = { pluginId, taskId, durationNanos, success ->
+                    metrics.recordTaskRun(pluginId, taskId, durationNanos, success)
+                }
+            )
             val registry = RuntimeRegistry(manifest.id)
             val commandRegistry = RuntimeCommandRegistry()
             val eventBus = RuntimeEventBus()
             val storage = JsonStorageProvider(dataDirectory.resolve(manifest.id))
             val pluginLogger = GigaLogger { rootLogger.info("[${manifest.id}] $it") }
+            val adapters = RuntimeModAdapterRegistry(
+                pluginId = manifest.id,
+                logger = pluginLogger,
+                invocationObserver = { adapterId, outcome ->
+                    metrics.recordAdapterInvocation(manifest.id, adapterId, outcome)
+                }
+            )
             val context = RuntimePluginContext(
                 manifest,
                 pluginLogger,
                 scheduler,
                 registry,
+                adapters,
                 storage,
                 commandRegistry,
                 eventBus

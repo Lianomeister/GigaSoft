@@ -10,7 +10,7 @@ plugins {
 
 allprojects {
     group = "com.gigasoft"
-    version = "0.1.0-rc.1"
+    version = "0.1.0-rc.2"
 
     repositories {
         mavenCentral()
@@ -39,7 +39,7 @@ subprojects {
 }
 
 tasks.register("buildPlugin") {
-    dependsOn(":gigasoft-bridge-paper:shadowJar", ":gigasoft-demo:shadowJar")
+    dependsOn(":gigasoft-bridge-paper:shadowJar", ":gigasoft-demo:shadowJar", ":gigasoft-standalone:shadowJar")
 }
 
 tasks.register("runServer") {
@@ -66,16 +66,20 @@ tasks.register<Copy>("releaseCandidateArtifacts") {
         .tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar")
     val cliShadow = project(":gigasoft-cli")
         .tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar")
+    val standaloneShadow = project(":gigasoft-standalone")
+        .tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar")
 
     dependsOn(
         bridgeShadow,
         demoShadow,
-        cliShadow
+        cliShadow,
+        standaloneShadow
     )
     val releaseDir = layout.buildDirectory.dir("release/${project.version}")
     from(bridgeShadow.flatMap { it.archiveFile })
     from(demoShadow.flatMap { it.archiveFile })
     from(cliShadow.flatMap { it.archiveFile })
+    from(standaloneShadow.flatMap { it.archiveFile })
     into(releaseDir)
 }
 
@@ -85,6 +89,8 @@ tasks.register("releaseCandidate") {
     dependsOn(
         ":gigasoft-api:test",
         ":gigasoft-runtime:test",
+        ":gigasoft-core:test",
+        ":gigasoft-standalone:test",
         ":gigasoft-bridge-paper:test",
         ":gigasoft-cli:test",
         ":gigasoft-demo:test",

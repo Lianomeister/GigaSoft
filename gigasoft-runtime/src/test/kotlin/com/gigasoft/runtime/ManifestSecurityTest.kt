@@ -66,4 +66,36 @@ class ManifestSecurityTest {
             )
         }
     }
+
+    @Test
+    fun `rejects forbidden main class package`() {
+        assertFailsWith<IllegalArgumentException> {
+            ManifestSecurity.validate(
+                PluginManifest(
+                    id = "demo",
+                    name = "Demo",
+                    version = "1.0.0",
+                    main = "java.lang.String",
+                    apiVersion = "1"
+                )
+            )
+        }
+    }
+
+    @Test
+    fun `rejects too many dependencies`() {
+        val deps = (1..33).map { DependencySpec("dep$it") }
+        assertFailsWith<IllegalArgumentException> {
+            ManifestSecurity.validate(
+                PluginManifest(
+                    id = "demo",
+                    name = "Demo",
+                    version = "1.0.0",
+                    main = "com.example.Demo",
+                    apiVersion = "1",
+                    dependencies = deps
+                )
+            )
+        }
+    }
 }

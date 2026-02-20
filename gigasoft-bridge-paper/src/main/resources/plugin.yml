@@ -1,9 +1,33 @@
 ﻿name: GigaSoftBridge
-version: 0.1.0-rc.1
+version: 0.1.0-rc.2
 main: com.gigasoft.bridge.paper.GigaBridgePlugin
 api-version: '1.21'
+load: STARTUP
 authors: [GigaSoft]
+softdepend: [ViaVersion, ViaBackwards, ProtocolLib]
 commands:
   giga:
     description: Giga runtime controls
     usage: /giga
+permissions:
+  gigasoft.admin.plugins:
+    description: Allows viewing loaded Giga plugins
+    default: op
+  gigasoft.admin.reload:
+    description: Allows reloading Giga plugins
+    default: op
+  gigasoft.admin.doctor:
+    description: Allows runtime diagnostics commands
+    default: op
+  gigasoft.admin.profile:
+    description: Allows runtime profile commands
+    default: op
+  gigasoft.admin.run:
+    description: Allows running plugin command bridge
+    default: op
+  gigasoft.admin.adapters.view:
+    description: Allows listing adapter metadata
+    default: op
+  gigasoft.admin.adapters.invoke:
+    description: Allows invoking adapters from admin command
+    default: op

@@ -79,7 +79,7 @@ class PaperSmokeIntegrationTest {
 
             runCommand(writer, "giga plugins")
             assertTrue(waitForLog(logs, Duration.ofSeconds(30)) { it.contains("Loaded GigaPlugins: 1") })
-            assertTrue(waitForLog(logs, Duration.ofSeconds(30)) { it.contains("gigasoft-demo@0.1.0-rc.1") })
+            assertTrue(waitForLog(logs, Duration.ofSeconds(30)) { it.contains("gigasoft-demo@0.1.0-rc.2") })
 
             runCommand(writer, "giga reload all")
             assertTrue(waitForLog(logs, Duration.ofSeconds(30)) { it.contains("Reloaded 1 plugins") })

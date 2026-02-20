@@ -1,5 +1,27 @@
 ﻿# Changelog
 
+## 0.1.0-rc.2 - 2026-02-20
+
+### Added
+- Runtime metrics subsystem for profiling plugin execution (`RuntimeMetrics`).
+- `/giga profile <plugin>` now reports real runtime metrics:
+  - active task count and task ids,
+  - per-system runs/failures/avg/max runtime,
+  - per-scheduler-task runs/failures/avg/max runtime.
+- New reload stress test for repeated reload stability.
+- Additional security-focused tests for manifest and runtime path validation.
+
+### Changed
+- Runtime scheduler now emits execution timing/failure observations for metrics.
+- Bridge tick loop now records per-system tick runtime and failures.
+- Manifest security tightened with additional limits and checks:
+  - forbidden main class packages (`java.*`, `kotlin.*`),
+  - maximum dependency and permission counts,
+  - version-range length constraints.
+
+### Build and verification
+- `test + integrationSmoke` validated successfully on rc.2.
+
 ## 0.1.0-rc.1 - 2026-02-20
 
 ### Added

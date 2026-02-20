@@ -67,6 +67,7 @@ class GigaPluginDsl(private val ctx: PluginContext) {
     private val machineDefs = mutableListOf<MachineDefinition>()
     private val systems = linkedMapOf<String, TickSystem>()
     private val commandDefs = mutableListOf<Triple<String, String, (PluginContext, String, List<String>) -> String>>()
+    private val adapterDefs = mutableListOf<ModAdapter>()
 
     fun items(block: ItemDsl.() -> Unit) {
         itemDefs += ItemDsl().apply(block).items
@@ -92,6 +93,10 @@ class GigaPluginDsl(private val ctx: PluginContext) {
         commandDefs += CommandDsl().apply(block).commands
     }
 
+    fun adapters(block: AdapterDsl.() -> Unit) {
+        adapterDefs += AdapterDsl().apply(block).adapters
+    }
+
     fun install() {
         itemDefs.forEach(ctx.registry::registerItem)
         blockDefs.forEach(ctx.registry::registerBlock)
@@ -99,6 +104,7 @@ class GigaPluginDsl(private val ctx: PluginContext) {
         machineDefs.forEach(ctx.registry::registerMachine)
         systems.forEach(ctx.registry::registerSystem)
         commandDefs.forEach { (cmd, description, action) -> ctx.commands.register(cmd, description, action) }
+        adapterDefs.forEach(ctx.adapters::register)
     }
 }
 
@@ -145,5 +151,30 @@ class CommandDsl {
         action: (ctx: PluginContext, sender: String, args: List<String>) -> String
     ) {
         commands += Triple(name, description, action)
+    }
+}
+
+class AdapterDsl {
+    internal val adapters = mutableListOf<ModAdapter>()
+
+    fun adapter(definition: ModAdapter) {
+        adapters += definition
+    }
+
+    fun adapter(
+        id: String,
+        name: String,
+        version: String = "1.0.0",
+        capabilities: Set<String> = emptySet(),
+        handler: (AdapterInvocation) -> AdapterResponse
+    ) {
+        adapters += object : ModAdapter {
+            override val id: String = id
+            override val name: String = name
+            override val version: String = version
+            override val capabilities: Set<String> = capabilities
+
+            override fun invoke(invocation: AdapterInvocation): AdapterResponse = handler(invocation)
+        }
     }
 }

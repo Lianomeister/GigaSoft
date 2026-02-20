@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GigaSoft | Plugin Power für Minecraft</title>
+  <meta name="description" content="GigaSoft: Hybrid Minecraft-Server mit extremer Plugin-Power und Kotlin DSL." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="bg-grid" aria-hidden="true"></div>
+  <header class="site-header reveal">
+    <div class="brand">
+      <span class="brand-mark">GS</span>
+      <span>GigaSoft</span>
+    </div>
+    <nav>
+      <a href="#vision">Vision</a>
+      <a href="#videos">Videos</a>
+      <a href="#cta">Start</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero reveal">
+      <p class="eyebrow">HYBRID PAPER RUNTIME</p>
+      <h1>Baue Plugin-Features,<br />die sich wie Mods anfühlen.</h1>
+      <p class="lead">
+        GigaSoft verbindet Paper-Kompatibilität mit einer Kotlin DSL für Maschinen, Systeme,
+        Rezepte und schnelle Reload-Loops.
+      </p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="#videos">Plugin-Demos ansehen</a>
+        <a class="btn btn-ghost" href="../README.md">Dokumentation</a>
+      </div>
+    </section>
+
+    <section id="vision" class="vision reveal">
+      <article>
+        <h2>Create-artiges Gameplay</h2>
+        <p>Mechanik-Logik, Tick-Systeme und State-Flows direkt im Plugin-SDK.</p>
+      </article>
+      <article>
+        <h2>Schneller Creator-Loop</h2>
+        <p>Build, reload, testen in Sekunden mit Runtime-Reload und Profiling.</p>
+      </article>
+      <article>
+        <h2>Legacy-kompatibel</h2>
+        <p>Paper/Spigot-Plugins laufen parallel. Neue Power für GigaPlugins.</p>
+      </article>
+    </section>
+
+    <section id="videos" class="videos reveal">
+      <div class="section-head">
+        <p class="eyebrow">SHOWCASE</p>
+        <h2>Plugin-Beispiele (Coming Soon)</h2>
+      </div>
+      <div class="video-grid">
+        <article class="video-card reveal">
+          <div class="video-placeholder">
+            <span class="badge">Platzhalter</span>
+            <button class="play" aria-label="Video-Platzhalter abspielen">▶</button>
+          </div>
+          <h3>Automated Press Line</h3>
+          <p>Input-Items, Rotation-Speed und mehrstufige Rezeptkette in einem Plugin.</p>
+        </article>
+        <article class="video-card reveal">
+          <div class="video-placeholder alt">
+            <span class="badge">Platzhalter</span>
+            <button class="play" aria-label="Video-Platzhalter abspielen">▶</button>
+          </div>
+          <h3>Rail Logistics Brain</h3>
+          <p>Event-basierte Routing-Logik mit Adapter-API und Runtime-Metriken.</p>
+        </article>
+        <article class="video-card reveal">
+          <div class="video-placeholder warm">
+            <span class="badge">Platzhalter</span>
+            <button class="play" aria-label="Video-Platzhalter abspielen">▶</button>
+          </div>
+          <h3>Kinetic Crafting Hub</h3>
+          <p>Maschinenblöcke, Persistenz-Migration und Hot-Reload ohne Server-Reboot.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="cta" class="cta reveal">
+      <h2>Bereit für RC2?</h2>
+      <p>Die Video-Slots sind schon vorbereitet. Als Nächstes hängen wir echte Plugin-Demos rein.</p>
+      <a class="btn btn-primary" href="../ai.txt">Projektstatus lesen</a>
+    </section>
+
+    <section id="donate" class="donate reveal">
+      <div class="section-head">
+        <p class="eyebrow">SUPPORT</p>
+        <h2>Unterstütze GigaSoft</h2>
+      </div>
+      <p class="donate-text">Wenn dir das Projekt gefällt, kannst du uns mit einer PayPal-Spende unterstützen.</p>
+      <form action="https://www.paypal.com/donate" method="post" target="_blank" class="paypal-form">
+        <input type="hidden" name="hosted_button_id" value="REPLACE_WITH_YOUR_PAYPAL_BUTTON_ID" />
+        <input type="hidden" name="no_recurring" value="0" />
+        <input type="hidden" name="currency_code" value="EUR" />
+        <button type="submit" class="btn btn-primary">Mit PayPal spenden</button>
+      </form>
+      <p class="donate-hint">Setze in `website/index.html` deine echte `hosted_button_id` ein.</p>
+    </section>
+  </main>
+
+  <footer class="site-footer reveal">
+    <p>GigaSoft • MIT • built for plugin creators</p>
+  </footer>
+
+  <script src="./app.js"></script>
+</body>
+</html>

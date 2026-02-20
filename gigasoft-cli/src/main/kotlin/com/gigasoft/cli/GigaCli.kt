@@ -11,7 +11,7 @@ import kotlin.io.path.writeText
 @Command(
     name = "giga",
     mixinStandardHelpOptions = true,
-    subcommands = [ScaffoldCommand::class, DoctorCommand::class],
+    subcommands = [ScaffoldCommand::class, DoctorCommand::class, ServerCommand::class],
     description = ["GigaSoft developer CLI"]
 )
 class RootCommand : Callable<Int> {
@@ -89,6 +89,70 @@ class DoctorCommand : Callable<Int> {
         println("- giga-plugins: $gigaPlugins (${Files.exists(gigaPlugins)})")
         println("- world: $world (${Files.exists(world)})")
         return 0
+    }
+}
+
+@Command(
+    name = "server",
+    description = ["Simple local server control via docker compose"],
+    subcommands = [ServerStartCommand::class, ServerStopCommand::class, ServerStatusCommand::class, ServerLogsCommand::class]
+)
+class ServerCommand : Callable<Int> {
+    override fun call(): Int {
+        println("Use a subcommand: start, stop, status, logs")
+        return 0
+    }
+}
+
+abstract class BaseServerCommand : Callable<Int> {
+    @Option(names = ["--project-dir"], defaultValue = ".")
+    lateinit var projectDir: Path
+
+    protected fun dockerCompose(vararg args: String): Int {
+        val composeFile = projectDir.resolve("docker-compose.yml")
+        if (!Files.exists(composeFile)) {
+            System.err.println("Missing docker-compose.yml at $composeFile")
+            return 1
+        }
+
+        val command = mutableListOf("docker", "compose", "-f", composeFile.toAbsolutePath().toString())
+        command.addAll(args)
+
+        return try {
+            val process = ProcessBuilder(command)
+                .directory(projectDir.toFile())
+                .inheritIO()
+                .start()
+            process.waitFor()
+        } catch (t: Throwable) {
+            System.err.println("Failed to run docker compose: ${t.message}")
+            1
+        }
+    }
+}
+
+@Command(name = "start", description = ["Start local server stack"])
+class ServerStartCommand : BaseServerCommand() {
+    override fun call(): Int = dockerCompose("up", "-d")
+}
+
+@Command(name = "stop", description = ["Stop local server stack"])
+class ServerStopCommand : BaseServerCommand() {
+    override fun call(): Int = dockerCompose("down")
+}
+
+@Command(name = "status", description = ["Show local server status"])
+class ServerStatusCommand : BaseServerCommand() {
+    override fun call(): Int = dockerCompose("ps")
+}
+
+@Command(name = "logs", description = ["Show local server logs"])
+class ServerLogsCommand : BaseServerCommand() {
+    @Option(names = ["--follow"], defaultValue = "false")
+    var follow: Boolean = false
+
+    override fun call(): Int {
+        return if (follow) dockerCompose("logs", "-f") else dockerCompose("logs")
     }
 }
 

@@ -1,0 +1,13 @@
+﻿compatibility:
+  via:
+    auto_install: true
+    auto_load: true
+    request_timeout_seconds: 20
+    viaversion:
+      enabled: true
+      project_slug: viaversion
+      file_name: ViaVersion.jar
+    viabackwards:
+      enabled: true
+      project_slug: viabackwards
+      file_name: ViaBackwards.jar

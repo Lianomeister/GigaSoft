@@ -11,6 +11,7 @@ interface PluginContext {
     val logger: GigaLogger
     val scheduler: Scheduler
     val registry: RegistryFacade
+    val adapters: ModAdapterRegistry
     val storage: StorageProvider
     val commands: CommandRegistry
     val events: EventBus
@@ -72,4 +73,31 @@ interface CommandRegistry {
 interface EventBus {
     fun <T : Any> subscribe(eventType: Class<T>, listener: (T) -> Unit)
     fun publish(event: Any)
+}
+
+data class AdapterInvocation(
+    val action: String,
+    val payload: Map<String, String> = emptyMap()
+)
+
+data class AdapterResponse(
+    val success: Boolean,
+    val payload: Map<String, String> = emptyMap(),
+    val message: String? = null
+)
+
+interface ModAdapter {
+    val id: String
+    val name: String
+    val version: String
+    val capabilities: Set<String>
+
+    fun invoke(invocation: AdapterInvocation): AdapterResponse
+}
+
+interface ModAdapterRegistry {
+    fun register(adapter: ModAdapter)
+    fun list(): List<ModAdapter>
+    fun find(id: String): ModAdapter?
+    fun invoke(adapterId: String, invocation: AdapterInvocation): AdapterResponse
 }

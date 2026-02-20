@@ -21,7 +21,7 @@ class DemoGigaPlugin : GigaPlugin {
     private val delegate = gigaPlugin(
         id = "gigasoft-demo",
         name = "GigaSoft Demo",
-        version = "0.1.0-rc.1"
+        version = "0.1.0-rc.2"
     ) {
         items {
             item("raw_ore_chunk", "Raw Ore Chunk")

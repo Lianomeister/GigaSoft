@@ -2,10 +2,11 @@
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class DslPluginTest {
     @Test
-    fun `dsl registers items and systems`() {
+    fun `dsl registers items systems and adapters`() {
         val registry = object : RegistryFacade {
             val itemIds = mutableListOf<String>()
             val systemIds = mutableListOf<String>()
@@ -22,20 +23,48 @@ class DslPluginTest {
             override fun systems(): Map<String, TickSystem> = emptyMap()
         }
 
+        val adapters = object : ModAdapterRegistry {
+            private val map = linkedMapOf<String, ModAdapter>()
+            override fun register(adapter: ModAdapter) {
+                map[adapter.id] = adapter
+            }
+
+            override fun list(): List<ModAdapter> = map.values.toList()
+            override fun find(id: String): ModAdapter? = map[id]
+            override fun invoke(adapterId: String, invocation: AdapterInvocation): AdapterResponse {
+                return map[adapterId]?.invoke(invocation)
+                    ?: AdapterResponse(success = false, message = "missing")
+            }
+        }
+
         val plugin = gigaPlugin("test") {
             items { item("gear", "Gear") }
             systems { system("tick") {} }
+            adapters {
+                adapter(
+                    id = "bridge",
+                    name = "BridgeAdapter",
+                    capabilities = setOf("craft", "transfer")
+                ) { invocation ->
+                    AdapterResponse(success = invocation.action == "ping")
+                }
+            }
         }
 
         plugin.onEnable(
-            RuntimelessContext(registry)
+            RuntimelessContext(registry, adapters)
         )
 
         assertEquals(listOf("gear"), registry.itemIds)
         assertEquals(listOf("tick"), registry.systemIds)
+        assertEquals(listOf("bridge"), adapters.list().map { it.id })
+        assertTrue(adapters.invoke("bridge", AdapterInvocation("ping")).success)
     }
 
-    private class RuntimelessContext(private val registryFacade: RegistryFacade) : PluginContext {
+    private class RuntimelessContext(
+        private val registryFacade: RegistryFacade,
+        private val adapterRegistry: ModAdapterRegistry
+    ) : PluginContext {
         override val manifest: PluginManifest = PluginManifest("test", "test", "1", "main")
         override val logger: GigaLogger = GigaLogger { }
         override val scheduler: Scheduler = object : Scheduler {
@@ -45,6 +74,7 @@ class DslPluginTest {
             override fun clear() {}
         }
         override val registry: RegistryFacade = registryFacade
+        override val adapters: ModAdapterRegistry = adapterRegistry
         override val storage: StorageProvider = object : StorageProvider {
             override fun <T : Any> store(key: String, type: Class<T>, version: Int): PersistentStore<T> {
                 error("not required")
