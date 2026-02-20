@@ -1,4 +1,4 @@
-﻿name: ci
+name: ci
 
 on:
   push:
@@ -14,7 +14,5 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-      - name: Build + Unit Tests
-        run: ./gradlew --no-daemon clean test
-      - name: Integration Smoke (real Paper boot)
-        run: ./gradlew --no-daemon :gigasoft-integration:integrationTest
+      - name: Build + Tests + Perf Baseline
+        run: ./gradlew --no-daemon clean test performanceBaseline standaloneReleaseCandidate

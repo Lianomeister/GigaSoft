@@ -1,4 +1,4 @@
-﻿import org.gradle.api.plugins.JavaPluginExtension
+import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.jvm.toolchain.JavaLanguageVersion
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
@@ -14,7 +14,6 @@ allprojects {
 
     repositories {
         mavenCentral()
-        maven("https://repo.papermc.io/repository/maven-public/")
     }
 }
 
@@ -39,62 +38,63 @@ subprojects {
 }
 
 tasks.register("buildPlugin") {
-    dependsOn(":gigasoft-bridge-paper:shadowJar", ":gigasoft-demo:shadowJar", ":gigasoft-standalone:shadowJar")
+    dependsOn(
+        ":gigasoft-demo-standalone:shadowJar",
+        ":gigasoft-standalone:shadowJar"
+    )
 }
 
 tasks.register("runServer") {
     dependsOn("buildPlugin")
     doLast {
-        println("Artifacts built. Copy jars into dev-runtime/plugins and dev-runtime/giga-plugins as needed.")
+        println("Artifacts built. Use gigasoft-standalone for runtime execution.")
     }
 }
 
 tasks.register("reloadPlugin") {
     doLast {
-        println("In a running Paper server: /giga reload all")
+        println("Use standalone console command: reload all")
     }
 }
 
-tasks.register("integrationSmoke") {
-    dependsOn(":gigasoft-integration:integrationTest")
-}
-
-tasks.register<Copy>("releaseCandidateArtifacts") {
-    val bridgeShadow = project(":gigasoft-bridge-paper")
-        .tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar")
-    val demoShadow = project(":gigasoft-demo")
+tasks.register<Copy>("standaloneReleaseCandidateArtifacts") {
+    val demoShadow = project(":gigasoft-demo-standalone")
         .tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar")
     val cliShadow = project(":gigasoft-cli")
         .tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar")
     val standaloneShadow = project(":gigasoft-standalone")
         .tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar")
 
-    dependsOn(
-        bridgeShadow,
-        demoShadow,
-        cliShadow,
-        standaloneShadow
-    )
-    val releaseDir = layout.buildDirectory.dir("release/${project.version}")
-    from(bridgeShadow.flatMap { it.archiveFile })
+    dependsOn(demoShadow, cliShadow, standaloneShadow)
+    val releaseDir = layout.buildDirectory.dir("release-standalone/${project.version}")
     from(demoShadow.flatMap { it.archiveFile })
     from(cliShadow.flatMap { it.archiveFile })
     from(standaloneShadow.flatMap { it.archiveFile })
     into(releaseDir)
 }
 
-tasks.register("releaseCandidate") {
+tasks.register("standaloneReleaseCandidate") {
     group = "release"
-    description = "Builds and verifies release candidate artifacts"
+    description = "Builds and verifies standalone release candidate artifacts"
     dependsOn(
         ":gigasoft-api:test",
+        ":gigasoft-host-api:test",
+        ":gigasoft-net:test",
         ":gigasoft-runtime:test",
         ":gigasoft-core:test",
         ":gigasoft-standalone:test",
-        ":gigasoft-bridge-paper:test",
         ":gigasoft-cli:test",
-        ":gigasoft-demo:test",
-        "integrationSmoke",
-        "releaseCandidateArtifacts"
+        ":gigasoft-demo-standalone:test",
+        "standaloneReleaseCandidateArtifacts"
+    )
+}
+
+tasks.register("performanceBaseline") {
+    group = "verification"
+    description = "Runs lightweight performance baselines for runtime/core/standalone"
+    dependsOn(
+        ":gigasoft-runtime:performanceTest",
+        ":gigasoft-core:performanceTest",
+        ":gigasoft-standalone:performanceTest"
     )
 }

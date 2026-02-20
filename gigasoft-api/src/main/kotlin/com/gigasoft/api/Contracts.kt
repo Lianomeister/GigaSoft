@@ -15,7 +15,103 @@ interface PluginContext {
     val storage: StorageProvider
     val commands: CommandRegistry
     val events: EventBus
+    val host: HostAccess
+        get() = HostAccess.unavailable()
 }
+
+interface HostAccess {
+    fun serverInfo(): HostServerSnapshot?
+    fun broadcast(message: String): Boolean
+    fun findPlayer(name: String): HostPlayerSnapshot?
+    fun worlds(): List<HostWorldSnapshot>
+    fun entities(world: String? = null): List<HostEntitySnapshot>
+    fun spawnEntity(type: String, location: HostLocationRef): HostEntitySnapshot?
+    fun playerInventory(name: String): HostInventorySnapshot?
+    fun setPlayerInventoryItem(name: String, slot: Int, itemId: String): Boolean
+
+    companion object {
+        fun unavailable(): HostAccess = object : HostAccess {
+            override fun serverInfo(): HostServerSnapshot? = null
+            override fun broadcast(message: String): Boolean = false
+            override fun findPlayer(name: String): HostPlayerSnapshot? = null
+            override fun worlds(): List<HostWorldSnapshot> = emptyList()
+            override fun entities(world: String?): List<HostEntitySnapshot> = emptyList()
+            override fun spawnEntity(type: String, location: HostLocationRef): HostEntitySnapshot? = null
+            override fun playerInventory(name: String): HostInventorySnapshot? = null
+            override fun setPlayerInventoryItem(name: String, slot: Int, itemId: String): Boolean = false
+        }
+    }
+}
+
+data class HostLocationRef(
+    val world: String,
+    val x: Double,
+    val y: Double,
+    val z: Double
+)
+
+data class HostPlayerSnapshot(
+    val uuid: String,
+    val name: String,
+    val location: HostLocationRef
+)
+
+data class HostWorldSnapshot(
+    val name: String,
+    val entityCount: Int
+)
+
+data class HostEntitySnapshot(
+    val uuid: String,
+    val type: String,
+    val location: HostLocationRef
+)
+
+data class HostInventorySnapshot(
+    val owner: String,
+    val size: Int,
+    val nonEmptySlots: Int
+)
+
+data class HostServerSnapshot(
+    val name: String,
+    val version: String,
+    val bukkitVersion: String? = null,
+    val onlinePlayers: Int,
+    val maxPlayers: Int,
+    val worldCount: Int
+)
+
+data class GigaTickEvent(
+    val tick: Long
+)
+
+data class GigaPlayerJoinEvent(
+    val player: HostPlayerSnapshot
+)
+
+data class GigaPlayerLeaveEvent(
+    val player: HostPlayerSnapshot
+)
+
+data class GigaPlayerMoveEvent(
+    val previous: HostPlayerSnapshot,
+    val current: HostPlayerSnapshot
+)
+
+data class GigaWorldCreatedEvent(
+    val world: HostWorldSnapshot
+)
+
+data class GigaEntitySpawnEvent(
+    val entity: HostEntitySnapshot
+)
+
+data class GigaInventoryChangeEvent(
+    val owner: String,
+    val slot: Int,
+    val itemId: String
+)
 
 fun interface GigaLogger {
     fun info(message: String)

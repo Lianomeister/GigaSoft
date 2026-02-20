@@ -2,6 +2,7 @@
 
 import com.gigasoft.api.GigaLogger
 import com.gigasoft.api.GigaPlugin
+import com.gigasoft.api.HostAccess
 import com.gigasoft.api.PluginManifest
 import java.net.URLClassLoader
 import java.nio.file.Files
@@ -27,6 +28,8 @@ data class LoadedPlugin(
 class GigaRuntime(
     private val pluginsDirectory: Path,
     private val dataDirectory: Path,
+    private val adapterSecurity: AdapterSecurityConfig = AdapterSecurityConfig(),
+    private val hostAccess: HostAccess = HostAccess.unavailable(),
     private val rootLogger: GigaLogger = GigaLogger { println("[GigaRuntime] $it") }
 ) {
     private val normalizedPluginsDirectory = pluginsDirectory.toAbsolutePath().normalize()
@@ -180,6 +183,10 @@ class GigaRuntime(
     }
 
     fun loadedPlugins(): List<LoadedPlugin> = loaded.values.sortedBy { it.manifest.id }
+
+    fun loadedPluginsView(): Collection<LoadedPlugin> = loaded.values
+
+    fun loadedPlugin(pluginId: String): LoadedPlugin? = loaded[pluginId]
 
     fun recordSystemTick(pluginId: String, systemId: String, durationNanos: Long, success: Boolean) {
         metrics.recordSystemTick(pluginId, systemId, durationNanos, success)
@@ -362,6 +369,7 @@ class GigaRuntime(
             val adapters = RuntimeModAdapterRegistry(
                 pluginId = manifest.id,
                 logger = pluginLogger,
+                securityConfig = adapterSecurity,
                 invocationObserver = { adapterId, outcome ->
                     metrics.recordAdapterInvocation(manifest.id, adapterId, outcome)
                 }
@@ -374,7 +382,8 @@ class GigaRuntime(
                 adapters,
                 storage,
                 commandRegistry,
-                eventBus
+                eventBus,
+                hostAccess
             )
 
             plugin.onEnable(context)
@@ -400,6 +409,9 @@ class GigaRuntime(
     private fun unloadInternal(pluginId: String, deleteRuntimeJar: Boolean): Boolean {
         val plugin = loaded.remove(pluginId) ?: return false
         safely("disable $pluginId") { plugin.instance.onDisable(plugin.context) }
+        safely("adapter shutdown $pluginId") {
+            (plugin.context.adapters as? RuntimeModAdapterRegistry)?.shutdown()
+        }
         plugin.scheduler.shutdown()
         val remainingTasks = plugin.scheduler.activeTaskCount()
         if (remainingTasks > 0) {

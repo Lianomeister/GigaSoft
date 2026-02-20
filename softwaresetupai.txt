@@ -1,171 +1,30 @@
 # GigaSoft Software Setup AI Blueprint
 
-## Zweck dieser Datei
-Diese Datei ist ein klarer Umsetzungs-Plan fuer andere AIs, um GigaSoft von einer Paper-gebundenen Hybrid-Loesung zu einer eigenstaendigen Server-Software weiterzuentwickeln.
+## Zweck
+Umsetzungsplan fuer die standalone-first Weiterentwicklung von GigaSoft.
 
-## Ausgangslage (Stand jetzt)
-1. GigaSoft hat bereits:
-- `gigasoft-api` (DSL + Contracts)
-- `gigasoft-runtime` (Lifecycle, Reload, Dependency Resolver, Storage, Metrics)
-- `gigasoft-bridge-paper` (Paper-Bridge + Admin Commands)
-- `gigasoft-core` (neuer host-unabhaengiger Core-Tick-Layer)
-- `gigasoft-standalone` (startbares Standalone-Binary)
-
-2. Wichtige Realitaet:
-- Paper ist noch die reifste Host-Umgebung fuer echtes Minecraft-Gameplay.
-- Standalone-Core existiert, ist aber noch kein vollstaendiger Minecraft-Server (Netzwerk/World/Entity fehlen).
-
-## Zielbild
-GigaSoft soll eine eigenstaendige Server-Software werden, in der:
-1. GigaSoft-Core die Haupt-Runtime ist.
-2. Paper nur noch optionaler Kompatibilitaets-Adapter ist (nicht Pflicht).
-3. GigaPlugins die primaere Erweiterungsform bleiben.
-4. Legacy-Kompatibilitaet weiterhin moeglich ist (moeglichst ueber Adapter/Bridge-Layer).
+## Aktive Zielarchitektur
+- `gigasoft-api`
+- `gigasoft-host-api`
+- `gigasoft-net`
+- `gigasoft-runtime`
+- `gigasoft-core`
+- `gigasoft-standalone`
+- `gigasoft-demo-standalone`
 
 ## Leitprinzipien
-1. Runtime zuerst:
-- Host-unabhaengige Kernlogik in `gigasoft-core` / `gigasoft-runtime`.
+1. Standalone zuerst.
+2. Host-neutrale Kernlogik.
+3. Sicherheit standardmaessig.
+4. Performance messbar halten.
 
-2. Klare Trennung:
-- Domain/Engine abstrahiert, Host-Implementierungen getrennt.
-
-3. Sicherheit standardmaessig:
-- Guardrails, Limits, Timeouts, Quotas, Auditability.
-
-4. Inkrementelle Migration:
-- Nicht Big Bang. Schrittweise von Hybrid -> Standalone-First.
-
-## Zielarchitektur (hoch)
-1. `gigasoft-engine` (neu / aus Core ausbauen)
-- Tick orchestration
-- Scheduler
-- State management
-- Registry execution
-
-2. `gigasoft-host-api` (neu)
-- Abstrakte Interfaces fuer:
-  - World
-  - Player
-  - Entity
-  - Inventory
-  - Commands
-  - Events
-
-3. Host-Implementierungen
-- `gigasoft-host-paper` (kompatibel, optional)
-- `gigasoft-host-standalone` (native GigaSoft Host)
-
-4. `gigasoft-net` (neu)
-- Netzwerk, Session, Handshake, Paketverarbeitung.
-
-5. `gigasoft-storage` (optional entkoppeln)
-- JSON v1 bleibt, spaeter erweiterbar.
-
-## Migrationsphasen
-
-### Phase A: Host-Abstraktion stabilisieren (sofort)
-Ziel:
-- Paper-spezifische Typen nicht im Core verteilen.
-
-Tasks:
-1. Host-API Modul anlegen (`gigasoft-host-api`).
-2. `PluginContext` schrittweise auf Host-Abstraktionen mappen.
-3. `PaperBridgeAdapters` auf Host-API kompatibel refactoren.
-
-Definition of Done:
-- Core-Code compiliert ohne direkte Bukkit/Paper-Imports.
-
-### Phase B: Standalone Core als Produktpfad
-Ziel:
-- Standalone-Prozess als offizieller Startmodus.
-
-Tasks:
-1. Standalone Console verbessern (structured output, config file support).
-2. Start/Stop/Reload/Doctor/Profile parity mit Bridge sichern.
-3. Integrationstests fuer Standalone-Lifecycle einfuehren.
-
-Definition of Done:
-- CI testet Standalone-Boot und Plugin-Reload.
-
-### Phase C: Native Host Grundlagen
-Ziel:
-- Eigene Server-Grundfunktionen bereitstellen.
-
-Tasks:
-1. Netzwerk-Basics (connection/session loop).
-2. Minimal World Model.
-3. Minimal Player model.
-4. Event pipeline fuer Join/Leave/Tick.
-
-Definition of Done:
-- Minimal nativer Lauf mit Join/Tick/Commands ohne Paper.
-
-### Phase D: Gameplay + Kompatibilitaet
-Ziel:
-- Mod-artige Features und Legacy-Pfade verbessern.
-
-Tasks:
-1. Machine/Recipe-Systeme auf nativen Host mappen.
-2. Optionaler Legacy-Bridge-Modus fuer Paper.
-3. Performance + Security hardening.
-
-Definition of Done:
-- Standalone kann Demo-Plugin ohne Paper ausfuehren.
-
-## Prioritaet (naechste 2 Wochen)
-1. `gigasoft-host-api` erstellen.
-2. `gigasoft-core` refactor: keine Host-Leaks.
-3. Standalone Integrationstests anlegen.
-4. Config fuer Adapter Security thresholds (timeout/rate/payload) einfuehren.
-5. RC2.1 Snapshot mit Standalone-Preview veroeffentlichen.
-
-## Security Roadmap
-1. Per-plugin quotas (task rate, memory hint, adapter calls).
-2. Sandboxed invocation policies fuer Adapter.
-3. Audit log standardisieren (JSON lines).
-4. Abuse protection fuer command endpoints.
-
-## Teststrategie fuer den Umbau
-1. Unit:
-- Host abstraction contracts
-- Scheduler determinism
-- Resolver/reload invariants
-
-2. Integration:
-- Standalone boot
-- Reload rollback
-- Adapter policy enforcement
-
-3. Soak:
-- 6h+ tick stability
-- repeated reload cycles
-- leak checks
-
-## Release-Strategie
-1. `0.1.x`:
-- Hybrid + Standalone Preview.
-
-2. `0.2.x`:
-- Host-API stabil + Standalone testbar fuer kleine Umgebungen.
-
-3. `0.3.x`:
-- Native host Fokus, Paper optional.
-
-## Konkrete Arbeitsregel fuer andere AIs
-1. Nie direkt bestehende Legacy-Kompatibilitaet brechen.
-2. Jede Phase nur mit gruenem `test + integrationSmoke`.
-3. Vor jedem groesseren Umbau `ai.txt` und diese Datei updaten.
-4. Neue Module nur mit klarer Verantwortung einfuehren.
-5. Keine Paper-internen Klassen in Core-Module ziehen.
-
-## Schnellstart-Kommandos
+## Build/Test Gates
 1. `gradlew test`
-2. `gradlew integrationSmoke`
-3. `gradlew buildPlugin`
-4. `java -jar gigasoft-standalone/build/libs/gigasoft-standalone-0.1.0-rc.2.jar`
+2. `gradlew performanceBaseline`
+3. `gradlew standaloneReleaseCandidate`
 
-## Kurzfazit
-GigaSoft ist jetzt in der Uebergangsphase:
-- nicht mehr nur Paper-Plugin-Denke,
-- aber noch nicht komplett eigener Minecraft-Server.
-Der naechste kritische Hebel ist eine saubere Host-Abstraktion und der Ausbau des nativen Standalone-Hosts.
+## Definition of Done fuer Releases
+- alle Tests gruen
+- `performanceBaseline` gruen
+- `standaloneReleaseCandidate` gruen
+- Release aus `build/release-standalone/<version>/`

@@ -1,0 +1,20 @@
+﻿compatibility:
+  via:
+    auto_install: true
+    auto_load: true
+    request_timeout_seconds: 20
+    viaversion:
+      enabled: true
+      project_slug: viaversion
+      file_name: ViaVersion.jar
+    viabackwards:
+      enabled: true
+      project_slug: viabackwards
+      file_name: ViaBackwards.jar
+adapter_security:
+  max_payload_entries: 32
+  max_payload_key_chars: 64
+  max_payload_value_chars: 512
+  max_payload_total_chars: 4096
+  max_calls_per_minute: 180
+  invocation_timeout_millis: 250

@@ -1,151 +1,32 @@
 # GigaSoft AI Handover
 
-## 1) Projektziel (verbessert)
-GigaSoft ist eine hybride Server-Software fuer Minecraft auf Paper-Basis.
-Das Kernziel ist:
-- volle Legacy-Kompatibilitaet zu Paper/Spigot-Plugins behalten,
-- gleichzeitig eine neue, sehr einfache Kotlin-DSL fuer extrem leistungsfaehige Plugins liefern,
-- damit Create-artige Systeme (Maschinen, Rezepte, Tick-Logik, States) ohne Mod-Loader gebaut werden koennen.
+## Projektstatus
+GigaSoft ist standalone-first. Der aktive Release-Pfad ist rein standalone.
 
-Langfristiges Ziel:
-- von "Plugin kann nur Events" zu "Plugin kann Gameplay-Systeme wie Mods" wechseln,
-- mit schnellem Creator-Loop (build -> reload -> testen),
-- stabil, sicher und produktionsfaehig.
+## Aktive Module
+- `gigasoft-api`
+- `gigasoft-host-api`
+- `gigasoft-net`
+- `gigasoft-runtime`
+- `gigasoft-core`
+- `gigasoft-standalone`
+- `gigasoft-cli`
+- `gigasoft-demo-standalone`
 
-## 2) Was GigaSoft aktuell ist
-- Hybrid-Phase: eigener Standalone-Core ist gestartet, Paper-Bridge bleibt parallel bestehen.
-- Ein Paper-Bridge-Plugin plus eigene Runtime fuer GigaPlugins.
-- Monorepo mit:
-  - `gigasoft-api` (oeffentliche API + DSL)
-  - `gigasoft-runtime` (Lifecycle, Loader, Reload, Storage, Guardrails, Metrics)
-  - `gigasoft-core` (eigener host-unabhaengiger Core-Tick-Lifecycle)
-  - `gigasoft-standalone` (ausfuehrbares Standalone-Server-Binary)
-  - `gigasoft-bridge-paper` (Paper-Adapter, `/giga` Commands)
-  - `gigasoft-cli` (lokale Dev-Serversteuerung)
-  - `gigasoft-demo` (Referenz-Plugin)
-  - `gigasoft-integration` (Paper Smoke Integration Test)
+## Build- und Release-Pfad
+- `gradlew test`
+- `gradlew performanceBaseline`
+- `gradlew standaloneReleaseCandidate`
 
-## 3) Unterschiede zu Paper (Stand jetzt)
-Paper selbst:
-- laedt Standard-Plugins,
-- bietet Bukkit/Paper API,
-- hat keine native Kotlin-DSL fuer mod-aehnliche Gameplay-Systeme,
-- hat kein transaktionales Hot-Reload fuer isolierte Plugin-Runtime mit Rollback.
+Release-Artefakte liegen unter:
+- `build/release-standalone/<version>/`
 
-GigaSoft zusaetzlich auf Paper:
-1. Zweites Plugin-Modell:
-- `LegacyPlugin` indirekt weiter ueber Paper.
-- `GigaPlugin` ueber `gigaplugin.yml` + Runtime-Classloader-Isolation.
+## Fokus
+1. Standalone-Core/Netzwerk weiter ausbauen.
+2. Performance weiter optimieren und Regressionen ueber `performanceBaseline` absichern.
+3. Host-neutrale API und Adapter stabil halten.
 
-2. Eigene Runtime mit Safety-Layer:
-- Dependency-Resolver (inkl. Version Ranges),
-- transaktionales Reload mit Status (`SUCCESS`, `ROLLED_BACK`, `FAILED`),
-- Data-Checkpoint + Rollback bei Fehlern,
-- Guardrails fuer Manifest/Jar-Pfade/Jar-Groesse.
-
-3. Kotlin DSL fuer Systemaufbau:
-- `gigaPlugin { items {} blocks {} recipes {} machines {} systems {} commands {} adapters {} }`
-- Fokus auf zustandsgetriebene, tick-basierte Systeme.
-
-4. Adapter-API:
-- pro Plugin `ModAdapterRegistry`,
-- Bridge-Adapter vorhanden:
-  - `bridge.paper.server` (`server.info`, `server.broadcast`)
-  - `bridge.paper.player` (`player.lookup`)
-
-5. Adapter-Sicherheit:
-- Action/ID-Validierung,
-- Payload-Limits,
-- optionale Capability-Pruefung (`required_capability`),
-- Rate-Limit,
-- Timeout-Schutz,
-- Outcome-Counter (`accepted`, `denied`, `timeouts`, `failures`).
-
-6. Runtime-Observability:
-- `/giga profile <plugin> [--json]`
-- System- und Task-Laufzeitmetriken,
-- Adapter-Metriken.
-
-7. Admin-Steuerung:
-- `/giga doctor`, `/giga reload`, `/giga adapters`, `/giga adapter invoke`, etc.
-- feingranulare Permission-Nodes `gigasoft.admin.*`.
-
-8. Kompatibilitaets-Extras:
-- ViaVersion + ViaBackwards koennen automatisch provisioniert/geladen werden (konfigurierbar).
-
-9. Eigener Startpfad (neu):
-- `gigasoft-standalone` kann ohne Paper gestartet werden.
-- Enthalten: Plugin-Scan, Tick-Loop, Reload/Doctor/Profile in eigener Konsole.
-- Damit ist Paper nicht mehr zwingend fuer alle Deployments, aber weiterhin die reifere Minecraft-Host-Option.
-
-Kurzfassung:
-- Paper bleibt die Host-Runtime.
-- GigaSoft legt eine neue, leistungsstarke "Plugin-Plattform auf Paper" oben drauf.
-
-## 4) Technischer Ist-Zustand
-- Baseline: `0.1.0-rc.2`
-- JDK 21, latest-targeted Paper 1.21.x
-- Tests: `./gradlew.bat test integrationSmoke` gruen
-- CI/Release-Struktur vorhanden
-- Docker- und lokale Dev-Workflows vorhanden
-- Neuer Standalone-Core-Bootstrap vorhanden (`gigasoft-core`, `gigasoft-standalone`)
-
-## 5) Wichtigste Features im Repo
-1. Runtime + Lifecycle
-- Laden/Unload/Reload von GigaPlugins,
-- isolierte Classloader je GigaPlugin.
-
-2. Persistenz
-- JSON-Storage je Plugin,
-- Migrationspfad im API-Design.
-
-3. Diagnostics
-- Dependency Graph + Version/API Checks via `/giga doctor [--json]`.
-
-4. Profiling
-- `/giga profile <plugin> [--json]` mit Laufzeitdaten.
-
-5. Adapter-Admin
-- `/giga adapters <plugin> [--json]`
-- `/giga adapter invoke <plugin> <adapterId> <action> [k=v ...] [--json]`
-- Audit-Logging fuer Admin-Invokes.
-
-6. Website
-- statische Info-Seite unter `website/` mit Placeholder-Video-Slots und Donate-Bereich.
-
-## 6) Bekannte Grenzen (bewusst)
-- Eigener Core ist erst in frueher Phase (noch kein kompletter Minecraft-Netzwerk/World-Stack).
-- Kein visuelles Authoring-Tool.
-- Kein Multi-Version-Ziel ausser latest.
-- Keine vollstaendige Create-Paritaet (nur Grundlage).
-
-## 7) Naechste Prioritaeten
-1. Command-Integrationstests fuer neue Adapter-Admin-Pfade.
-2. Adapter-Sicherheitswerte konfigurierbar machen (Timeout/Rate/Payload per Config).
-3. Standalone-Core ausbauen:
-   - Netzwerk-Layer,
-   - World/Entity/Inventory-Abstraktionen,
-   - Paper-unabhaengige Game-Loop-Komponenten.
-4. Profilmetriken exportierbar machen (Datei/Prometheus-kompatibler Endpunkt spaeter).
-5. RC2 finalisieren:
-   - `gradlew releaseCandidate`
-   - Tag + GitHub Pre-Release.
-6. Langlauf/Soak-Tests mit Memory-Baseline + Reload-Zyklen.
-
-## 8) GitHub/Release Status
-- Repo: `https://github.com/Lianomeister/GigaSoft`
-- Aktueller Workstream: RC2
-- Bereits vorhanden: Pre-Release `v0.1.0-rc.1`
-
-Beispiel Release-Kommandos:
-1. `git tag -a v0.1.0-rc.2 -m "GigaSoft 0.1.0-rc.2"`
-2. `git push origin v0.1.0-rc.2`
-3. `gh release create v0.1.0-rc.2 build/release/0.1.0-rc.2/gigasoft-bridge-paper-0.1.0-rc.2.jar build/release/0.1.0-rc.2/gigasoft-demo-0.1.0-rc.2.jar build/release/0.1.0-rc.2/gigasoft-cli-0.1.0-rc.2.jar --repo Lianomeister/GigaSoft --title "GigaSoft 0.1.0-rc.2" --prerelease`
-
-## 9) Quick Commands
-- `gradlew test integrationSmoke`
-- `gradlew releaseCandidate`
-- `giga server start`
-- `giga server stop`
-- `giga server status`
-- `giga server logs --follow`
+## Quick Commands
+- `gradlew test`
+- `gradlew performanceBaseline`
+- `gradlew standaloneReleaseCandidate`

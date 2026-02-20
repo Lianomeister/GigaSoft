@@ -18,25 +18,47 @@ class RuntimeCommandRegistry : CommandRegistry {
     }
 
     fun execute(ctx: PluginContext, sender: String, commandLine: String): String {
-        val tokens = commandLine.trim().split(" ").filter { it.isNotBlank() }
+        val tokens = tokenizeCommand(commandLine)
         if (tokens.isEmpty()) return ""
-        val key = tokens.first().lowercase()
-        val args = tokens.drop(1)
+        val key = tokens[0].lowercase()
+        val args = if (tokens.size > 1) tokens.subList(1, tokens.size) else emptyList()
         val handler = handlers[key] ?: return "Unknown command: $key"
         return handler.second(ctx, sender, args)
     }
 
     fun commands(): Map<String, String> = handlers.mapValues { it.value.first }
+
+    private fun tokenizeCommand(input: String): List<String> {
+        val out = ArrayList<String>(8)
+        val len = input.length
+        var i = 0
+        while (i < len) {
+            while (i < len && input[i].isWhitespace()) i++
+            if (i >= len) break
+            val start = i
+            while (i < len && !input[i].isWhitespace()) i++
+            out.add(input.substring(start, i))
+        }
+        return out
+    }
 }
 
 class RuntimeEventBus : EventBus {
     private val listeners = ConcurrentHashMap<Class<*>, CopyOnWriteArrayList<(Any) -> Unit>>()
+    private val dispatchCache = ConcurrentHashMap<Class<*>, Array<(Any) -> Unit>>()
 
+    @Suppress("UNCHECKED_CAST")
     override fun <T : Any> subscribe(eventType: Class<T>, listener: (T) -> Unit) {
         listeners.computeIfAbsent(eventType) { CopyOnWriteArrayList() }.add { event -> listener(event as T) }
+        dispatchCache.remove(eventType)
     }
 
     override fun publish(event: Any) {
-        listeners[event::class.java]?.forEach { it(event) }
+        val callbacks = dispatchCache.computeIfAbsent(event::class.java) {
+            listeners[it]?.toTypedArray() ?: emptyArray()
+        }
+        for (callback in callbacks) {
+            callback(event)
+        }
     }
 }

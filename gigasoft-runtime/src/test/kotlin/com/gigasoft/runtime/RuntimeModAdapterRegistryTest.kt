@@ -92,6 +92,64 @@ class RuntimeModAdapterRegistryTest {
         assertTrue(result.message?.contains("timed out") == true)
     }
 
+    @Test
+    fun `security config applies custom timeout`() {
+        val registry = RuntimeModAdapterRegistry(
+            pluginId = "demo",
+            logger = logger(),
+            securityConfig = AdapterSecurityConfig(invocationTimeoutMillis = 50L)
+        )
+        registry.register(
+            adapter("slow") {
+                Thread.sleep(120)
+                AdapterResponse(success = true)
+            }
+        )
+
+        val result = registry.invoke("slow", AdapterInvocation("ping"))
+        assertFalse(result.success)
+        assertTrue(result.message?.contains("50ms") == true)
+    }
+
+    @Test
+    fun `security config applies custom rate limit`() {
+        val registry = RuntimeModAdapterRegistry(
+            pluginId = "demo",
+            logger = logger(),
+            securityConfig = AdapterSecurityConfig(maxCallsPerMinute = 1)
+        )
+        registry.register(adapter("bridge"))
+
+        assertTrue(registry.invoke("bridge", AdapterInvocation("ping")).success)
+        val second = registry.invoke("bridge", AdapterInvocation("ping"))
+        assertFalse(second.success)
+        assertTrue(second.message?.contains("rate limit exceeded") == true)
+    }
+
+    @Test
+    fun `fast mode bypasses rate limit and timeout`() {
+        val registry = RuntimeModAdapterRegistry(
+            pluginId = "demo",
+            logger = logger(),
+            securityConfig = AdapterSecurityConfig(
+                maxCallsPerMinute = 0,
+                invocationTimeoutMillis = 0L,
+                executionMode = AdapterExecutionMode.FAST
+            )
+        )
+        registry.register(
+            adapter("slow") {
+                Thread.sleep(20)
+                AdapterResponse(success = true)
+            }
+        )
+
+        val first = registry.invoke("slow", AdapterInvocation("ping"))
+        val second = registry.invoke("slow", AdapterInvocation("ping"))
+        assertTrue(first.success)
+        assertTrue(second.success)
+    }
+
     private fun logger() = com.gigasoft.api.GigaLogger { }
 
     private fun adapter(

@@ -1,21 +1,76 @@
 package com.gigasoft.core
 
+import com.gigasoft.api.AdapterInvocation
+import com.gigasoft.api.AdapterResponse
 import com.gigasoft.api.GigaLogger
+import com.gigasoft.api.GigaEntitySpawnEvent
+import com.gigasoft.api.GigaInventoryChangeEvent
+import com.gigasoft.api.GigaPlayerJoinEvent
+import com.gigasoft.api.GigaPlayerLeaveEvent
+import com.gigasoft.api.GigaPlayerMoveEvent
+import com.gigasoft.api.GigaTickEvent
+import com.gigasoft.api.GigaWorldCreatedEvent
+import com.gigasoft.api.EventBus
+import com.gigasoft.api.HostEntitySnapshot
+import com.gigasoft.api.HostLocationRef
+import com.gigasoft.api.HostPlayerSnapshot
+import com.gigasoft.api.HostWorldSnapshot
+import com.gigasoft.api.PluginContext
+import com.gigasoft.api.TickSystem
+import com.gigasoft.host.api.HostBridgeAdapters
+import com.gigasoft.host.api.asHostAccess
+import com.gigasoft.runtime.AdapterSecurityConfig
 import com.gigasoft.runtime.GigaRuntime
 import com.gigasoft.runtime.PluginRuntimeProfile
 import com.gigasoft.runtime.ReloadReport
+import com.gigasoft.runtime.RuntimeCommandRegistry
 import com.gigasoft.runtime.RuntimeDiagnostics
+import com.gigasoft.runtime.RuntimeRegistry
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
 
 data class StandaloneCoreConfig(
     val pluginsDirectory: Path,
     val dataDirectory: Path,
-    val tickPeriodMillis: Long = 50L
+    val tickPeriodMillis: Long = 50L,
+    val serverName: String = "GigaSoft Standalone",
+    val serverVersion: String = "0.1.0-rc.2",
+    val maxPlayers: Int = 0,
+    val autoSaveEveryTicks: Long = 200L,
+    val adapterSecurity: AdapterSecurityConfig = AdapterSecurityConfig()
+)
+
+data class AdapterDescriptor(
+    val id: String,
+    val name: String,
+    val version: String,
+    val capabilities: Set<String>
+)
+
+data class StandaloneCoreStatus(
+    val running: Boolean,
+    val uptimeMillis: Long,
+    val tickCount: Long,
+    val averageTickDurationNanos: Long,
+    val lastTickDurationNanos: Long,
+    val tickFailures: Long,
+    val averageQueueDrainNanos: Long,
+    val averageWorldTickNanos: Long,
+    val averageEventPublishNanos: Long,
+    val averageSystemsNanos: Long,
+    val loadedPlugins: Int,
+    val onlinePlayers: Int,
+    val worlds: Int,
+    val entities: Int,
+    val queuedMutations: Int
 )
 
 class GigaStandaloneCore(
@@ -23,24 +78,76 @@ class GigaStandaloneCore(
     private val logger: GigaLogger = GigaLogger { println("[GigaCore] $it") }
 ) {
     private val running = AtomicBoolean(false)
+    private val startedAtMillis = AtomicLong(0)
+    private val coreThreadId = AtomicLong(-1L)
+    private val tickCounter = AtomicLong(0)
+    private val tickFailureCounter = AtomicLong(0)
+    private val tickTotalDurationNanos = AtomicLong(0)
+    private val lastTickDurationNanos = AtomicLong(0)
+    private val tickQueueDrainNanos = AtomicLong(0)
+    private val tickWorldNanos = AtomicLong(0)
+    private val tickEventNanos = AtomicLong(0)
+    private val tickSystemsNanos = AtomicLong(0)
+    private val commandQueue = ConcurrentLinkedQueue<() -> Unit>()
+    private val hostState = StandaloneHostState()
+    private val statePersistence = StandaloneStatePersistence(config.dataDirectory.resolve("standalone-state.json"))
+    @Volatile
+    private var tickPlugins: List<TickPluginSnapshot> = emptyList()
     private lateinit var runtime: GigaRuntime
     private lateinit var scheduler: ScheduledExecutorService
+    private val hostBridge = StandaloneHostBridge(
+        serverName = config.serverName,
+        serverVersion = config.serverVersion,
+        maxPlayers = config.maxPlayers,
+        logger = logger,
+        hostState = hostState
+    )
+    private data class TickPluginSnapshot(
+        val pluginId: String,
+        val context: PluginContext,
+        val events: EventBus,
+        val runtimeRegistry: RuntimeRegistry?,
+        val systemsVersion: Long,
+        val systems: List<Pair<String, TickSystem>>
+    )
 
     fun start() {
         if (!running.compareAndSet(false, true)) return
+        startedAtMillis.set(System.currentTimeMillis())
+        tickCounter.set(0L)
+        tickFailureCounter.set(0L)
+        tickTotalDurationNanos.set(0L)
+        lastTickDurationNanos.set(0L)
+        tickQueueDrainNanos.set(0L)
+        tickWorldNanos.set(0L)
+        tickEventNanos.set(0L)
+        tickSystemsNanos.set(0L)
+        commandQueue.clear()
+
         Files.createDirectories(config.pluginsDirectory)
         Files.createDirectories(config.dataDirectory)
+        loadState()
 
         runtime = GigaRuntime(
             pluginsDirectory = config.pluginsDirectory,
             dataDirectory = config.dataDirectory,
+            adapterSecurity = config.adapterSecurity,
+            hostAccess = hostBridge.asHostAccess(),
             rootLogger = logger
         )
+
         scheduler = Executors.newSingleThreadScheduledExecutor { runnable ->
-            Thread(runnable, "gigasoft-core-tick").apply { isDaemon = true }
+            Thread(
+                {
+                    coreThreadId.set(Thread.currentThread().threadId())
+                    runnable.run()
+                },
+                "gigasoft-core-tick"
+            ).apply { isDaemon = true }
         }
 
-        runtime.scanAndLoad()
+        installStandaloneBridgeAdapters(runtime.scanAndLoad())
+        refreshTickPluginsSnapshot()
         scheduler.scheduleAtFixedRate(
             { tick() },
             1L,
@@ -53,37 +160,253 @@ class GigaStandaloneCore(
     fun stop() {
         if (!running.compareAndSet(true, false)) return
         scheduler.shutdownNow()
-        runtime.loadedPlugins().forEach { runtime.unload(it.manifest.id) }
+        saveState()
+        runtime.loadedPluginsView().map { it.manifest.id }.forEach { runtime.unload(it) }
+        tickPlugins = emptyList()
+        startedAtMillis.set(0L)
+        coreThreadId.set(-1L)
         logger.info("Standalone core stopped")
     }
 
     fun plugins(): List<String> {
-        return runtime.loadedPlugins().map { "${it.manifest.id}@${it.manifest.version}" }
+        return if (this::runtime.isInitialized) {
+            runtime.loadedPlugins().map { "${it.manifest.id}@${it.manifest.version}" }
+        } else {
+            emptyList()
+        }
     }
 
-    fun reload(pluginId: String): ReloadReport = runtime.reloadWithReport(pluginId)
+    fun reload(pluginId: String): ReloadReport = mutate {
+        ensureRuntimeInitialized()
+        val report = runtime.reloadWithReport(pluginId)
+        installStandaloneBridgeAdapters(runtime.loadedPlugins().filter { it.manifest.id in report.reloadedPlugins.toSet() })
+        refreshTickPluginsSnapshot()
+        report
+    }
 
-    fun reloadAll(): ReloadReport = runtime.reloadAllWithReport()
+    fun reloadAll(): ReloadReport = mutate {
+        ensureRuntimeInitialized()
+        val report = runtime.reloadAllWithReport()
+        installStandaloneBridgeAdapters(runtime.loadedPlugins().filter { it.manifest.id in report.reloadedPlugins.toSet() })
+        refreshTickPluginsSnapshot()
+        report
+    }
 
-    fun profile(pluginId: String): PluginRuntimeProfile? = runtime.profile(pluginId)
+    fun profile(pluginId: String): PluginRuntimeProfile? {
+        ensureRuntimeInitialized()
+        return runtime.profile(pluginId)
+    }
 
-    fun doctor(): RuntimeDiagnostics = runtime.diagnostics()
+    fun doctor(): RuntimeDiagnostics {
+        ensureRuntimeInitialized()
+        return runtime.diagnostics()
+    }
 
-    fun loadNewPlugins(): Int = runtime.scanAndLoad().size
+    fun loadNewPlugins(): Int = mutate {
+        ensureRuntimeInitialized()
+        val loadedPlugins = runtime.scanAndLoad()
+        installStandaloneBridgeAdapters(loadedPlugins)
+        if (loadedPlugins.isNotEmpty()) {
+            refreshTickPluginsSnapshot()
+        }
+        loadedPlugins.size
+    }
+
+    fun run(pluginId: String, sender: String, commandLine: String): String {
+        ensureRuntimeInitialized()
+        val plugin = runtime.loadedPlugin(pluginId)
+            ?: return "Unknown plugin: $pluginId"
+        val registry = plugin.context.commands as? RuntimeCommandRegistry
+            ?: return "Plugin command registry unavailable"
+        return registry.execute(plugin.context, sender, commandLine)
+    }
+
+    fun adapters(pluginId: String): List<AdapterDescriptor> {
+        ensureRuntimeInitialized()
+        val plugin = runtime.loadedPlugin(pluginId) ?: return emptyList()
+        return plugin.context.adapters.list().map { adapter ->
+            AdapterDescriptor(
+                id = adapter.id,
+                name = adapter.name,
+                version = adapter.version,
+                capabilities = adapter.capabilities
+            )
+        }.sortedBy { it.id }
+    }
+
+    fun invokeAdapter(
+        pluginId: String,
+        adapterId: String,
+        action: String,
+        payload: Map<String, String>
+    ): AdapterResponse {
+        ensureRuntimeInitialized()
+        val plugin = runtime.loadedPlugin(pluginId)
+            ?: return AdapterResponse(success = false, message = "Unknown plugin: $pluginId")
+        return plugin.context.adapters.invoke(adapterId, AdapterInvocation(action, payload))
+    }
+
+    fun players(): List<StandalonePlayer> = hostState.players()
+    fun worlds(): List<StandaloneWorld> = hostState.worlds()
+    fun entities(world: String? = null): List<StandaloneEntity> = hostState.entities(world)
+
+    fun joinPlayer(
+        name: String,
+        world: String = "world",
+        x: Double = 0.0,
+        y: Double = 64.0,
+        z: Double = 0.0
+    ): StandalonePlayer = mutate {
+        val player = hostState.joinPlayer(name, world, x, y, z)
+        publishEvent(StandalonePlayerJoinEvent(player))
+        publishEvent(GigaPlayerJoinEvent(player.toHostSnapshot()))
+        player
+    }
+
+    fun leavePlayer(name: String): StandalonePlayer? = mutate {
+        val player = hostState.leavePlayer(name) ?: return@mutate null
+        publishEvent(StandalonePlayerLeaveEvent(player))
+        publishEvent(GigaPlayerLeaveEvent(player.toHostSnapshot()))
+        player
+    }
+
+    fun movePlayer(
+        name: String,
+        x: Double,
+        y: Double,
+        z: Double,
+        world: String? = null
+    ): StandalonePlayer? = mutate {
+        val previous = hostState.findPlayer(name) ?: return@mutate null
+        val moved = hostState.movePlayer(name, x, y, z, world) ?: return@mutate null
+        publishEvent(StandalonePlayerMoveEvent(previous, moved))
+        publishEvent(GigaPlayerMoveEvent(previous.toHostSnapshot(), moved.toHostSnapshot()))
+        moved
+    }
+
+    fun createWorld(name: String, seed: Long = 0L): StandaloneWorld = mutate {
+        val world = hostState.createWorld(name, seed)
+        publishEvent(StandaloneWorldCreatedEvent(world))
+        publishEvent(
+            GigaWorldCreatedEvent(
+                HostWorldSnapshot(
+                    name = world.name,
+                    entityCount = hostState.entityCount(world.name)
+                )
+            )
+        )
+        world
+    }
+
+    fun spawnEntity(
+        type: String,
+        world: String,
+        x: Double,
+        y: Double,
+        z: Double
+    ): StandaloneEntity = mutate {
+        val entity = hostState.spawnEntity(type, world, x, y, z)
+        publishEvent(StandaloneEntitySpawnEvent(entity))
+        publishEvent(
+            GigaEntitySpawnEvent(
+                HostEntitySnapshot(
+                    uuid = entity.uuid,
+                    type = entity.type,
+                    location = HostLocationRef(
+                        world = entity.world,
+                        x = entity.x,
+                        y = entity.y,
+                        z = entity.z
+                    )
+                )
+            )
+        )
+        entity
+    }
+
+    fun inventory(owner: String): StandaloneInventory? = hostState.inventory(owner)
+
+    fun setInventoryItem(owner: String, slot: Int, itemId: String): Boolean = mutate {
+        val updated = hostState.setInventoryItem(owner, slot, itemId)
+        if (updated) {
+            publishEvent(StandaloneInventoryChangeEvent(owner, slot, itemId))
+            publishEvent(GigaInventoryChangeEvent(owner, slot, itemId))
+        }
+        updated
+    }
+
+    fun saveState() {
+        mutate {
+            runCatching {
+                statePersistence.save(hostState.snapshot())
+            }.onFailure {
+                logger.info("Failed saving standalone state: ${it.message}")
+            }
+        }
+    }
+
+    fun loadState() {
+        mutate {
+            runCatching {
+                val snapshot = statePersistence.load() ?: return@runCatching
+                hostState.restore(snapshot)
+            }.onFailure {
+                logger.info("Failed loading standalone state: ${it.message}")
+            }
+        }
+    }
+
+    fun status(): StandaloneCoreStatus {
+        val ticks = tickCounter.get()
+        val average = if (ticks <= 0L) 0L else tickTotalDurationNanos.get() / ticks
+        val loadedPlugins = tickPlugins.size
+        return StandaloneCoreStatus(
+            running = running.get(),
+            uptimeMillis = if (startedAtMillis.get() == 0L) 0L else (System.currentTimeMillis() - startedAtMillis.get()),
+            tickCount = ticks,
+            averageTickDurationNanos = average,
+            lastTickDurationNanos = lastTickDurationNanos.get(),
+            tickFailures = tickFailureCounter.get(),
+            averageQueueDrainNanos = if (ticks <= 0L) 0L else tickQueueDrainNanos.get() / ticks,
+            averageWorldTickNanos = if (ticks <= 0L) 0L else tickWorldNanos.get() / ticks,
+            averageEventPublishNanos = if (ticks <= 0L) 0L else tickEventNanos.get() / ticks,
+            averageSystemsNanos = if (ticks <= 0L) 0L else tickSystemsNanos.get() / ticks,
+            loadedPlugins = loadedPlugins,
+            onlinePlayers = hostState.onlinePlayerCount(),
+            worlds = hostState.worldCount(),
+            entities = hostState.entityCount(),
+            queuedMutations = commandQueue.size
+        )
+    }
 
     private fun tick() {
-        runtime.loadedPlugins().forEach { plugin ->
-            plugin.context.registry.systems().toSortedMap().forEach { (systemId, system) ->
+        val tickStarted = System.nanoTime()
+        var tickFailure = false
+        val beforeQueue1 = System.nanoTime()
+        drainCommandQueue()
+        tickQueueDrainNanos.addAndGet(System.nanoTime() - beforeQueue1)
+        maybeRefreshTickPluginsSnapshot()
+        val beforeWorld = System.nanoTime()
+        hostState.tickWorlds()
+        tickWorldNanos.addAndGet(System.nanoTime() - beforeWorld)
+        val tick = tickCounter.incrementAndGet()
+        val beforeEvents = System.nanoTime()
+        publishTickEvents(tick)
+        tickEventNanos.addAndGet(System.nanoTime() - beforeEvents)
+        val beforeSystems = System.nanoTime()
+        for (entry in tickPlugins) {
+            for ((systemId, system) in entry.systems) {
                 val started = System.nanoTime()
                 var success = true
                 try {
-                    system.onTick(plugin.context)
+                    system.onTick(entry.context)
                 } catch (t: Throwable) {
                     success = false
-                    logger.info("System ${plugin.manifest.id}:$systemId failed: ${t.message}")
+                    tickFailure = true
+                    logger.info("System ${entry.pluginId}:$systemId failed: ${t.message}")
                 } finally {
                     runtime.recordSystemTick(
-                        pluginId = plugin.manifest.id,
+                        pluginId = entry.pluginId,
                         systemId = systemId,
                         durationNanos = System.nanoTime() - started,
                         success = success
@@ -91,5 +414,137 @@ class GigaStandaloneCore(
                 }
             }
         }
+        tickSystemsNanos.addAndGet(System.nanoTime() - beforeSystems)
+        val beforeQueue2 = System.nanoTime()
+        drainCommandQueue()
+        tickQueueDrainNanos.addAndGet(System.nanoTime() - beforeQueue2)
+
+        val duration = System.nanoTime() - tickStarted
+        lastTickDurationNanos.set(duration)
+        tickTotalDurationNanos.addAndGet(duration)
+        if (tickFailure) {
+            tickFailureCounter.incrementAndGet()
+        }
+        if (config.autoSaveEveryTicks > 0L && tickCounter.get() % config.autoSaveEveryTicks == 0L) {
+            saveState()
+        }
+    }
+
+    private fun publishTickEvents(tick: Long) {
+        if (!this::runtime.isInitialized) return
+        val standaloneEvent = StandaloneTickEvent(tick)
+        val apiEvent = GigaTickEvent(tick)
+        for (entry in tickPlugins) {
+            try {
+                entry.events.publish(standaloneEvent)
+                entry.events.publish(apiEvent)
+            } catch (_: Throwable) {
+                // Event delivery is best effort and must not break core loop.
+            }
+        }
+    }
+
+    private fun drainCommandQueue() {
+        while (true) {
+            val task = commandQueue.poll() ?: break
+            try {
+                task()
+            } catch (t: Throwable) {
+                logger.info("Mutation queue task failed: ${t.message}")
+            }
+        }
+    }
+
+    private fun publishEvent(event: Any) {
+        if (!this::runtime.isInitialized) return
+        for (entry in tickPlugins) {
+            try {
+                entry.events.publish(event)
+            } catch (_: Throwable) {
+                // Event delivery is best effort and must not break core loop.
+            }
+        }
+    }
+
+    private fun installStandaloneBridgeAdapters(plugins: List<com.gigasoft.runtime.LoadedPlugin>) {
+        plugins.forEach { plugin ->
+            try {
+                HostBridgeAdapters.registerDefaults(
+                    pluginId = plugin.manifest.id,
+                    registry = plugin.context.adapters,
+                    hostBridge = hostBridge,
+                    logger = logger,
+                    bridgeName = "Standalone"
+                )
+            } catch (t: Throwable) {
+                logger.info("Failed installing standalone bridge adapters for ${plugin.manifest.id}: ${t.message}")
+            }
+        }
+    }
+
+    private fun ensureRuntimeInitialized() {
+        check(this::runtime.isInitialized) { "Standalone core is not started" }
+    }
+
+    private fun refreshTickPluginsSnapshot() {
+        tickPlugins = runtime.loadedPluginsView().map { plugin ->
+            val runtimeRegistry = plugin.context.registry as? RuntimeRegistry
+            val systems = runtimeRegistry?.systemsSnapshot()
+                ?: plugin.context.registry.systems().map { it.key to it.value }
+            TickPluginSnapshot(
+                pluginId = plugin.manifest.id,
+                context = plugin.context,
+                events = plugin.context.events,
+                runtimeRegistry = runtimeRegistry,
+                systemsVersion = runtimeRegistry?.systemsVersion() ?: -1L,
+                systems = systems
+            )
+        }
+    }
+
+    private fun maybeRefreshTickPluginsSnapshot() {
+        for (entry in tickPlugins) {
+            val registry = entry.runtimeRegistry ?: continue
+            if (registry.systemsVersion() != entry.systemsVersion) {
+                refreshTickPluginsSnapshot()
+                return
+            }
+        }
+    }
+
+    private fun isOnCoreThread(): Boolean {
+        return Thread.currentThread().threadId() == coreThreadId.get()
+    }
+
+    private fun <T> mutate(block: () -> T): T {
+        if (!running.get() || !this::scheduler.isInitialized || isOnCoreThread()) {
+            return block()
+        }
+        val future = CompletableFuture<T>()
+        commandQueue.add {
+            try {
+                future.complete(block())
+            } catch (t: Throwable) {
+                future.completeExceptionally(t)
+            }
+        }
+        return try {
+            future.get(5, TimeUnit.SECONDS)
+        } catch (_: TimeoutException) {
+            throw IllegalStateException("Timed out waiting for core mutation execution")
+        }
+    }
+
+    private fun StandalonePlayer.toHostSnapshot(): HostPlayerSnapshot {
+        return HostPlayerSnapshot(
+            uuid = uuid,
+            name = name,
+            location = HostLocationRef(
+                world = world,
+                x = x,
+                y = y,
+                z = z
+            )
+        )
     }
 }

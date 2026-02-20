@@ -10,5 +10,6 @@ class RuntimePluginContext(
     override val adapters: ModAdapterRegistry,
     override val storage: StorageProvider,
     override val commands: CommandRegistry,
-    override val events: EventBus
+    override val events: EventBus,
+    override val host: HostAccess = HostAccess.unavailable()
 ) : PluginContext

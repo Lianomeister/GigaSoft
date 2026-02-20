@@ -1,12 +1,12 @@
-﻿rootProject.name = "gigasoft"
+rootProject.name = "gigasoft"
 
 include(
     "gigasoft-api",
+    "gigasoft-host-api",
+    "gigasoft-net",
     "gigasoft-runtime",
     "gigasoft-core",
     "gigasoft-standalone",
-    "gigasoft-bridge-paper",
     "gigasoft-cli",
-    "gigasoft-demo",
-    "gigasoft-integration"
+    "gigasoft-demo-standalone"
 )

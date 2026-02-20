@@ -1,4 +1,4 @@
-﻿plugins {
+plugins {
     `java-library`
 }
 
@@ -7,4 +7,24 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-databind:2.18.2")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.18.2")
     implementation("org.yaml:snakeyaml:2.3")
+}
+
+tasks.register<Test>("performanceTest") {
+    group = "verification"
+    description = "Runs runtime performance-oriented benchmarks"
+    val testSourceSet = sourceSets["test"]
+    testClassesDirs = testSourceSet.output.classesDirs
+    classpath = testSourceSet.runtimeClasspath
+    useJUnitPlatform {
+        includeTags("performance")
+    }
+    filter {
+        includeTestsMatching("*Performance*")
+    }
+}
+
+tasks.named<Test>("test") {
+    useJUnitPlatform {
+        excludeTags("performance")
+    }
 }

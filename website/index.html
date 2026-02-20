@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GigaSoft | Plugin Power für Minecraft</title>
-  <meta name="description" content="GigaSoft: Hybrid Minecraft-Server mit extremer Plugin-Power und Kotlin DSL." />
+  <title>GigaSoft Docs | API Reference</title>
+  <meta name="description" content="GigaSoft Standalone API-Dokumentation: PluginContext, DSL, Events, Adapter, Lifecycle." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
@@ -12,104 +12,250 @@
 </head>
 <body>
   <div class="bg-grid" aria-hidden="true"></div>
+
   <header class="site-header reveal">
     <div class="brand">
       <span class="brand-mark">GS</span>
-      <span>GigaSoft</span>
+      <div>
+        <strong>GigaSoft Docs</strong>
+        <p>Standalone-first API</p>
+      </div>
     </div>
-    <nav>
-      <a href="#vision">Vision</a>
-      <a href="#videos">Videos</a>
-      <a href="#cta">Start</a>
-    </nav>
+    <div class="header-actions">
+      <a class="btn btn-ghost" href="../README.md">README</a>
+      <a class="btn btn-primary" href="#quickstart">Quickstart</a>
+    </div>
   </header>
 
-  <main>
-    <section class="hero reveal">
-      <p class="eyebrow">HYBRID PAPER RUNTIME</p>
-      <h1>Baue Plugin-Features,<br />die sich wie Mods anfühlen.</h1>
-      <p class="lead">
-        GigaSoft verbindet Paper-Kompatibilität mit einer Kotlin DSL für Maschinen, Systeme,
-        Rezepte und schnelle Reload-Loops.
-      </p>
-      <div class="hero-actions">
-        <a class="btn btn-primary" href="#videos">Plugin-Demos ansehen</a>
-        <a class="btn btn-ghost" href="../README.md">Dokumentation</a>
-      </div>
-    </section>
+  <main class="layout">
+    <aside class="sidebar reveal">
+      <label class="search-wrap" for="api-search">
+        <span>API Suche</span>
+        <input id="api-search" type="search" placeholder="z.B. ctx.host, adapter, event" />
+      </label>
+      <nav id="docs-nav">
+        <a href="#overview">Overview</a>
+        <a href="#quickstart">Quickstart</a>
+        <a href="#plugin-context">PluginContext</a>
+        <a href="#dsl">DSL</a>
+        <a href="#events">Events</a>
+        <a href="#adapters">Adapters</a>
+        <a href="#lifecycle">Lifecycle</a>
+        <a href="#commands">Commands</a>
+      </nav>
+    </aside>
 
-    <section id="vision" class="vision reveal">
-      <article>
-        <h2>Create-artiges Gameplay</h2>
-        <p>Mechanik-Logik, Tick-Systeme und State-Flows direkt im Plugin-SDK.</p>
-      </article>
-      <article>
-        <h2>Schneller Creator-Loop</h2>
-        <p>Build, reload, testen in Sekunden mit Runtime-Reload und Profiling.</p>
-      </article>
-      <article>
-        <h2>Legacy-kompatibel</h2>
-        <p>Paper/Spigot-Plugins laufen parallel. Neue Power für GigaPlugins.</p>
-      </article>
-    </section>
+    <div class="content">
+      <section id="overview" class="doc-section reveal" data-api-item="overview standalone runtime kotlin api">
+        <p class="eyebrow">OVERVIEW</p>
+        <h1>GigaSoft API Dokumentation</h1>
+        <p class="lead">
+          Diese Seite ist die schnelle Referenz für die Standalone-Runtime: wie du Plugins strukturierst,
+          den `PluginContext` nutzt, Events abonnierst und Adapter sicher aufrufst.
+        </p>
+        <div class="pill-row">
+          <span class="pill">Kotlin DSL</span>
+          <span class="pill">Host-neutral</span>
+          <span class="pill">Hot Reload</span>
+          <span class="pill">Adapter Security</span>
+        </div>
+      </section>
 
-    <section id="videos" class="videos reveal">
-      <div class="section-head">
-        <p class="eyebrow">SHOWCASE</p>
-        <h2>Plugin-Beispiele (Coming Soon)</h2>
-      </div>
-      <div class="video-grid">
-        <article class="video-card reveal">
-          <div class="video-placeholder">
-            <span class="badge">Platzhalter</span>
-            <button class="play" aria-label="Video-Platzhalter abspielen">▶</button>
+      <section id="quickstart" class="doc-section reveal" data-api-item="quickstart plugin skeleton kotlin">
+        <div class="section-head">
+          <p class="eyebrow">QUICKSTART</p>
+          <h2>Minimales Plugin</h2>
+        </div>
+        <article class="api-card">
+          <div class="api-card-head">
+            <h3>Plugin Skeleton</h3>
+            <button class="copy-btn" data-copy-target="code-plugin-skeleton">Copy</button>
           </div>
-          <h3>Automated Press Line</h3>
-          <p>Input-Items, Rotation-Speed und mehrstufige Rezeptkette in einem Plugin.</p>
-        </article>
-        <article class="video-card reveal">
-          <div class="video-placeholder alt">
-            <span class="badge">Platzhalter</span>
-            <button class="play" aria-label="Video-Platzhalter abspielen">▶</button>
-          </div>
-          <h3>Rail Logistics Brain</h3>
-          <p>Event-basierte Routing-Logik mit Adapter-API und Runtime-Metriken.</p>
-        </article>
-        <article class="video-card reveal">
-          <div class="video-placeholder warm">
-            <span class="badge">Platzhalter</span>
-            <button class="play" aria-label="Video-Platzhalter abspielen">▶</button>
-          </div>
-          <h3>Kinetic Crafting Hub</h3>
-          <p>Maschinenblöcke, Persistenz-Migration und Hot-Reload ohne Server-Reboot.</p>
-        </article>
-      </div>
-    </section>
+          <pre><code id="code-plugin-skeleton">class MyPlugin : GigaPlugin {
+    private val plugin = gigaPlugin(id = "my-plugin") {
+        systems {
+            system("tick") { ctx ->
+                ctx.logger.info("tick")
+            }
+        }
+    }
 
-    <section id="cta" class="cta reveal">
-      <h2>Bereit für RC2?</h2>
-      <p>Die Video-Slots sind schon vorbereitet. Als Nächstes hängen wir echte Plugin-Demos rein.</p>
-      <a class="btn btn-primary" href="../ai.txt">Projektstatus lesen</a>
-    </section>
+    override fun onEnable(ctx: PluginContext) = plugin.onEnable(ctx)
+    override fun onDisable(ctx: PluginContext) = plugin.onDisable(ctx)
+}</code></pre>
+        </article>
+      </section>
 
-    <section id="donate" class="donate reveal">
-      <div class="section-head">
-        <p class="eyebrow">SUPPORT</p>
-        <h2>Unterstütze GigaSoft</h2>
-      </div>
-      <p class="donate-text">Wenn dir das Projekt gefällt, kannst du uns mit einer PayPal-Spende unterstützen.</p>
-      <form action="https://www.paypal.com/donate" method="post" target="_blank" class="paypal-form">
-        <input type="hidden" name="hosted_button_id" value="REPLACE_WITH_YOUR_PAYPAL_BUTTON_ID" />
-        <input type="hidden" name="no_recurring" value="0" />
-        <input type="hidden" name="currency_code" value="EUR" />
-        <button type="submit" class="btn btn-primary">Mit PayPal spenden</button>
-      </form>
-      <p class="donate-hint">Setze in `website/index.html` deine echte `hosted_button_id` ein.</p>
-    </section>
+      <section id="plugin-context" class="doc-section reveal" data-api-item="plugincontext ctx host logger scheduler registry storage commands events adapters">
+        <div class="section-head">
+          <p class="eyebrow">CORE API</p>
+          <h2>PluginContext</h2>
+        </div>
+        <div class="api-grid">
+          <article class="api-card">
+            <h3>Wichtige Felder</h3>
+            <ul>
+              <li><code>ctx.logger</code> Logging</li>
+              <li><code>ctx.scheduler</code> Tasks/Interval</li>
+              <li><code>ctx.registry</code> Items/Blocks/Systems</li>
+              <li><code>ctx.storage</code> Persistente JSON-Daten</li>
+              <li><code>ctx.commands</code> Plugin-Kommandos</li>
+              <li><code>ctx.events</code> EventBus</li>
+              <li><code>ctx.adapters</code> ModAdapterRegistry</li>
+              <li><code>ctx.host</code> Host-neutraler Zugriff</li>
+            </ul>
+          </article>
+
+          <article class="api-card">
+            <div class="api-card-head">
+              <h3>Host Access Beispiel</h3>
+              <button class="copy-btn" data-copy-target="code-host-access">Copy</button>
+            </div>
+            <pre><code id="code-host-access">val info = ctx.host.serverInfo()
+if (info != null) {
+    ctx.logger.info("${info.name} players=${info.onlinePlayers}/${info.maxPlayers}")
+}
+
+val alex = ctx.host.findPlayer("Alex")
+if (alex != null) {
+    ctx.logger.info("Alex in world ${alex.location.world}")
+}</code></pre>
+          </article>
+        </div>
+      </section>
+
+      <section id="dsl" class="doc-section reveal" data-api-item="dsl items blocks recipes machines systems commands">
+        <div class="section-head">
+          <p class="eyebrow">DSL</p>
+          <h2>Registry DSL</h2>
+        </div>
+        <article class="api-card">
+          <div class="api-card-head">
+            <h3>Items, Systems, Commands</h3>
+            <button class="copy-btn" data-copy-target="code-dsl">Copy</button>
+          </div>
+          <pre><code id="code-dsl">private val plugin = gigaPlugin(id = "factory") {
+    items {
+        item("gear", "Gear")
+    }
+
+    systems {
+        system("machine-tick") { ctx ->
+            // tick logic
+        }
+    }
+
+    commands {
+        command("ping", "Simple health check") { _, sender, _ ->
+            "pong from $sender"
+        }
+    }
+}</code></pre>
+        </article>
+      </section>
+
+      <section id="events" class="doc-section reveal" data-api-item="events subscribe publish giga tick player join leave move">
+        <div class="section-head">
+          <p class="eyebrow">EVENTS</p>
+          <h2>EventBus & Standard Events</h2>
+        </div>
+        <div class="api-grid">
+          <article class="api-card">
+            <h3>Bekannte Events</h3>
+            <ul>
+              <li><code>GigaTickEvent</code></li>
+              <li><code>GigaPlayerJoinEvent</code></li>
+              <li><code>GigaPlayerLeaveEvent</code></li>
+              <li><code>GigaPlayerMoveEvent</code></li>
+              <li><code>GigaWorldCreatedEvent</code></li>
+              <li><code>GigaEntitySpawnEvent</code></li>
+              <li><code>GigaInventoryChangeEvent</code></li>
+            </ul>
+          </article>
+
+          <article class="api-card">
+            <div class="api-card-head">
+              <h3>Subscribe Beispiel</h3>
+              <button class="copy-btn" data-copy-target="code-events">Copy</button>
+            </div>
+            <pre><code id="code-events">ctx.events.subscribe(GigaPlayerJoinEvent::class.java) { event ->
+    ctx.logger.info("Player joined: ${event.player.name}")
+}</code></pre>
+          </article>
+        </div>
+      </section>
+
+      <section id="adapters" class="doc-section reveal" data-api-item="adapters bridge.host.server bridge.host.player invocation security rate limit timeout">
+        <div class="section-head">
+          <p class="eyebrow">ADAPTER API</p>
+          <h2>Adapter Registry & Security</h2>
+        </div>
+        <div class="api-grid">
+          <article class="api-card">
+            <h3>Built-in IDs (host-neutral)</h3>
+            <ul>
+              <li><code>bridge.host.server</code> : <code>server.info</code>, <code>server.broadcast</code>, <code>world.list</code>, <code>entity.list</code></li>
+              <li><code>bridge.host.player</code> : <code>player.lookup</code></li>
+            </ul>
+          </article>
+
+          <article class="api-card">
+            <div class="api-card-head">
+              <h3>Invoke Beispiel</h3>
+              <button class="copy-btn" data-copy-target="code-adapter">Copy</button>
+            </div>
+            <pre><code id="code-adapter">val response = ctx.adapters.invoke(
+    adapterId = "bridge.host.server",
+    invocation = AdapterInvocation(
+        action = "server.info",
+        payload = emptyMap()
+    )
+)
+
+if (!response.success) {
+    ctx.logger.info("adapter failed: ${response.message}")
+}</code></pre>
+          </article>
+        </div>
+      </section>
+
+      <section id="lifecycle" class="doc-section reveal" data-api-item="lifecycle onenable ondisable reload report diagnostics profile">
+        <div class="section-head">
+          <p class="eyebrow">LIFECYCLE</p>
+          <h2>Reload, Diagnostics, Profile</h2>
+        </div>
+        <article class="api-card">
+          <ul>
+            <li><code>reload &lt;plugin|all&gt;</code> mit transaktionalem Verhalten</li>
+            <li><code>doctor [--json]</code> für Dependency/API-Checks</li>
+            <li><code>profile &lt;plugin&gt; [--json]</code> für Laufzeitmetriken</li>
+            <li><code>status</code> inkl. Tick-Phasen und Net-Metriken</li>
+          </ul>
+        </article>
+      </section>
+
+      <section id="commands" class="doc-section reveal" data-api-item="commands standalone console scan reload run adapters profile doctor">
+        <div class="section-head">
+          <p class="eyebrow">COMMAND REFERENCE</p>
+          <h2>Standalone Console</h2>
+        </div>
+        <article class="api-card">
+          <pre><code>help
+status
+scan
+reload &lt;id|all&gt;
+doctor [--json]
+profile &lt;id&gt; [--json]
+run &lt;plugin&gt; &lt;command...&gt;
+adapters &lt;plugin&gt; [--json]
+adapter invoke &lt;plugin&gt; &lt;adapterId&gt; &lt;action&gt; [k=v ...] [--json]</code></pre>
+        </article>
+      </section>
+    </div>
   </main>
 
   <footer class="site-footer reveal">
-    <p>GigaSoft • MIT • built for plugin creators</p>
+    <p>GigaSoft Docs • Standalone API • Kotlin-first</p>
   </footer>
 
   <script src="./app.js"></script>

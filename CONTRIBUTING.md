@@ -1,4 +1,4 @@
-﻿# Contributing
+# Contributing
 
 ## Requirements
 - JDK 21
@@ -6,11 +6,11 @@
 
 ## Local flow
 1. `gradle test`
-2. `gradle buildPlugin`
-3. Copy `gigasoft-bridge-paper/build/libs/gigasoft-bridge-paper-0.1.0-rc.2.jar` to Paper `plugins/`
-4. Copy `gigasoft-demo/build/libs/gigasoft-demo-0.1.0-rc.2.jar` to `plugins/GigaSoftBridge/giga-plugins/`
+2. `gradle performanceBaseline`
+3. `gradle standaloneReleaseCandidate`
+4. Start `gigasoft-standalone` and use standalone console commands (`scan`, `reload`, `status`)
 
 ## Coding rules
 - Keep API module stable and backwards compatible.
-- Keep Paper-specific code only in `gigasoft-bridge-paper`.
-- Add tests for registry, lifecycle, persistence, and scheduler changes.
+- Keep host-neutral abstractions in core/runtime modules.
+- Add tests for registry, lifecycle, persistence, scheduler, and performance-sensitive changes.
