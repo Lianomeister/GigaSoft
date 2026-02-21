@@ -9,4 +9,12 @@ interface HostBridgePort {
     fun spawnEntity(type: String, location: HostLocationRef): HostEntitySnapshot?
     fun playerInventory(name: String): HostInventorySnapshot?
     fun setPlayerInventoryItem(name: String, slot: Int, itemId: String): Boolean
+    fun createWorld(name: String, seed: Long = 0L): HostWorldSnapshot? = null
+    fun worldTime(name: String): Long? = null
+    fun setWorldTime(name: String, time: Long): Boolean = false
+    fun findEntity(uuid: String): HostEntitySnapshot? = null
+    fun removeEntity(uuid: String): Boolean = false
+    fun movePlayer(name: String, location: HostLocationRef): HostPlayerSnapshot? = null
+    fun inventoryItem(name: String, slot: Int): String? = null
+    fun givePlayerItem(name: String, itemId: String, count: Int = 1): Int = 0
 }

@@ -15,6 +15,12 @@
   - `PluginContext.hasPermission(...)` and `PluginContext.requirePermission(...)`.
   - typed command responses via `CommandResult` and `registerResult` / `registerOrReplaceResult`.
   - typed adapter payload parsing helpers on `AdapterInvocation` (`payloadString/Trimmed/Required/Int/Long/Double/Bool`).
+  - expanded host gameplay API surface for mod-like plugins:
+    - `createWorld`, `worldTime`, `setWorldTime`,
+    - `findEntity`, `removeEntity`,
+    - `movePlayer`,
+    - `inventoryItem`, `givePlayerItem`.
+  - new gameplay events: `GigaEntityRemoveEvent`, `GigaPlayerTeleportEvent`, `GigaWorldTimeChangeEvent`.
 
 ### Planned
 - Network v1.1 improvements (session throughput and backpressure tuning).

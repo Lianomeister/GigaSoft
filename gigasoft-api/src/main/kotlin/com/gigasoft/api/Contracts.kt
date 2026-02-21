@@ -28,6 +28,14 @@ interface HostAccess {
     fun spawnEntity(type: String, location: HostLocationRef): HostEntitySnapshot?
     fun playerInventory(name: String): HostInventorySnapshot?
     fun setPlayerInventoryItem(name: String, slot: Int, itemId: String): Boolean
+    fun createWorld(name: String, seed: Long = 0L): HostWorldSnapshot? = null
+    fun worldTime(name: String): Long? = null
+    fun setWorldTime(name: String, time: Long): Boolean = false
+    fun findEntity(uuid: String): HostEntitySnapshot? = null
+    fun removeEntity(uuid: String): Boolean = false
+    fun movePlayer(name: String, location: HostLocationRef): HostPlayerSnapshot? = null
+    fun inventoryItem(name: String, slot: Int): String? = null
+    fun givePlayerItem(name: String, itemId: String, count: Int = 1): Int = 0
 
     companion object {
         fun unavailable(): HostAccess = object : HostAccess {
@@ -47,11 +55,14 @@ object HostPermissions {
     const val SERVER_READ = "host.server.read"
     const val SERVER_BROADCAST = "host.server.broadcast"
     const val WORLD_READ = "host.world.read"
+    const val WORLD_WRITE = "host.world.write"
     const val ENTITY_READ = "host.entity.read"
     const val ENTITY_SPAWN = "host.entity.spawn"
+    const val ENTITY_REMOVE = "host.entity.remove"
     const val INVENTORY_READ = "host.inventory.read"
     const val INVENTORY_WRITE = "host.inventory.write"
     const val PLAYER_READ = "host.player.read"
+    const val PLAYER_MOVE = "host.player.move"
 }
 
 data class HostLocationRef(
@@ -118,10 +129,27 @@ data class GigaEntitySpawnEvent(
     val entity: HostEntitySnapshot
 )
 
+data class GigaEntityRemoveEvent(
+    val entity: HostEntitySnapshot,
+    val reason: String = "plugin"
+)
+
 data class GigaInventoryChangeEvent(
     val owner: String,
     val slot: Int,
     val itemId: String
+)
+
+data class GigaPlayerTeleportEvent(
+    val previous: HostPlayerSnapshot,
+    val current: HostPlayerSnapshot,
+    val cause: String = "plugin"
+)
+
+data class GigaWorldTimeChangeEvent(
+    val world: String,
+    val previousTime: Long,
+    val currentTime: Long
 )
 
 fun interface GigaLogger {

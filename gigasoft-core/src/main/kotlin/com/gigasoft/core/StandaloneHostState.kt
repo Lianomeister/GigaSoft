@@ -134,6 +134,32 @@ class StandaloneHostState(
         }
     }
 
+    fun findEntity(uuid: String): StandaloneEntity? {
+        val entityId = uuid.trim()
+        if (entityId.isEmpty()) return null
+        return synchronized(stateLock) { entities[entityId] }
+    }
+
+    fun removeEntity(uuid: String): StandaloneEntity? {
+        val entityId = uuid.trim()
+        if (entityId.isEmpty()) return null
+        return synchronized(stateLock) {
+            val removed = entities.remove(entityId) ?: return@synchronized null
+            decrementWorldEntityCountUnsafe(removed.world)
+            entitiesWorldCache.remove(canonicalKey(removed.world))
+            entitiesAllDirty = true
+            if (removed.type.equals("player", ignoreCase = true)) {
+                val player = playersByName.values.firstOrNull { it.uuid == removed.uuid }
+                if (player != null) {
+                    playersByName.remove(canonicalKey(player.name))
+                    playersDirty = true
+                    inventoriesByOwner.remove(canonicalKey(player.name))
+                }
+            }
+            removed
+        }
+    }
+
     fun entityCount(): Int = synchronized(stateLock) { entities.size }
 
     fun entityCount(world: String): Int {
@@ -275,6 +301,28 @@ class StandaloneHostState(
         }
     }
 
+    fun worldTime(name: String): Long? {
+        val worldName = name.trim()
+        if (worldName.isEmpty()) return null
+        return synchronized(stateLock) {
+            worlds[canonicalKey(worldName)]?.time
+        }
+    }
+
+    fun setWorldTime(name: String, time: Long): StandaloneWorld? {
+        if (time < 0L) return null
+        val worldName = name.trim()
+        if (worldName.isEmpty()) return null
+        return synchronized(stateLock) {
+            val key = canonicalKey(worldName)
+            val current = worlds[key] ?: return@synchronized null
+            val updated = current.copy(time = time)
+            worlds[key] = updated
+            worldsDirty = true
+            updated
+        }
+    }
+
     fun tickWorlds() {
         synchronized(stateLock) {
             for ((key, world) in worlds) {
@@ -329,6 +377,15 @@ class StandaloneHostState(
         }
     }
 
+    fun inventoryItem(owner: String, slot: Int): String? {
+        if (slot !in 0..35) return null
+        val ownerName = owner.trim()
+        if (ownerName.isEmpty()) return null
+        return synchronized(stateLock) {
+            inventoriesByOwner[canonicalKey(ownerName)]?.get(slot)
+        }
+    }
+
     fun setInventoryItem(owner: String, slot: Int, itemId: String): Boolean {
         if (slot !in 0..35) return false
         val ownerName = owner.trim()
@@ -345,6 +402,26 @@ class StandaloneHostState(
                 slots[slot] = value
             }
             true
+        }
+    }
+
+    fun givePlayerItem(owner: String, itemId: String, count: Int): Int {
+        if (count <= 0) return 0
+        val ownerName = owner.trim()
+        if (ownerName.isEmpty()) return 0
+        val value = itemId.trim()
+        if (value.isEmpty() || value.equals("air", ignoreCase = true) || value.equals("empty", ignoreCase = true)) return 0
+        return synchronized(stateLock) {
+            val key = canonicalKey(ownerName)
+            if (!playersByName.containsKey(key)) return@synchronized 0
+            val slots = inventoriesByOwner.computeIfAbsent(key) { mutableMapOf() }
+            var inserted = 0
+            repeat(count) {
+                val freeSlot = firstFreeInventorySlotUnsafe(slots) ?: return@repeat
+                slots[freeSlot] = value
+                inserted += 1
+            }
+            inserted
         }
     }
 
@@ -477,5 +554,12 @@ class StandaloneHostState(
         val trimmed = value.trim()
         require(trimmed.isNotEmpty()) { "$field must not be blank" }
         return trimmed
+    }
+
+    private fun firstFreeInventorySlotUnsafe(slots: Map<Int, String>): Int? {
+        for (slot in 0..35) {
+            if (!slots.containsKey(slot)) return slot
+        }
+        return null
     }
 }

@@ -41,4 +41,26 @@ class StandaloneHostStateConsistencyTest {
         assertNotNull(inventory)
         assertFalse(inventory.slots.containsKey(0))
     }
+
+    @Test
+    fun `mod-like host operations are consistent`() {
+        val state = StandaloneHostState()
+        state.createWorld("mod_world", 99L)
+        assertEquals(0L, state.worldTime("mod_world"))
+        val updated = state.setWorldTime("mod_world", 1234L)
+        assertNotNull(updated)
+        assertEquals(1234L, state.worldTime("mod_world"))
+
+        state.joinPlayer("Alex", "mod_world", 0.0, 64.0, 0.0)
+        val given = state.givePlayerItem("Alex", "copper_ingot", 3)
+        assertEquals(3, given)
+        assertEquals("copper_ingot", state.inventoryItem("Alex", 0))
+        assertEquals("copper_ingot", state.inventoryItem("Alex", 2))
+
+        val entity = state.spawnEntity("sheep", "mod_world", 1.0, 64.0, 1.0)
+        assertNotNull(state.findEntity(entity.uuid))
+        val removed = state.removeEntity(entity.uuid)
+        assertNotNull(removed)
+        assertEquals(null, state.findEntity(entity.uuid))
+    }
 }

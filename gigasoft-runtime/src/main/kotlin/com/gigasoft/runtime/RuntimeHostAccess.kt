@@ -58,6 +58,46 @@ internal class RuntimeHostAccess(
         return delegate.setPlayerInventoryItem(name, slot, itemId)
     }
 
+    override fun createWorld(name: String, seed: Long): HostWorldSnapshot? {
+        if (!allowed(HostPermissions.WORLD_WRITE)) return null
+        return delegate.createWorld(name, seed)
+    }
+
+    override fun worldTime(name: String): Long? {
+        if (!allowed(HostPermissions.WORLD_READ)) return null
+        return delegate.worldTime(name)
+    }
+
+    override fun setWorldTime(name: String, time: Long): Boolean {
+        if (!allowed(HostPermissions.WORLD_WRITE)) return false
+        return delegate.setWorldTime(name, time)
+    }
+
+    override fun findEntity(uuid: String): HostEntitySnapshot? {
+        if (!allowed(HostPermissions.ENTITY_READ)) return null
+        return delegate.findEntity(uuid)
+    }
+
+    override fun removeEntity(uuid: String): Boolean {
+        if (!allowed(HostPermissions.ENTITY_REMOVE)) return false
+        return delegate.removeEntity(uuid)
+    }
+
+    override fun movePlayer(name: String, location: HostLocationRef): HostPlayerSnapshot? {
+        if (!allowed(HostPermissions.PLAYER_MOVE)) return null
+        return delegate.movePlayer(name, location)
+    }
+
+    override fun inventoryItem(name: String, slot: Int): String? {
+        if (!allowed(HostPermissions.INVENTORY_READ)) return null
+        return delegate.inventoryItem(name, slot)
+    }
+
+    override fun givePlayerItem(name: String, itemId: String, count: Int): Int {
+        if (!allowed(HostPermissions.INVENTORY_WRITE)) return 0
+        return delegate.givePlayerItem(name, itemId, count)
+    }
+
     private fun allowed(permission: String): Boolean {
         if (permission in permissions) return true
         logger.info("Denied host access for plugin '$pluginId': missing permission '$permission'")

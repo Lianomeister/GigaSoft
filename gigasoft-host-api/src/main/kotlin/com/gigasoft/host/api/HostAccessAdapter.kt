@@ -42,6 +42,38 @@ fun HostBridgePort.asHostAccess(): HostAccess {
     override fun setPlayerInventoryItem(name: String, slot: Int, itemId: String): Boolean {
         return bridge.setPlayerInventoryItem(name, slot, itemId)
     }
+
+    override fun createWorld(name: String, seed: Long): ApiHostWorldSnapshot? {
+        return bridge.createWorld(name, seed)?.toApi()
+    }
+
+    override fun worldTime(name: String): Long? {
+        return bridge.worldTime(name)
+    }
+
+    override fun setWorldTime(name: String, time: Long): Boolean {
+        return bridge.setWorldTime(name, time)
+    }
+
+    override fun findEntity(uuid: String): ApiHostEntitySnapshot? {
+        return bridge.findEntity(uuid)?.toApi()
+    }
+
+    override fun removeEntity(uuid: String): Boolean {
+        return bridge.removeEntity(uuid)
+    }
+
+    override fun movePlayer(name: String, location: ApiHostLocationRef): ApiHostPlayerSnapshot? {
+        return bridge.movePlayer(name, location.toHost())?.toApi()
+    }
+
+    override fun inventoryItem(name: String, slot: Int): String? {
+        return bridge.inventoryItem(name, slot)
+    }
+
+    override fun givePlayerItem(name: String, itemId: String, count: Int): Int {
+        return bridge.givePlayerItem(name, itemId, count)
+    }
 }
 }
 

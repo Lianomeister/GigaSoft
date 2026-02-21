@@ -17,6 +17,14 @@ class HostAccessAdapterTest {
         assertEquals(1, access.worlds().size)
         assertEquals(1, access.entities("world").size)
         assertEquals(true, access.setPlayerInventoryItem("Alex", 0, "stone"))
+        assertNotNull(access.createWorld("custom", 7L))
+        assertEquals(100L, access.worldTime("world"))
+        assertTrue(access.setWorldTime("world", 200L))
+        assertNotNull(access.findEntity("e1"))
+        assertTrue(access.removeEntity("e1"))
+        assertNotNull(access.movePlayer("Alex", com.gigasoft.api.HostLocationRef("world", 1.0, 65.0, 1.0)))
+        assertEquals("stone", access.inventoryItem("Alex", 0))
+        assertEquals(2, access.givePlayerItem("Alex", "stone", 2))
     }
 
     private class FakeBridge : HostBridgePort {
@@ -61,5 +69,15 @@ class HostAccessAdapterTest {
         }
 
         override fun setPlayerInventoryItem(name: String, slot: Int, itemId: String): Boolean = true
+        override fun createWorld(name: String, seed: Long): HostWorldSnapshot? = HostWorldSnapshot(name, 0)
+        override fun worldTime(name: String): Long? = 100L
+        override fun setWorldTime(name: String, time: Long): Boolean = true
+        override fun findEntity(uuid: String): HostEntitySnapshot? = entities("world").firstOrNull()
+        override fun removeEntity(uuid: String): Boolean = true
+        override fun movePlayer(name: String, location: HostLocationRef): HostPlayerSnapshot? {
+            return HostPlayerSnapshot(uuid = "u1", name = name, location = location)
+        }
+        override fun inventoryItem(name: String, slot: Int): String? = "stone"
+        override fun givePlayerItem(name: String, itemId: String, count: Int): Int = count
     }
 }

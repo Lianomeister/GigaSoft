@@ -13,11 +13,14 @@ object HostBridgeAdapters {
         const val HOST_SERVER_READ = HostPermissions.SERVER_READ
         const val HOST_BROADCAST = HostPermissions.SERVER_BROADCAST
         const val HOST_WORLD_READ = HostPermissions.WORLD_READ
+        const val HOST_WORLD_WRITE = HostPermissions.WORLD_WRITE
         const val HOST_ENTITY_READ = HostPermissions.ENTITY_READ
         const val HOST_ENTITY_SPAWN = HostPermissions.ENTITY_SPAWN
+        const val HOST_ENTITY_REMOVE = HostPermissions.ENTITY_REMOVE
         const val HOST_INVENTORY_READ = HostPermissions.INVENTORY_READ
         const val HOST_INVENTORY_WRITE = HostPermissions.INVENTORY_WRITE
         const val HOST_PLAYER_READ = HostPermissions.PLAYER_READ
+        const val HOST_PLAYER_MOVE = HostPermissions.PLAYER_MOVE
     }
 
     fun registerDefaults(

@@ -138,6 +138,20 @@ public final class com/gigasoft/api/GigaApiVersion {
 	public static final field MANIFEST_API_VERSION Ljava/lang/String;
 }
 
+public final class com/gigasoft/api/GigaEntityRemoveEvent {
+	public fun <init> (Lcom/gigasoft/api/HostEntitySnapshot;Ljava/lang/String;)V
+	public synthetic fun <init> (Lcom/gigasoft/api/HostEntitySnapshot;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/gigasoft/api/HostEntitySnapshot;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy (Lcom/gigasoft/api/HostEntitySnapshot;Ljava/lang/String;)Lcom/gigasoft/api/GigaEntityRemoveEvent;
+	public static synthetic fun copy$default (Lcom/gigasoft/api/GigaEntityRemoveEvent;Lcom/gigasoft/api/HostEntitySnapshot;Ljava/lang/String;ILjava/lang/Object;)Lcom/gigasoft/api/GigaEntityRemoveEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getEntity ()Lcom/gigasoft/api/HostEntitySnapshot;
+	public final fun getReason ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public final class com/gigasoft/api/GigaEntitySpawnEvent {
 	public fun <init> (Lcom/gigasoft/api/HostEntitySnapshot;)V
 	public final fun component1 ()Lcom/gigasoft/api/HostEntitySnapshot;
@@ -203,6 +217,22 @@ public final class com/gigasoft/api/GigaPlayerMoveEvent {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class com/gigasoft/api/GigaPlayerTeleportEvent {
+	public fun <init> (Lcom/gigasoft/api/HostPlayerSnapshot;Lcom/gigasoft/api/HostPlayerSnapshot;Ljava/lang/String;)V
+	public synthetic fun <init> (Lcom/gigasoft/api/HostPlayerSnapshot;Lcom/gigasoft/api/HostPlayerSnapshot;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/gigasoft/api/HostPlayerSnapshot;
+	public final fun component2 ()Lcom/gigasoft/api/HostPlayerSnapshot;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun copy (Lcom/gigasoft/api/HostPlayerSnapshot;Lcom/gigasoft/api/HostPlayerSnapshot;Ljava/lang/String;)Lcom/gigasoft/api/GigaPlayerTeleportEvent;
+	public static synthetic fun copy$default (Lcom/gigasoft/api/GigaPlayerTeleportEvent;Lcom/gigasoft/api/HostPlayerSnapshot;Lcom/gigasoft/api/HostPlayerSnapshot;Ljava/lang/String;ILjava/lang/Object;)Lcom/gigasoft/api/GigaPlayerTeleportEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCause ()Ljava/lang/String;
+	public final fun getCurrent ()Lcom/gigasoft/api/HostPlayerSnapshot;
+	public final fun getPrevious ()Lcom/gigasoft/api/HostPlayerSnapshot;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public abstract interface class com/gigasoft/api/GigaPlugin {
 	public abstract fun onDisable (Lcom/gigasoft/api/PluginContext;)V
 	public abstract fun onEnable (Lcom/gigasoft/api/PluginContext;)V
@@ -247,15 +277,38 @@ public final class com/gigasoft/api/GigaWorldCreatedEvent {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class com/gigasoft/api/GigaWorldTimeChangeEvent {
+	public fun <init> (Ljava/lang/String;JJ)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()J
+	public final fun component3 ()J
+	public final fun copy (Ljava/lang/String;JJ)Lcom/gigasoft/api/GigaWorldTimeChangeEvent;
+	public static synthetic fun copy$default (Lcom/gigasoft/api/GigaWorldTimeChangeEvent;Ljava/lang/String;JJILjava/lang/Object;)Lcom/gigasoft/api/GigaWorldTimeChangeEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCurrentTime ()J
+	public final fun getPreviousTime ()J
+	public final fun getWorld ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public abstract interface class com/gigasoft/api/HostAccess {
 	public static final field Companion Lcom/gigasoft/api/HostAccess$Companion;
 	public abstract fun broadcast (Ljava/lang/String;)Z
+	public abstract fun createWorld (Ljava/lang/String;J)Lcom/gigasoft/api/HostWorldSnapshot;
 	public abstract fun entities (Ljava/lang/String;)Ljava/util/List;
+	public abstract fun findEntity (Ljava/lang/String;)Lcom/gigasoft/api/HostEntitySnapshot;
 	public abstract fun findPlayer (Ljava/lang/String;)Lcom/gigasoft/api/HostPlayerSnapshot;
+	public abstract fun givePlayerItem (Ljava/lang/String;Ljava/lang/String;I)I
+	public abstract fun inventoryItem (Ljava/lang/String;I)Ljava/lang/String;
+	public abstract fun movePlayer (Ljava/lang/String;Lcom/gigasoft/api/HostLocationRef;)Lcom/gigasoft/api/HostPlayerSnapshot;
 	public abstract fun playerInventory (Ljava/lang/String;)Lcom/gigasoft/api/HostInventorySnapshot;
+	public abstract fun removeEntity (Ljava/lang/String;)Z
 	public abstract fun serverInfo ()Lcom/gigasoft/api/HostServerSnapshot;
 	public abstract fun setPlayerInventoryItem (Ljava/lang/String;ILjava/lang/String;)Z
+	public abstract fun setWorldTime (Ljava/lang/String;J)Z
 	public abstract fun spawnEntity (Ljava/lang/String;Lcom/gigasoft/api/HostLocationRef;)Lcom/gigasoft/api/HostEntitySnapshot;
+	public abstract fun worldTime (Ljava/lang/String;)Ljava/lang/Long;
 	public abstract fun worlds ()Ljava/util/List;
 }
 
@@ -264,7 +317,17 @@ public final class com/gigasoft/api/HostAccess$Companion {
 }
 
 public final class com/gigasoft/api/HostAccess$DefaultImpls {
+	public static fun createWorld (Lcom/gigasoft/api/HostAccess;Ljava/lang/String;J)Lcom/gigasoft/api/HostWorldSnapshot;
+	public static synthetic fun createWorld$default (Lcom/gigasoft/api/HostAccess;Ljava/lang/String;JILjava/lang/Object;)Lcom/gigasoft/api/HostWorldSnapshot;
 	public static synthetic fun entities$default (Lcom/gigasoft/api/HostAccess;Ljava/lang/String;ILjava/lang/Object;)Ljava/util/List;
+	public static fun findEntity (Lcom/gigasoft/api/HostAccess;Ljava/lang/String;)Lcom/gigasoft/api/HostEntitySnapshot;
+	public static fun givePlayerItem (Lcom/gigasoft/api/HostAccess;Ljava/lang/String;Ljava/lang/String;I)I
+	public static synthetic fun givePlayerItem$default (Lcom/gigasoft/api/HostAccess;Ljava/lang/String;Ljava/lang/String;IILjava/lang/Object;)I
+	public static fun inventoryItem (Lcom/gigasoft/api/HostAccess;Ljava/lang/String;I)Ljava/lang/String;
+	public static fun movePlayer (Lcom/gigasoft/api/HostAccess;Ljava/lang/String;Lcom/gigasoft/api/HostLocationRef;)Lcom/gigasoft/api/HostPlayerSnapshot;
+	public static fun removeEntity (Lcom/gigasoft/api/HostAccess;Ljava/lang/String;)Z
+	public static fun setWorldTime (Lcom/gigasoft/api/HostAccess;Ljava/lang/String;J)Z
+	public static fun worldTime (Lcom/gigasoft/api/HostAccess;Ljava/lang/String;)Ljava/lang/Long;
 }
 
 public final class com/gigasoft/api/HostEntitySnapshot {
@@ -316,14 +379,17 @@ public final class com/gigasoft/api/HostLocationRef {
 
 public final class com/gigasoft/api/HostPermissions {
 	public static final field ENTITY_READ Ljava/lang/String;
+	public static final field ENTITY_REMOVE Ljava/lang/String;
 	public static final field ENTITY_SPAWN Ljava/lang/String;
 	public static final field INSTANCE Lcom/gigasoft/api/HostPermissions;
 	public static final field INVENTORY_READ Ljava/lang/String;
 	public static final field INVENTORY_WRITE Ljava/lang/String;
+	public static final field PLAYER_MOVE Ljava/lang/String;
 	public static final field PLAYER_READ Ljava/lang/String;
 	public static final field SERVER_BROADCAST Ljava/lang/String;
 	public static final field SERVER_READ Ljava/lang/String;
 	public static final field WORLD_READ Ljava/lang/String;
+	public static final field WORLD_WRITE Ljava/lang/String;
 }
 
 public final class com/gigasoft/api/HostPlayerSnapshot {
