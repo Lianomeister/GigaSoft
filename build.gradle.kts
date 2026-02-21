@@ -27,7 +27,7 @@ plugins {
 
 allprojects {
     group = "com.clockwork"
-    version = "1.5.0"
+    version = "1.8.2"
 
     repositories {
         mavenCentral()

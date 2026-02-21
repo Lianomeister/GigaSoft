@@ -86,7 +86,7 @@ data class StandaloneCoreConfig(
     val dataDirectory: Path,
     val tickPeriodMillis: Long = 50L,
     val serverName: String = "Clockwork Standalone",
-    val serverVersion: String = "1.5.0",
+    val serverVersion: String = "1.8.2",
     val defaultWorld: String = "world",
     val maxPlayers: Int = 0,
     val maxWorlds: Int = 0,
@@ -270,14 +270,27 @@ class GigaStandaloneCore(
             ).apply { isDaemon = true }
         }
 
-        installStandaloneBridgeAdapters(runtime.scanAndLoad())
-        refreshTickPluginsSnapshot()
+        tickPlugins = emptyList()
         scheduler.scheduleAtFixedRate(
             { tick() },
             1L,
             config.tickPeriodMillis,
             TimeUnit.MILLISECONDS
         )
+        commandQueue.add {
+            try {
+                val loaded = runtime.scanAndLoad()
+                if (loaded.isNotEmpty()) {
+                    installStandaloneBridgeAdapters(loaded)
+                }
+                refreshTickPluginsSnapshot()
+                logger.info(
+                    "Startup plugin sync completed (loadedNow=${loaded.size}, total=${runtime.loadedPluginsView().size})"
+                )
+            } catch (t: Throwable) {
+                logger.info("Startup plugin sync failed: ${t.message}")
+            }
+        }
         logger.info("Standalone core started")
     }
 
@@ -1552,6 +1565,15 @@ class GigaStandaloneCore(
     private fun ensureBundledDefaultPlugins() {
         Files.createDirectories(config.pluginsDirectory)
         Files.createDirectories(defaultPluginSeedMarker.parent)
+
+        val canSkipSeeding = Files.exists(defaultPluginSeedMarker) &&
+            bundledDefaultPlugins.all { resourcePath ->
+                val resourceName = resourcePath.substringAfterLast('/')
+                Files.exists(config.pluginsDirectory.resolve(resourceName).normalize())
+            }
+        if (canSkipSeeding) {
+            return
+        }
 
         var seededAny = false
         bundledDefaultPlugins.forEach { resourcePath ->

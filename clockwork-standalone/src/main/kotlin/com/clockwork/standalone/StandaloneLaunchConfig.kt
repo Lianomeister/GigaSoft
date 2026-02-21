@@ -74,7 +74,7 @@ fun parseLaunchConfig(args: Array<String>): StandaloneLaunchConfig {
     val pluginsDir = stringOption(args, fileConfig, "--plugins", "plugins", "dev-runtime/giga-plugins")
     val dataDir = stringOption(args, fileConfig, "--data", "data", "dev-runtime/giga-data")
     val serverName = stringOption(args, fileConfig, "--name", "name", "Clockwork Standalone")
-    val serverVersion = stringOption(args, fileConfig, "--version", "version", "1.5.0")
+    val serverVersion = stringOption(args, fileConfig, "--version", "version", "1.8.2")
     val defaultWorld = stringOption(args, fileConfig, "--default-world", "defaultWorld", "world")
     val maxPlayers = intOption(args, fileConfig, "--max-players", "maxPlayers", 0).coerceAtLeast(0)
     val maxWorlds = intOption(args, fileConfig, "--max-worlds", "maxWorlds", 0).coerceAtLeast(0)
