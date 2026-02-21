@@ -30,6 +30,7 @@ jobs:
           mkdir -p _site/website
           cp -R website/. _site/website/
           cp -R logos _site/logos
+          cp -R showcase-plugins _site/showcase-plugins
           cat > _site/index.html <<'EOF'
           <!doctype html>
           <html lang="en">

@@ -36,12 +36,14 @@ import com.clockwork.api.EventBus
 import com.clockwork.api.HostAccess
 import com.clockwork.api.HostEntitySnapshot
 import com.clockwork.api.HostBlockSnapshot
+import com.clockwork.api.HostHttpResponse
 import com.clockwork.api.HostLocationRef
 import com.clockwork.api.HostMutationBatch
 import com.clockwork.api.HostMutationBatchResult
 import com.clockwork.api.HostMutationType
 import com.clockwork.api.HostMutationOp
 import com.clockwork.api.HostPlayerSnapshot
+import com.clockwork.api.HostPluginInstallResult
 import com.clockwork.api.HostPlayerStatusSnapshot
 import com.clockwork.api.HostWorldSnapshot
 import com.clockwork.api.PluginContext
@@ -62,6 +64,12 @@ import com.clockwork.runtime.RuntimeRegistry
 import com.clockwork.runtime.SystemIsolationSnapshot
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.StandardCopyOption
+import java.net.URI
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
+import java.time.Duration
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.Executors
@@ -194,6 +202,14 @@ class GigaStandaloneCore(
         logger = logger,
         hostState = hostState
     )
+    private val httpClient: HttpClient = HttpClient.newBuilder()
+        .followRedirects(HttpClient.Redirect.NORMAL)
+        .build()
+    private val maxPluginDownloadBytes = 64L * 1024L * 1024L
+    private val defaultPluginSeedMarker = config.dataDirectory.resolve("bootstrap/default-plugins-seeded.marker")
+    private val bundledDefaultPlugins = listOf(
+        "default-plugins/clockwork-plugin-browser.jar"
+    )
     private data class TickPluginSnapshot(
         val pluginId: String,
         val context: PluginContext,
@@ -227,6 +243,7 @@ class GigaStandaloneCore(
 
         Files.createDirectories(config.pluginsDirectory)
         Files.createDirectories(config.dataDirectory)
+        ensureBundledDefaultPlugins()
         loadState()
 
         runtime = GigaRuntime(
@@ -340,6 +357,76 @@ class GigaStandaloneCore(
             reloadedPlugins = changedReload.reloadedPlugins,
             reloadStatus = changedReload.status,
             reason = changedReload.reason
+        )
+    }
+
+    fun installPluginFromUrl(
+        url: String,
+        fileName: String? = null,
+        loadNow: Boolean = true
+    ): HostPluginInstallResult = mutate(timeoutMillis = 30_000L) {
+        ensureRuntimeInitialized()
+        val trimmedUrl = url.trim()
+        if (trimmedUrl.isEmpty()) {
+            return@mutate HostPluginInstallResult(success = false, message = "URL must not be blank")
+        }
+        val uri = try {
+            URI(trimmedUrl)
+        } catch (_: Throwable) {
+            return@mutate HostPluginInstallResult(success = false, message = "Invalid URL")
+        }
+        if (!uri.isAbsolute || (uri.scheme != "https" && uri.scheme != "http")) {
+            return@mutate HostPluginInstallResult(success = false, message = "Only http/https URLs are supported")
+        }
+        val response = httpGetBytesInternal(
+            url = trimmedUrl,
+            connectTimeoutMillis = 5_000,
+            readTimeoutMillis = 20_000,
+            maxBodyBytes = maxPluginDownloadBytes.toInt()
+        )
+        if (!response.success) {
+            return@mutate HostPluginInstallResult(
+                success = false,
+                loaded = false,
+                message = response.error ?: "Download failed"
+            )
+        }
+        if (response.body.isEmpty()) {
+            return@mutate HostPluginInstallResult(success = false, loaded = false, message = "Downloaded file is empty")
+        }
+        if (response.body.size.toLong() > maxPluginDownloadBytes) {
+            return@mutate HostPluginInstallResult(
+                success = false,
+                loaded = false,
+                message = "Downloaded plugin exceeds ${maxPluginDownloadBytes / (1024 * 1024)}MB limit"
+            )
+        }
+
+        val targetName = resolvePluginFileName(uri, fileName)
+        val target = config.pluginsDirectory.resolve(targetName).normalize()
+        if (!target.startsWith(config.pluginsDirectory.toAbsolutePath().normalize())) {
+            return@mutate HostPluginInstallResult(success = false, loaded = false, message = "Unsafe plugin file path")
+        }
+        Files.createDirectories(config.pluginsDirectory)
+        Files.write(target, response.body)
+
+        val loadedPlugin = if (loadNow) {
+            val loadedNow = runtime.scanAndLoad()
+            if (loadedNow.isNotEmpty()) {
+                installStandaloneBridgeAdapters(loadedNow)
+                refreshTickPluginsSnapshot()
+            }
+            loadedNow.firstOrNull { it.sourceJarPath.fileName.toString().equals(targetName, ignoreCase = true) }
+        } else {
+            null
+        }
+
+        HostPluginInstallResult(
+            success = true,
+            pluginId = loadedPlugin?.manifest?.id,
+            filePath = target.toString(),
+            loaded = loadedPlugin != null,
+            message = if (loadedPlugin != null) "Plugin installed and loaded" else "Plugin installed (load pending scan)"
         )
     }
 
@@ -1345,6 +1432,21 @@ class GigaStandaloneCore(
             override fun setBlockData(world: String, x: Int, y: Int, z: Int, data: Map<String, String>): Map<String, String>? {
                 return this@GigaStandaloneCore.setBlockData(world, x, y, z, data, cause = "plugin")
             }
+            override fun httpGet(
+                url: String,
+                connectTimeoutMillis: Int,
+                readTimeoutMillis: Int,
+                maxBodyChars: Int
+            ): HostHttpResponse? {
+                return this@GigaStandaloneCore.httpGetInternal(url, connectTimeoutMillis, readTimeoutMillis, maxBodyChars)
+            }
+            override fun installPluginFromUrl(url: String, fileName: String?, loadNow: Boolean): HostPluginInstallResult {
+                return this@GigaStandaloneCore.installPluginFromUrl(
+                    url = url,
+                    fileName = fileName,
+                    loadNow = loadNow
+                )
+            }
             override fun applyMutationBatch(batch: HostMutationBatch): HostMutationBatchResult {
                 return this@GigaStandaloneCore.applyMutationBatch(batch, cause = "plugin")
             }
@@ -1443,6 +1545,135 @@ class GigaStandaloneCore(
                 if (world.isEmpty()) false else setBlockData(world, x, y, z, op.data, cause = cause) != null
             }
         }
+    }
+
+    private fun ensureBundledDefaultPlugins() {
+        if (Files.exists(defaultPluginSeedMarker)) return
+        Files.createDirectories(config.pluginsDirectory)
+        Files.createDirectories(defaultPluginSeedMarker.parent)
+
+        var seededAny = false
+        bundledDefaultPlugins.forEach { resourcePath ->
+            val resourceName = resourcePath.substringAfterLast('/')
+            val target = config.pluginsDirectory.resolve(resourceName).normalize()
+            if (!target.startsWith(config.pluginsDirectory.toAbsolutePath().normalize())) return@forEach
+            if (Files.exists(target)) return@forEach
+            javaClass.classLoader.getResourceAsStream(resourcePath)?.use { input ->
+                Files.copy(input, target, StandardCopyOption.REPLACE_EXISTING)
+                seededAny = true
+                logger.info("Seeded default plugin: ${target.fileName}")
+            }
+        }
+
+        if (seededAny || !Files.exists(defaultPluginSeedMarker)) {
+            Files.writeString(defaultPluginSeedMarker, "seeded=${System.currentTimeMillis()}\n")
+        }
+    }
+
+    private fun resolvePluginFileName(uri: URI, explicitName: String?): String {
+        val candidate = explicitName?.trim().orEmpty()
+        val chosen = if (candidate.isNotEmpty()) {
+            candidate
+        } else {
+            val fromPath = uri.path?.substringAfterLast('/')?.trim().orEmpty()
+            if (fromPath.isNotEmpty()) fromPath else "plugin-${System.currentTimeMillis()}.jar"
+        }
+        val cleaned = chosen.replace("\\", "_").replace("/", "_")
+        return if (cleaned.endsWith(".jar", ignoreCase = true)) cleaned else "$cleaned.jar"
+    }
+
+    private data class HttpBytesResult(
+        val success: Boolean,
+        val statusCode: Int,
+        val body: ByteArray,
+        val headers: Map<String, String>,
+        val error: String? = null
+    )
+
+    private fun httpGetBytesInternal(
+        url: String,
+        connectTimeoutMillis: Int,
+        readTimeoutMillis: Int,
+        maxBodyBytes: Int
+    ): HttpBytesResult {
+        if (maxBodyBytes <= 0) {
+            return HttpBytesResult(success = false, statusCode = 0, body = ByteArray(0), headers = emptyMap(), error = "maxBodyBytes must be > 0")
+        }
+        val uri = try {
+            URI(url.trim())
+        } catch (_: Throwable) {
+            return HttpBytesResult(success = false, statusCode = 0, body = ByteArray(0), headers = emptyMap(), error = "Invalid URL")
+        }
+        if (!uri.isAbsolute || (uri.scheme != "https" && uri.scheme != "http")) {
+            return HttpBytesResult(success = false, statusCode = 0, body = ByteArray(0), headers = emptyMap(), error = "Only http/https URLs are supported")
+        }
+        return try {
+            val request = HttpRequest.newBuilder(uri)
+                .timeout(Duration.ofMillis(readTimeoutMillis.toLong().coerceAtLeast(1L)))
+                .GET()
+                .build()
+            val client = if (connectTimeoutMillis > 0) {
+                HttpClient.newBuilder()
+                    .followRedirects(HttpClient.Redirect.NORMAL)
+                    .connectTimeout(Duration.ofMillis(connectTimeoutMillis.toLong()))
+                    .build()
+            } else {
+                httpClient
+            }
+            val response = client.send(request, HttpResponse.BodyHandlers.ofByteArray())
+            val headers = response.headers().map().mapValues { it.value.joinToString(",") }
+            val bytes = response.body() ?: ByteArray(0)
+            if (bytes.size > maxBodyBytes) {
+                HttpBytesResult(
+                    success = false,
+                    statusCode = response.statusCode(),
+                    body = ByteArray(0),
+                    headers = headers,
+                    error = "Response body exceeds limit ($maxBodyBytes bytes)"
+                )
+            } else {
+                HttpBytesResult(
+                    success = response.statusCode() in 200..299,
+                    statusCode = response.statusCode(),
+                    body = bytes,
+                    headers = headers,
+                    error = if (response.statusCode() in 200..299) null else "HTTP ${response.statusCode()}"
+                )
+            }
+        } catch (t: Throwable) {
+            HttpBytesResult(success = false, statusCode = 0, body = ByteArray(0), headers = emptyMap(), error = t.message ?: t.javaClass.simpleName)
+        }
+    }
+
+    private fun httpGetInternal(
+        url: String,
+        connectTimeoutMillis: Int,
+        readTimeoutMillis: Int,
+        maxBodyChars: Int
+    ): HostHttpResponse {
+        val bytesResult = httpGetBytesInternal(
+            url = url,
+            connectTimeoutMillis = connectTimeoutMillis,
+            readTimeoutMillis = readTimeoutMillis,
+            maxBodyBytes = maxBodyChars.coerceAtLeast(1) * 4
+        )
+        if (!bytesResult.success) {
+            return HostHttpResponse(
+                success = false,
+                statusCode = bytesResult.statusCode,
+                body = "",
+                headers = bytesResult.headers,
+                error = bytesResult.error
+            )
+        }
+        val decoded = bytesResult.body.toString(Charsets.UTF_8)
+        val capped = if (decoded.length > maxBodyChars) decoded.take(maxBodyChars) else decoded
+        return HostHttpResponse(
+            success = true,
+            statusCode = bytesResult.statusCode,
+            body = capped,
+            headers = bytesResult.headers
+        )
     }
 
     private fun installStandaloneBridgeAdapters(plugins: List<com.clockwork.runtime.LoadedPlugin>) {

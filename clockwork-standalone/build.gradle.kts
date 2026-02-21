@@ -60,6 +60,18 @@ tasks.register<Test>("soakTest") {
     dependsOn(":clockwork-demo-standalone:shadowJar")
 }
 
+tasks.named<ProcessResources>("processResources") {
+    dependsOn(":clockwork-plugin-browser:shadowJar")
+    val browserJar = project(":clockwork-plugin-browser")
+        .layout
+        .buildDirectory
+        .file("libs/clockwork-plugin-browser-${project.version}.jar")
+    from(browserJar) {
+        into("default-plugins")
+        rename { "clockwork-plugin-browser.jar" }
+    }
+}
+
 tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar") {
     archiveClassifier.set("")
     manifest {

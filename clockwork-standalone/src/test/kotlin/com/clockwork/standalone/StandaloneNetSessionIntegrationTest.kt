@@ -5,6 +5,7 @@ import com.clockwork.core.GigaStandaloneCore
 import com.clockwork.core.StandaloneCoreConfig
 import com.clockwork.core.StandaloneCapacityException
 import com.clockwork.net.SessionActionResult
+import com.clockwork.net.SessionJoinContext
 import com.clockwork.net.StandaloneNetConfig
 import com.clockwork.net.StandaloneNetServer
 import com.clockwork.net.StandaloneSessionHandler
@@ -175,6 +176,85 @@ class StandaloneNetSessionIntegrationTest {
                 )
                 assertTrue(!hello2.success)
                 assertEquals("SERVER_FULL", hello2.code)
+            }
+        } finally {
+            net.stop()
+            core.stop()
+        }
+    }
+
+    @Test
+    fun `net hello can reject banned client mods from join payload`() {
+        val root = Files.createTempDirectory("clockwork-standalone-net-banned-mods-it")
+        val core = GigaStandaloneCore(
+            config = StandaloneCoreConfig(
+                pluginsDirectory = root.resolve("plugins"),
+                dataDirectory = root.resolve("data"),
+                tickPeriodMillis = 1L,
+                autoSaveEveryTicks = 0L
+            ),
+            logger = {}
+        )
+        core.start()
+        val net = StandaloneNetServer(
+            config = StandaloneNetConfig(
+                host = "127.0.0.1",
+                port = 0,
+                authRequired = true,
+                sharedSecret = "player-secret",
+                sessionTtlSeconds = 60
+            ),
+            logger = {},
+            handler = run {
+                val delegate = coreHandler(core)
+                object : StandaloneSessionHandler by delegate {
+                override fun joinWithContext(
+                    name: String,
+                    world: String,
+                    x: Double,
+                    y: Double,
+                    z: Double,
+                    context: SessionJoinContext
+                ): SessionActionResult {
+                    return if (context.clientMods.any { it.equals("gamma", ignoreCase = true) }) {
+                        SessionActionResult(false, "MOD_BANNED", "Client mod 'gamma' is banned on this server.")
+                    } else {
+                        delegate.join(name, world, x, y, z)
+                    }
+                }
+            }
+            }
+        )
+        net.start()
+        try {
+            val port = waitForPort(net)
+            Socket("127.0.0.1", port).use { socket ->
+                val reader = socket.getInputStream().bufferedReader()
+                val writer = socket.getOutputStream().bufferedWriter()
+
+                val auth = sendJson(
+                    reader,
+                    writer,
+                    "auth",
+                    "1",
+                    payload = mapOf("secret" to "player-secret")
+                )
+                assertTrue(auth.success)
+                val sid = auth.payload["sessionId"].orEmpty()
+
+                val hello = sendJson(
+                    reader,
+                    writer,
+                    "hello",
+                    "2",
+                    payload = mapOf(
+                        "sessionId" to sid,
+                        "name" to "Alex",
+                        "clientMods" to "gamma,minimap"
+                    )
+                )
+                assertTrue(!hello.success)
+                assertEquals("MOD_BANNED", hello.code)
             }
         } finally {
             net.stop()

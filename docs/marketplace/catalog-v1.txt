@@ -1,0 +1,3 @@
+# clockwork plugin browser catalog format (v1)
+# id|name|version|minecraft|category|downloadUrl|description
+clockwork-demo|Clockwork Demo|1.5.0|1.21.x|automation|https://github.com/Lianomeister/Clockwork/releases/latest/download/clockwork-demo-standalone-1.5.0.jar|Reference plugin with commands systems and events

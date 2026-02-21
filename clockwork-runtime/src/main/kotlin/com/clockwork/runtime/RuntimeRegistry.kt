@@ -249,6 +249,9 @@ class RuntimeRegistry(private val pluginId: String) : RegistryFacade {
         )
     }
     override fun systems(): Map<String, TickSystem> = systems.toMap()
+    fun hasResourceAssets(): Boolean {
+        return textures.isNotEmpty() || models.isNotEmpty() || animations.isNotEmpty() || sounds.isNotEmpty()
+    }
     fun systemsView(): Set<Map.Entry<String, TickSystem>> = systems.entries
     fun systemsVersion(): Long = systemsVersionCounter.get()
     fun systemsSnapshot(): List<Pair<String, TickSystem>> {

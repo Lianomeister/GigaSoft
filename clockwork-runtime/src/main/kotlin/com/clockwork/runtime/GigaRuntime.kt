@@ -13,6 +13,7 @@ import java.util.ArrayDeque
 import java.util.Comparator
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ConcurrentLinkedQueue
 import kotlin.io.path.name
 import kotlin.streams.toList
 
@@ -75,14 +76,38 @@ class GigaRuntime(
                 .toList()
         }
 
-        val discovered = pluginEntries.mapNotNull { jarCandidate ->
-            try {
-                descriptorFromSource(jarCandidate)
-            } catch (t: Throwable) {
-                rootLogger.info("Skipped '$jarCandidate': ${t.message}")
-                null
+        val skipped = ConcurrentLinkedQueue<Pair<Path, String>>()
+        val discovered = if (pluginEntries.size > 1) {
+            pluginEntries
+                .parallelStream()
+                .map { jarCandidate ->
+                    try {
+                        descriptorFromSource(jarCandidate)
+                    } catch (t: Throwable) {
+                        skipped += jarCandidate to (t.message ?: t.javaClass.simpleName)
+                        null
+                    }
+                }
+                .filter { it != null }
+                .map { it!! }
+                .toList()
+        } else {
+            pluginEntries.mapNotNull { jarCandidate ->
+                try {
+                    descriptorFromSource(jarCandidate)
+                } catch (t: Throwable) {
+                    skipped += jarCandidate to (t.message ?: t.javaClass.simpleName)
+                    null
+                }
             }
         }
+            .sortedWith(compareBy<PluginDescriptor> { it.manifest.id }.thenBy { it.jarPath.toString() })
+
+        skipped
+            .sortedBy { it.first.toString() }
+            .forEach { (jarCandidate, reason) ->
+                rootLogger.info("Skipped '$jarCandidate': $reason")
+            }
 
         val candidates = discovered.filterNot {
             val alreadyLoaded = loaded.containsKey(it.manifest.id)
@@ -494,9 +519,9 @@ class GigaRuntime(
 
     private fun loadDescriptor(descriptor: PluginDescriptor): LoadedPlugin {
         require(!loaded.containsKey(descriptor.manifest.id)) { "Plugin '${descriptor.manifest.id}' is already loaded" }
-        val sourceJar = assertPluginJarPath(descriptor.jarPath)
-        val sourceFingerprint = sourceFingerprint(sourceJar)
-        val staged = stageRuntimeJar(descriptor.manifest.id, sourceJar)
+        val sourceJar = descriptor.jarPath
+        val sourceFingerprint = sourceFingerprintFromValidated(sourceJar)
+        val staged = stageRuntimeJarFromValidated(descriptor.manifest.id, sourceJar)
         try {
             return loadFromRuntimeArtifact(
                 manifest = descriptor.manifest,
@@ -574,17 +599,20 @@ class GigaRuntime(
             )
 
             plugin.onEnable(context)
-            val assetValidation = registry.validateAssets()
-            if (!assetValidation.valid) {
-                val details = assetValidation.issues
-                    .filter { it.severity == com.clockwork.api.AssetValidationSeverity.ERROR }
-                    .joinToString("; ") { issue ->
-                        val idPart = issue.assetId?.let { "[$it] " } ?: ""
-                        "${issue.code}: $idPart${issue.message}"
-                    }
-                throw IllegalStateException("Asset validation failed for plugin '${manifest.id}': $details")
+            if (registry.hasResourceAssets()) {
+                val assetValidation = registry.validateAssets()
+                if (!assetValidation.valid) {
+                    val details = assetValidation.issues
+                        .filter { it.severity == com.clockwork.api.AssetValidationSeverity.ERROR }
+                        .joinToString("; ") { issue ->
+                            val idPart = issue.assetId?.let { "[$it] " } ?: ""
+                            "${issue.code}: $idPart${issue.message}"
+                        }
+                    throw IllegalStateException("Asset validation failed for plugin '${manifest.id}': $details")
+                }
+                // Resource-pack bundle build is intentionally lazy to keep initial boot fast.
+                // Plugins can build it on demand via registry/buildResourcePackBundle APIs.
             }
-            registry.buildResourcePackBundle()
 
             val loadedPlugin = LoadedPlugin(
                 manifest = manifest,
@@ -628,18 +656,21 @@ class GigaRuntime(
         return true
     }
 
-    private fun stageRuntimeJar(pluginId: String, sourceJarPath: Path): Path {
-        val safeSourceJar = assertPluginJarPath(sourceJarPath)
+    private fun stageRuntimeJarFromValidated(pluginId: String, safeSourceJar: Path): Path {
         val cacheDir = runtimeCacheDirectory().resolve(pluginId)
         Files.createDirectories(cacheDir)
-        val stagedName = "${System.currentTimeMillis()}-${UUID.randomUUID()}-${sourceJarPath.fileName.name}"
+        val stagedName = "${System.currentTimeMillis()}-${UUID.randomUUID()}-${safeSourceJar.fileName.name}"
         val staged = cacheDir.resolve(stagedName).normalize()
         require(staged.startsWith(cacheDir.normalize())) { "Invalid staged runtime path for plugin '$pluginId'" }
         val jarSize = Files.size(safeSourceJar)
         require(jarSize in 1..maxPluginJarBytes) {
             "Plugin jar '$safeSourceJar' has invalid size ($jarSize bytes)"
         }
-        Files.copy(safeSourceJar, staged, StandardCopyOption.REPLACE_EXISTING)
+        try {
+            Files.createLink(staged, safeSourceJar)
+        } catch (_: Throwable) {
+            Files.copy(safeSourceJar, staged, StandardCopyOption.REPLACE_EXISTING)
+        }
         return staged
     }
 
@@ -765,8 +796,12 @@ class GigaRuntime(
 
     private fun sourceFingerprint(jarPath: Path): JarFingerprint {
         val safe = assertPluginJarPath(jarPath)
-        val size = Files.size(safe)
-        val modified = Files.getLastModifiedTime(safe).toMillis()
+        return sourceFingerprintFromValidated(safe)
+    }
+
+    private fun sourceFingerprintFromValidated(validatedJarPath: Path): JarFingerprint {
+        val size = Files.size(validatedJarPath)
+        val modified = Files.getLastModifiedTime(validatedJarPath).toMillis()
         return JarFingerprint(sizeBytes = size, lastModifiedMillis = modified)
     }
 

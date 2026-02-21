@@ -1,0 +1,24 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Clockwork Manifest Injection",
+  "scopeName": "clockwork.injection.yaml",
+  "injectionSelector": "L:source.yaml",
+  "patterns": [
+    {
+      "name": "keyword.other.clockwork.manifest.key.yaml",
+      "match": "^(\\s*)(id|name|version|main|apiVersion|dependencies|permissions)(\\s*:)"
+    },
+    {
+      "name": "constant.language.clockwork.permission.yaml",
+      "match": "\\b(?:host|adapter)\\.[A-Za-z0-9*._-]+\\b"
+    },
+    {
+      "name": "constant.numeric.clockwork.api-version.yaml",
+      "match": "(?<=\\bapiVersion\\s*:\\s*)\\d+"
+    },
+    {
+      "name": "entity.name.type.clockwork.plugin-id.yaml",
+      "match": "(?<=\\bid\\s*:\\s*)[a-z0-9][a-z0-9._-]{1,63}\\b"
+    }
+  ]
+}

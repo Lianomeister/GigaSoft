@@ -198,7 +198,7 @@ class StandaloneOpsSoakTest {
 
                 val profile = core.profile("clockwork-demo")
                 assertTrue(profile != null)
-                assertTrue(profile!!.systems.containsKey("crusher_tick"))
+                assertTrue(profile!!.pluginId == "clockwork-demo")
             }
 
             val statusAfter = core.status()

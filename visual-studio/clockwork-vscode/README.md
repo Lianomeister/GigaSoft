@@ -38,6 +38,10 @@ VS Code extension for Clockwork plugin development.
     - `  - host.server.read`
 - `Clockwork: Check Extension Updates`:
   - checks latest release from GitHub repo (`Lianomeister/Clockwork`)
+- Clockwork-aware syntax highlighting:
+  - highlights `gigaplugin.yml` keys (`id`, `name`, `version`, `main`, `apiVersion`, `dependencies`, `permissions`)
+  - highlights Clockwork permission strings (`host.*`, `adapter.*`) in YAML and Kotlin
+  - highlights common Clockwork Kotlin DSL/API calls and types without replacing normal Kotlin coloring
 
 ## Snippets
 

@@ -54,6 +54,7 @@ subprojects {
 tasks.register("buildPlugin") {
     dependsOn(
         ":clockwork-demo-standalone:shadowJar",
+        ":clockwork-plugin-browser:shadowJar",
         ":clockwork-standalone:shadowJar"
     )
 }
@@ -223,6 +224,7 @@ tasks.register("standaloneReleaseCandidate") {
         ":clockwork-standalone:test",
         ":clockwork-cli:test",
         ":clockwork-demo-standalone:test",
+        ":clockwork-plugin-browser:test",
         "standaloneReleaseCandidateArtifacts"
     )
 }

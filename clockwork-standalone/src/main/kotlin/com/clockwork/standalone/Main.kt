@@ -15,6 +15,7 @@ import com.clockwork.runtime.MetricSnapshot
 import com.clockwork.net.StandaloneNetConfig
 import com.clockwork.net.StandaloneNetServer
 import com.clockwork.net.SessionActionResult
+import com.clockwork.net.SessionJoinContext
 import com.clockwork.net.StandaloneSessionHandler
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
@@ -113,6 +114,28 @@ fun main(args: Array<String>) {
             ),
             logger = { message -> println("[GigaNet] $message") },
             handler = object : StandaloneSessionHandler {
+                override fun joinWithContext(
+                    name: String,
+                    world: String,
+                    x: Double,
+                    y: Double,
+                    z: Double,
+                    context: SessionJoinContext
+                ): SessionActionResult {
+                    val blocked = firstBlockedClientMod(
+                        reportedMods = context.clientMods,
+                        bannedMods = launchConfig.bannedClientMods
+                    )
+                    if (blocked != null) {
+                        return SessionActionResult(
+                            success = false,
+                            code = "MOD_BANNED",
+                            message = "Client mod '$blocked' is banned on this server."
+                        )
+                    }
+                    return join(name, world, x, y, z)
+                }
+
                 override fun join(name: String, world: String, x: Double, y: Double, z: Double): SessionActionResult {
                     val player = try {
                         core.joinPlayer(name, world, x, y, z)
@@ -895,6 +918,29 @@ private fun parsePayload(rawPairs: List<String>): Map<String, String> {
             if (key.isBlank()) null else key to value
         }
     }.toMap()
+}
+
+private fun firstBlockedClientMod(reportedMods: Set<String>, bannedMods: Set<String>): String? {
+    if (reportedMods.isEmpty() || bannedMods.isEmpty()) return null
+    val normalizedBans = bannedMods.asSequence()
+        .map { normalizeClientModToken(it) }
+        .filter { it.isNotEmpty() }
+        .toList()
+    if (normalizedBans.isEmpty()) return null
+    for (reported in reportedMods) {
+        val normalizedReported = normalizeClientModToken(reported)
+        if (normalizedReported.isEmpty()) continue
+        val hit = normalizedBans.firstOrNull { ban ->
+            normalizedReported == ban || normalizedReported.contains(ban)
+        }
+        if (hit != null) return reported
+    }
+    return null
+}
+
+private fun normalizeClientModToken(value: String): String {
+    return value.trim().lowercase()
+        .replace(Regex("[^a-z0-9]+"), "")
 }
 
 private data class DiagnosticsExportSummary(

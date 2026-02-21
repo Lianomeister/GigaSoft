@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "clockwork-vscode",
   "displayName": "Clockwork Plugin Tools",
   "description": "VS Code support for Clockwork plugin development.",
@@ -79,6 +79,22 @@
       {
         "language": "yaml",
         "path": "./snippets/yaml.code-snippets"
+      }
+    ],
+    "grammars": [
+      {
+        "scopeName": "clockwork.injection.yaml",
+        "path": "./syntaxes/clockwork-manifest.tmLanguage.json",
+        "injectTo": [
+          "source.yaml"
+        ]
+      },
+      {
+        "scopeName": "clockwork.injection.kotlin",
+        "path": "./syntaxes/clockwork-kotlin.tmLanguage.json",
+        "injectTo": [
+          "source.kotlin"
+        ]
       }
     ]
   },

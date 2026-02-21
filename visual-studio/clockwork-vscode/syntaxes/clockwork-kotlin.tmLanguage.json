@@ -1,0 +1,24 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Clockwork Kotlin Injection",
+  "scopeName": "clockwork.injection.kotlin",
+  "injectionSelector": "L:source.kotlin",
+  "patterns": [
+    {
+      "name": "support.function.clockwork.dsl.kotlin",
+      "match": "\\b(?:gigaPlugin|items|blocks|recipes|machines|systems|commands|events|adapters|textures|models|ui|network|registry|scheduler|storage|doctor|profile|scan|reload|spec|command|system|subscribe|adapter|texture|model)\\b(?=\\s*\\()"
+    },
+    {
+      "name": "storage.type.clockwork.api.kotlin",
+      "match": "\\b(?:GigaPlugin|PluginContext|CommandResult|CommandSpec|CommandArgSpec|CommandArgType|AdapterInvocation|AdapterResponse|EventSubscriptionOptions|EventPriority|PersistentStore|MachineBehavior|RegistryFacade)\\b"
+    },
+    {
+      "name": "variable.parameter.clockwork.manifest-field.kotlin",
+      "match": "\\b(?:id|name|version|main|apiVersion|dependencies|permissions|required_capability)\\b(?=\\s*=)"
+    },
+    {
+      "name": "constant.language.clockwork.permission.kotlin",
+      "match": "\"(?:host|adapter)\\.[A-Za-z0-9*._-]+\""
+    }
+  ]
+}

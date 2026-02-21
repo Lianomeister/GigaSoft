@@ -36,7 +36,7 @@ class StandaloneLifecycleIntegrationTest {
         )
         core.start()
         try {
-            assertTrue(core.plugins().isEmpty())
+            assertTrue(core.plugins().any { it.startsWith("clockwork-plugin-browser@") })
 
             writeDemoManifestJar(
                 jarPath = pluginsDir.resolve("clockwork-demo-it.jar"),
@@ -509,6 +509,50 @@ class StandaloneLifecycleIntegrationTest {
             }
         } finally {
             core.stop()
+        }
+    }
+
+    @Test
+    fun `default browser plugin is seeded once and can be removed afterwards`() {
+        val root = Files.createTempDirectory("clockwork-standalone-default-plugin-seed")
+        val pluginsDir = root.resolve("plugins")
+        val dataDir = root.resolve("data")
+        Files.createDirectories(pluginsDir)
+        Files.createDirectories(dataDir)
+
+        val core = GigaStandaloneCore(
+            config = StandaloneCoreConfig(
+                pluginsDirectory = pluginsDir,
+                dataDirectory = dataDir,
+                tickPeriodMillis = 1L,
+                autoSaveEveryTicks = 0L
+            ),
+            logger = {}
+        )
+
+        core.start()
+        try {
+            assertTrue(core.plugins().any { it.startsWith("clockwork-plugin-browser@") })
+        } finally {
+            core.stop()
+        }
+
+        Files.deleteIfExists(pluginsDir.resolve("clockwork-plugin-browser.jar"))
+
+        val secondCore = GigaStandaloneCore(
+            config = StandaloneCoreConfig(
+                pluginsDirectory = pluginsDir,
+                dataDirectory = dataDir,
+                tickPeriodMillis = 1L,
+                autoSaveEveryTicks = 0L
+            ),
+            logger = {}
+        )
+        secondCore.start()
+        try {
+            assertFalse(secondCore.plugins().any { it.startsWith("clockwork-plugin-browser@") })
+        } finally {
+            secondCore.stop()
         }
     }
 

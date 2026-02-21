@@ -202,6 +202,17 @@ interface HostAccess {
     fun breakBlock(world: String, x: Int, y: Int, z: Int, dropLoot: Boolean = true): Boolean = false
     fun blockData(world: String, x: Int, y: Int, z: Int): Map<String, String>? = null
     fun setBlockData(world: String, x: Int, y: Int, z: Int, data: Map<String, String>): Map<String, String>? = null
+    fun httpGet(
+        url: String,
+        connectTimeoutMillis: Int = 3_000,
+        readTimeoutMillis: Int = 5_000,
+        maxBodyChars: Int = 65_536
+    ): HostHttpResponse? = null
+    fun installPluginFromUrl(
+        url: String,
+        fileName: String? = null,
+        loadNow: Boolean = true
+    ): HostPluginInstallResult = HostPluginInstallResult(success = false, message = "Plugin installation is not supported")
     fun applyMutationBatch(batch: HostMutationBatch): HostMutationBatchResult {
         return HostMutationBatchResult(
             batchId = batch.id,
@@ -259,6 +270,8 @@ object HostPermissions {
     const val BLOCK_WRITE = "host.block.write"
     const val BLOCK_DATA_READ = "host.block.data.read"
     const val BLOCK_DATA_WRITE = "host.block.data.write"
+    const val INTERNET_HTTP_GET = "host.internet.http.get"
+    const val PLUGIN_INSTALL = "host.plugin.install"
     const val MUTATION_BATCH = "host.mutation.batch"
 }
 
@@ -363,6 +376,22 @@ data class HostServerSnapshot(
     val onlinePlayers: Int,
     val maxPlayers: Int,
     val worldCount: Int
+)
+
+data class HostHttpResponse(
+    val success: Boolean,
+    val statusCode: Int,
+    val body: String,
+    val headers: Map<String, String> = emptyMap(),
+    val error: String? = null
+)
+
+data class HostPluginInstallResult(
+    val success: Boolean,
+    val pluginId: String? = null,
+    val filePath: String? = null,
+    val loaded: Boolean = false,
+    val message: String? = null
 )
 
 data class GigaTickEvent(

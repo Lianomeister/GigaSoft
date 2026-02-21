@@ -199,7 +199,6 @@ const marketSearchInput = document.querySelector("#market-search-input");
 const marketFilterChips = document.querySelectorAll("#market-filters-sidebar .market-chip");
 const marketCards = document.querySelectorAll("#market-grid .market-card");
 const marketVersionFilters = document.querySelectorAll(".market-version-filter");
-const marketRatingFilter = document.querySelector("#market-rating-filter");
 const marketResetFilters = document.querySelector("#market-reset-filters");
 let activeMarketFilter = "all";
 
@@ -209,20 +208,22 @@ const applyMarketplaceFilters = () => {
   const selectedVersions = Array.from(marketVersionFilters)
     .filter((input) => input.checked)
     .map((input) => input.value.toLowerCase());
-  const minRating = Number(marketRatingFilter?.value || 0);
 
   marketCards.forEach((card) => {
     const name = (card.getAttribute("data-name") || "").toLowerCase();
     const tags = (card.getAttribute("data-tags") || "").toLowerCase();
     const description = (card.getAttribute("data-description") || "").toLowerCase();
-    const versionTrack = (card.getAttribute("data-version-track") || "").toLowerCase();
-    const rating = Number(card.getAttribute("data-rating") || 0);
+    const mcVersions = (card.getAttribute("data-mc-versions") || "")
+      .toLowerCase()
+      .split(",")
+      .map((value) => value.trim())
+      .filter((value) => value.length > 0);
     const matchesFilter = activeMarketFilter === "all" || tags.includes(activeMarketFilter);
-    const matchesVersion = selectedVersions.length === 0 || selectedVersions.includes(versionTrack);
-    const matchesRating = rating >= minRating;
+    const matchesVersion =
+      selectedVersions.length === 0 || selectedVersions.some((version) => mcVersions.includes(version));
     const searchable = `${name} ${tags} ${description}`;
     const matchesQuery = query.length === 0 || searchable.includes(query);
-    card.classList.toggle("hidden", !(matchesFilter && matchesVersion && matchesRating && matchesQuery));
+    card.classList.toggle("hidden", !(matchesFilter && matchesVersion && matchesQuery));
   });
 };
 
@@ -247,10 +248,6 @@ marketVersionFilters.forEach((input) => {
   input.addEventListener("change", applyMarketplaceFilters);
 });
 
-if (marketRatingFilter) {
-  marketRatingFilter.addEventListener("change", applyMarketplaceFilters);
-}
-
 if (marketResetFilters) {
   marketResetFilters.addEventListener("click", () => {
     activeMarketFilter = "all";
@@ -260,9 +257,6 @@ if (marketResetFilters) {
     marketVersionFilters.forEach((input) => {
       input.checked = false;
     });
-    if (marketRatingFilter) {
-      marketRatingFilter.value = "0";
-    }
     if (marketSearchInput) {
       marketSearchInput.value = "";
     }

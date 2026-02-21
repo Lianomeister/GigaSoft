@@ -26,6 +26,10 @@ class KickMessageFormatterTest {
             "Too many actions in a short time. Please slow down.",
             KickMessageFormatter.format(reason = "RATE_LIMIT", cause = "rate-limit")
         )
+        assertEquals(
+            "Disconnected: one or more client mods are not allowed on this server.",
+            KickMessageFormatter.format(reason = "MOD_BANNED", cause = "security")
+        )
     }
 
     @Test

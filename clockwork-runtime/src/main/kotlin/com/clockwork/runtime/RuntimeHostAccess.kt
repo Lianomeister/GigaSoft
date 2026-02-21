@@ -10,7 +10,9 @@ import com.clockwork.api.HostMutationBatchResult
 import com.clockwork.api.HostMutationType
 import com.clockwork.api.HostMutationOp
 import com.clockwork.api.HostPermissions
+import com.clockwork.api.HostHttpResponse
 import com.clockwork.api.HostPlayerSnapshot
+import com.clockwork.api.HostPluginInstallResult
 import com.clockwork.api.HostPlayerStatusSnapshot
 import com.clockwork.api.HostServerSnapshot
 import com.clockwork.api.HostWorldSnapshot
@@ -226,6 +228,36 @@ internal class RuntimeHostAccess(
     override fun setBlockData(world: String, x: Int, y: Int, z: Int, data: Map<String, String>): Map<String, String>? {
         if (!allowed(HostPermissions.BLOCK_DATA_WRITE)) return null
         return delegate.setBlockData(world, x, y, z, data)
+    }
+
+    override fun httpGet(
+        url: String,
+        connectTimeoutMillis: Int,
+        readTimeoutMillis: Int,
+        maxBodyChars: Int
+    ): HostHttpResponse? {
+        if (!allowed(HostPermissions.INTERNET_HTTP_GET)) return null
+        return delegate.httpGet(
+            url = url,
+            connectTimeoutMillis = connectTimeoutMillis,
+            readTimeoutMillis = readTimeoutMillis,
+            maxBodyChars = maxBodyChars
+        )
+    }
+
+    override fun installPluginFromUrl(url: String, fileName: String?, loadNow: Boolean): HostPluginInstallResult {
+        if (!allowed(HostPermissions.PLUGIN_INSTALL)) {
+            return HostPluginInstallResult(
+                success = false,
+                loaded = false,
+                message = "Missing permission '${HostPermissions.PLUGIN_INSTALL}'"
+            )
+        }
+        return delegate.installPluginFromUrl(
+            url = url,
+            fileName = fileName,
+            loadNow = loadNow
+        )
     }
 
     override fun applyMutationBatch(batch: HostMutationBatch): HostMutationBatchResult {

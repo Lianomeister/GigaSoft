@@ -17,6 +17,7 @@ class StandaloneLaunchConfigTest {
             chunkViewDistance=6
             maxChunkLoadsPerTick=222
             maxLoadedChunksPerWorld=3000
+            bannedClientMods=gamma, fullbright ;xray
             runtimeSchedulerWorkerThreads=3
             adapterTimeoutMillis=333
             adapterExecutionMode=fast
@@ -66,6 +67,7 @@ class StandaloneLaunchConfigTest {
         assertEquals(6, cfg.chunkViewDistance)
         assertEquals(222, cfg.maxChunkLoadsPerTick)
         assertEquals(3000, cfg.maxLoadedChunksPerWorld)
+        assertEquals(setOf("gamma", "fullbright", "xray"), cfg.bannedClientMods)
         assertEquals(3, cfg.runtimeSchedulerWorkerThreads)
         assertEquals(333L, cfg.adapterTimeoutMillis)
         assertEquals("fast", cfg.adapterExecutionMode)
@@ -128,6 +130,7 @@ class StandaloneLaunchConfigTest {
                 "--max-chunk-loads-per-tick", "300",
                 "--max-loaded-chunks-per-world", "5000",
                 "--runtime-scheduler-threads", "5",
+                "--banned-client-mods", "gamma|xray",
                 "--adapter-timeout-ms", "120",
                 "--adapter-mode", "fast",
                 "--adapter-rate-limit-per-minute-per-plugin", "900",
@@ -167,6 +170,7 @@ class StandaloneLaunchConfigTest {
         assertEquals(300, cfg.maxChunkLoadsPerTick)
         assertEquals(5000, cfg.maxLoadedChunksPerWorld)
         assertEquals(5, cfg.runtimeSchedulerWorkerThreads)
+        assertEquals(setOf("gamma", "xray"), cfg.bannedClientMods)
         assertEquals(120L, cfg.adapterTimeoutMillis)
         assertEquals("fast", cfg.adapterExecutionMode)
         assertEquals(900, cfg.adapterRateLimitPerMinutePerPlugin)

@@ -20,6 +20,7 @@ data class StandaloneLaunchConfig(
     val chunkViewDistance: Int,
     val maxChunkLoadsPerTick: Int,
     val maxLoadedChunksPerWorld: Int,
+    val bannedClientMods: Set<String>,
     val runtimeSchedulerWorkerThreads: Int,
     val netPort: Int,
     val netSharedSecret: String?,
@@ -83,6 +84,16 @@ fun parseLaunchConfig(args: Array<String>): StandaloneLaunchConfig {
     val chunkViewDistance = intOption(args, fileConfig, "--chunk-view-distance", "chunkViewDistance", 4)
     val maxChunkLoadsPerTick = intOption(args, fileConfig, "--max-chunk-loads-per-tick", "maxChunkLoadsPerTick", 128)
     val maxLoadedChunksPerWorld = intOption(args, fileConfig, "--max-loaded-chunks-per-world", "maxLoadedChunksPerWorld", 4096)
+    val bannedClientMods = stringListOption(
+        args = args,
+        fileConfig = fileConfig,
+        argKey = "--banned-client-mods",
+        configKey = "bannedClientMods",
+        defaultValue = emptyList()
+    )
+        .map { it.trim().lowercase() }
+        .filter { it.isNotBlank() }
+        .toSet()
     val runtimeSchedulerWorkerThreads = intOption(args, fileConfig, "--runtime-scheduler-threads", "runtimeSchedulerWorkerThreads", 2)
         .coerceAtLeast(1)
     val netPort = intOption(args, fileConfig, "--net-port", "netPort", 25570)
@@ -251,6 +262,7 @@ fun parseLaunchConfig(args: Array<String>): StandaloneLaunchConfig {
         chunkViewDistance = chunkViewDistance,
         maxChunkLoadsPerTick = maxChunkLoadsPerTick,
         maxLoadedChunksPerWorld = maxLoadedChunksPerWorld,
+        bannedClientMods = bannedClientMods,
         runtimeSchedulerWorkerThreads = runtimeSchedulerWorkerThreads,
         netPort = netPort,
         netSharedSecret = netSharedSecret,
@@ -391,6 +403,28 @@ private fun boolOption(
         "false", "0", "no", "off" -> false
         else -> defaultValue
     }
+}
+
+private fun stringListOption(
+    args: Array<String>,
+    fileConfig: Map<String, String>,
+    argKey: String,
+    configKey: String,
+    defaultValue: List<String>
+): List<String> {
+    val fromArg = argValue(args, argKey)
+    if (!fromArg.isNullOrBlank()) {
+        return splitListValue(fromArg)
+    }
+    val fromFile = fileConfig[configKey]
+        ?: fileConfig["standalone.$configKey"]
+    return if (fromFile.isNullOrBlank()) defaultValue else splitListValue(fromFile)
+}
+
+private fun splitListValue(raw: String): List<String> {
+    return raw.split(',', ';', '|')
+        .map { it.trim() }
+        .filter { it.isNotBlank() }
 }
 
 

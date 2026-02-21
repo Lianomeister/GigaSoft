@@ -505,7 +505,20 @@ class StandaloneNetServer(
                         val x = payload.double("x") ?: 0.0
                         val y = payload.double("y") ?: 64.0
                         val z = payload.double("z") ?: 0.0
-                        val joined = handler.join(name, world, x, y, z)
+                        val joined = handler.joinWithContext(
+                            name = name,
+                            world = world,
+                            x = x,
+                            y = y,
+                            z = z,
+                            context = SessionJoinContext(
+                                clientBrand = payload.trimmedOrNull("clientBrand"),
+                                clientMods = parseClientMods(
+                                    payload.trimmedOrNull("clientMods")
+                                        ?: payload.trimmedOrNull("mods")
+                                )
+                            )
+                        )
                         if (joined.success) nextContext = context.copy(currentName = name)
                         joined
                     }
@@ -735,7 +748,17 @@ class StandaloneNetServer(
                     val x = parts.getOrNull(3)?.toDoubleOrNull() ?: 0.0
                     val y = parts.getOrNull(4)?.toDoubleOrNull() ?: 64.0
                     val z = parts.getOrNull(5)?.toDoubleOrNull() ?: 0.0
-                    val result = handler.join(name, world, x, y, z)
+                    val result = handler.joinWithContext(
+                        name = name,
+                        world = world,
+                        x = x,
+                        y = y,
+                        z = z,
+                        context = SessionJoinContext(
+                            clientBrand = parts.getOrNull(6),
+                            clientMods = parseClientMods(parts.getOrNull(7))
+                        )
+                    )
                     if (result.success) {
                         nextContext = issueSession(context.copy(currentName = name))
                         SessionResult("OK ${result.message} sid=${nextContext.sessionId} role=${nextContext.role}", nextContext)
@@ -937,6 +960,16 @@ class StandaloneNetServer(
             raw.equals("EXIT", ignoreCase = true) -> "EXIT"
             else -> raw.uppercase()
         }
+    }
+
+    private fun parseClientMods(raw: String?): Set<String> {
+        if (raw.isNullOrBlank()) return emptySet()
+        return raw
+            .split(',', ';', '|')
+            .asSequence()
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .toCollection(LinkedHashSet())
     }
 
     private fun recordActionMetric(action: String, durationNanos: Long, success: Boolean) {

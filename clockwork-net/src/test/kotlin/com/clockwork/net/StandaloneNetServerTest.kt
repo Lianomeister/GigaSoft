@@ -381,6 +381,58 @@ class StandaloneNetServerTest {
     }
 
     @Test
+    fun `hello forwards client mod metadata to session handler`() {
+        val handler = TestHandler()
+        val server = StandaloneNetServer(
+            config = StandaloneNetConfig(
+                host = "127.0.0.1",
+                port = 0,
+                authRequired = true,
+                sharedSecret = "player-secret"
+            ),
+            logger = {},
+            handler = handler
+        )
+        server.start()
+        try {
+            val port = waitForPort(server)
+            Socket("127.0.0.1", port).use { socket ->
+                val reader = socket.getInputStream().bufferedReader()
+                val writer = socket.getOutputStream().bufferedWriter()
+
+                val auth = sendJson(
+                    reader,
+                    writer,
+                    action = "auth",
+                    requestId = "m1",
+                    payload = mapOf("secret" to "player-secret")
+                )
+                assertTrue(auth.success)
+                val sid = auth.payload["sessionId"].orEmpty()
+
+                val hello = sendJson(
+                    reader,
+                    writer,
+                    action = "hello",
+                    requestId = "m2",
+                    payload = mapOf(
+                        "sessionId" to sid,
+                        "name" to "Alex",
+                        "clientBrand" to "forge",
+                        "clientMods" to "gamma, minimap|sodium"
+                    )
+                )
+                assertTrue(hello.success)
+                val joinContext = handler.lastJoinContext
+                assertEquals("forge", joinContext?.clientBrand)
+                assertEquals(setOf("gamma", "minimap", "sodium"), joinContext?.clientMods)
+            }
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
     fun `global concurrent session limit rejects excess clients`() {
         val server = StandaloneNetServer(
             config = StandaloneNetConfig(
@@ -470,6 +522,19 @@ class StandaloneNetServerTest {
 
     private class TestHandler : StandaloneSessionHandler {
         var worldCreateCalls: Int = 0
+        var lastJoinContext: SessionJoinContext? = null
+
+        override fun joinWithContext(
+            name: String,
+            world: String,
+            x: Double,
+            y: Double,
+            z: Double,
+            context: SessionJoinContext
+        ): SessionActionResult {
+            lastJoinContext = context
+            return join(name, world, x, y, z)
+        }
 
         override fun join(name: String, world: String, x: Double, y: Double, z: Double): SessionActionResult {
             return SessionActionResult(true, "JOINED", "ok")

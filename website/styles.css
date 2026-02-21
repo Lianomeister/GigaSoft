@@ -109,20 +109,26 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 0.65rem;
-  padding: 0.5rem 0.8rem;
-  border: 1px solid rgba(147, 190, 214, 0.26);
+  padding: 0.62rem 0.95rem;
+  border: 1px solid rgba(170, 218, 239, 0.42);
   border-radius: 0.9rem;
-  background: linear-gradient(130deg, rgba(230, 247, 255, 0.12), rgba(10, 30, 42, 0.52));
-  box-shadow: 0 10px 24px rgba(3, 11, 17, 0.34);
-  backdrop-filter: blur(4px);
+  background: linear-gradient(130deg, rgba(236, 249, 255, 0.26), rgba(77, 137, 168, 0.26));
+  box-shadow:
+    0 10px 24px rgba(3, 11, 17, 0.34),
+    inset 0 0 0 1px rgba(225, 246, 255, 0.16);
+  backdrop-filter: blur(6px);
 }
 
 .brand-banner {
-  height: 120px;
+  height: 100px;
   width: auto;
   display: block;
   object-fit: contain;
-  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.52)) brightness(1.08) contrast(1.1);
+  filter:
+    drop-shadow(0 3px 10px rgba(0, 0, 0, 0.44))
+    brightness(1.24)
+    contrast(1.32)
+    saturate(1.14);
 }
 
 .brand p {

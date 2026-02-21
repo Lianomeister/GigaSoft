@@ -56,6 +56,7 @@ internal object KickMessageFormatter {
             "RATE_LIMIT", "SPAM", "TOO_MANY_REQUESTS" -> "Too many actions in a short time. Please slow down."
             "TIMEOUT", "TIMED_OUT", "AFK_TIMEOUT" -> "Connection timed out."
             "CHEAT_DETECTED", "SECURITY_VIOLATION", "FORBIDDEN" -> "Disconnected by server security policy."
+            "MOD_BANNED", "BANNED_MOD" -> "Disconnected: one or more client mods are not allowed on this server."
             "MAINTENANCE", "RESTART", "SHUTDOWN" -> "Server is restarting for maintenance."
             else -> null
         }
