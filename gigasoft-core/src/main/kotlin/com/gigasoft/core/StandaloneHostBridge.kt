@@ -119,6 +119,22 @@ class StandaloneHostBridge(
         return hostState.setWorldTime(name, time) != null
     }
 
+    override fun worldData(name: String): Map<String, String>? {
+        return hostState.worldData(name)
+    }
+
+    override fun setWorldData(name: String, data: Map<String, String>): Map<String, String>? {
+        return hostState.setWorldData(name, data)
+    }
+
+    override fun worldWeather(name: String): String? {
+        return hostState.worldWeather(name)
+    }
+
+    override fun setWorldWeather(name: String, weather: String): Boolean {
+        return hostState.setWorldWeather(name, weather) != null
+    }
+
     override fun findEntity(uuid: String): HostEntitySnapshot? {
         val entity = hostState.findEntity(uuid) ?: return null
         return HostEntitySnapshot(

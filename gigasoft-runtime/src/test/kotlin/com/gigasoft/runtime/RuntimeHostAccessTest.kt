@@ -25,6 +25,10 @@ class RuntimeHostAccessTest {
             rawPermissions = listOf(
                 HostPermissions.WORLD_WRITE,
                 HostPermissions.WORLD_READ,
+                HostPermissions.WORLD_DATA_READ,
+                HostPermissions.WORLD_DATA_WRITE,
+                HostPermissions.WORLD_WEATHER_READ,
+                HostPermissions.WORLD_WEATHER_WRITE,
                 HostPermissions.ENTITY_REMOVE,
                 HostPermissions.ENTITY_DATA_READ,
                 HostPermissions.ENTITY_DATA_WRITE,
@@ -41,6 +45,10 @@ class RuntimeHostAccessTest {
         assertNotNull(access.createWorld("mod", 1L))
         assertEquals(50L, access.worldTime("mod"))
         assertTrue(access.setWorldTime("mod", 200L))
+        assertEquals("normal", access.worldData("mod")?.get("difficulty"))
+        assertEquals("hard", access.setWorldData("mod", mapOf("difficulty" to "hard"))?.get("difficulty"))
+        assertEquals("clear", access.worldWeather("mod"))
+        assertTrue(access.setWorldWeather("mod", "rain"))
         assertTrue(access.removeEntity("e1"))
         assertEquals("true", access.entityData("e1")?.get("angry"))
         assertEquals("false", access.setEntityData("e1", mapOf("angry" to "false"))?.get("angry"))
@@ -67,6 +75,10 @@ class RuntimeHostAccessTest {
         override fun createWorld(name: String, seed: Long): HostWorldSnapshot? = HostWorldSnapshot(name, 0)
         override fun worldTime(name: String): Long? = 50L
         override fun setWorldTime(name: String, time: Long): Boolean = true
+        override fun worldData(name: String): Map<String, String>? = mapOf("difficulty" to "normal")
+        override fun setWorldData(name: String, data: Map<String, String>): Map<String, String>? = data
+        override fun worldWeather(name: String): String? = "clear"
+        override fun setWorldWeather(name: String, weather: String): Boolean = true
         override fun findEntity(uuid: String): HostEntitySnapshot? {
             return HostEntitySnapshot(uuid, "zombie", HostLocationRef("world", 0.0, 64.0, 0.0))
         }

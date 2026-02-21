@@ -50,6 +50,11 @@ class StandaloneHostStateConsistencyTest {
         val updated = state.setWorldTime("mod_world", 1234L)
         assertNotNull(updated)
         assertEquals(1234L, state.worldTime("mod_world"))
+        assertEquals(emptyMap(), state.worldData("mod_world"))
+        assertEquals("hard", state.setWorldData("mod_world", mapOf("difficulty" to "hard"))?.get("difficulty"))
+        assertEquals("hard", state.worldData("mod_world")?.get("difficulty"))
+        assertEquals("clear", state.worldWeather("mod_world"))
+        assertEquals("rain", state.setWorldWeather("mod_world", "rain"))
 
         state.joinPlayer("Alex", "mod_world", 0.0, 64.0, 0.0)
         val given = state.givePlayerItem("Alex", "copper_ingot", 3)

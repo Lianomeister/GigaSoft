@@ -56,6 +56,22 @@ fun HostBridgePort.asHostAccess(): HostAccess {
         return bridge.setWorldTime(name, time)
     }
 
+    override fun worldData(name: String): Map<String, String>? {
+        return bridge.worldData(name)
+    }
+
+    override fun setWorldData(name: String, data: Map<String, String>): Map<String, String>? {
+        return bridge.setWorldData(name, data)
+    }
+
+    override fun worldWeather(name: String): String? {
+        return bridge.worldWeather(name)
+    }
+
+    override fun setWorldWeather(name: String, weather: String): Boolean {
+        return bridge.setWorldWeather(name, weather)
+    }
+
     override fun findEntity(uuid: String): ApiHostEntitySnapshot? {
         return bridge.findEntity(uuid)?.toApi()
     }

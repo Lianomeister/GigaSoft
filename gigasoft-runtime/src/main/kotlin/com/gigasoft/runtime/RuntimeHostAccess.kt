@@ -73,6 +73,26 @@ internal class RuntimeHostAccess(
         return delegate.setWorldTime(name, time)
     }
 
+    override fun worldData(name: String): Map<String, String>? {
+        if (!allowed(HostPermissions.WORLD_DATA_READ)) return null
+        return delegate.worldData(name)
+    }
+
+    override fun setWorldData(name: String, data: Map<String, String>): Map<String, String>? {
+        if (!allowed(HostPermissions.WORLD_DATA_WRITE)) return null
+        return delegate.setWorldData(name, data)
+    }
+
+    override fun worldWeather(name: String): String? {
+        if (!allowed(HostPermissions.WORLD_WEATHER_READ)) return null
+        return delegate.worldWeather(name)
+    }
+
+    override fun setWorldWeather(name: String, weather: String): Boolean {
+        if (!allowed(HostPermissions.WORLD_WEATHER_WRITE)) return false
+        return delegate.setWorldWeather(name, weather)
+    }
+
     override fun findEntity(uuid: String): HostEntitySnapshot? {
         if (!allowed(HostPermissions.ENTITY_READ)) return null
         return delegate.findEntity(uuid)

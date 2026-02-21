@@ -20,6 +20,10 @@ class HostAccessAdapterTest {
         assertNotNull(access.createWorld("custom", 7L))
         assertEquals(100L, access.worldTime("world"))
         assertTrue(access.setWorldTime("world", 200L))
+        assertEquals("normal", access.worldData("world")?.get("difficulty"))
+        assertEquals("hard", access.setWorldData("world", mapOf("difficulty" to "hard"))?.get("difficulty"))
+        assertEquals("clear", access.worldWeather("world"))
+        assertTrue(access.setWorldWeather("world", "rain"))
         assertNotNull(access.findEntity("e1"))
         assertTrue(access.removeEntity("e1"))
         assertEquals("adult", access.entityData("e1")?.get("variant"))
@@ -80,6 +84,10 @@ class HostAccessAdapterTest {
         override fun createWorld(name: String, seed: Long): HostWorldSnapshot? = HostWorldSnapshot(name, 0)
         override fun worldTime(name: String): Long? = 100L
         override fun setWorldTime(name: String, time: Long): Boolean = true
+        override fun worldData(name: String): Map<String, String>? = mapOf("difficulty" to "normal")
+        override fun setWorldData(name: String, data: Map<String, String>): Map<String, String>? = data
+        override fun worldWeather(name: String): String? = "clear"
+        override fun setWorldWeather(name: String, weather: String): Boolean = true
         override fun findEntity(uuid: String): HostEntitySnapshot? = entities("world").firstOrNull()
         override fun removeEntity(uuid: String): Boolean = true
         override fun entityData(uuid: String): Map<String, String>? = mapOf("variant" to "adult")

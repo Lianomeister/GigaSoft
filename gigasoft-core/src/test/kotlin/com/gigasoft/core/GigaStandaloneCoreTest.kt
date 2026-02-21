@@ -231,6 +231,11 @@ class GigaStandaloneCoreTest {
             assertNotNull(core.worldTime("adventure"))
             assertTrue(core.setWorldTime("adventure", 6000L))
             assertTrue((core.worldTime("adventure") ?: 0L) >= 6000L)
+            assertEquals("normal", core.setWorldData("adventure", mapOf("difficulty" to "normal"), "test")?.get("difficulty"))
+            assertEquals("normal", core.worldData("adventure")?.get("difficulty"))
+            assertEquals("clear", core.worldWeather("adventure"))
+            assertTrue(core.setWorldWeather("adventure", "rain", "test"))
+            assertEquals("rain", core.worldWeather("adventure"))
 
             core.joinPlayer("Alex", "adventure", 0.0, 64.0, 0.0)
             assertEquals(2, core.givePlayerItem("Alex", "iron_ingot", 2))

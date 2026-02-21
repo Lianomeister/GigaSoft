@@ -82,6 +82,8 @@ class StandaloneHostState(
 
     private val stateLock = Any()
     private val worlds = LinkedHashMap<String, StandaloneWorld>()
+    private val worldData = LinkedHashMap<String, MutableMap<String, String>>()
+    private val worldWeather = LinkedHashMap<String, String>()
     private val entities = LinkedHashMap<String, StandaloneEntity>()
     private val entityData = LinkedHashMap<String, MutableMap<String, String>>()
     private val worldEntityCounts = LinkedHashMap<String, Int>()
@@ -453,6 +455,11 @@ class StandaloneHostState(
                 worlds = worlds.values.sortedWith(WORLD_COMPARATOR),
                 players = playersByName.values.sortedWith(PLAYER_COMPARATOR),
                 entities = entities.values.sortedWith(ENTITY_ALL_COMPARATOR),
+                worldData = worldData
+                    .filterValues { it.isNotEmpty() }
+                    .toSortedMap()
+                    .mapValues { (_, values) -> values.toSortedMap() },
+                worldWeather = worldWeather.toSortedMap(),
                 entityData = entityData
                     .filterValues { it.isNotEmpty() }
                     .toSortedMap()
@@ -490,6 +497,8 @@ class StandaloneHostState(
             worlds.clear()
             entities.clear()
             entityData.clear()
+            worldData.clear()
+            worldWeather.clear()
             worldEntityCounts.clear()
             playersByName.clear()
             inventoriesByOwner.clear()
@@ -524,6 +533,31 @@ class StandaloneHostState(
                 if (entities.containsKey(uuid)) return@forEach
                 val world = createWorldWithStatusUnsafe(entity.world, seed = 0L).world.name
                 entities[uuid] = entity.copy(uuid = uuid, type = type, world = world)
+            }
+
+            snapshot.worldData.forEach { (worldNameRaw, values) ->
+                val worldName = worldNameRaw.trim()
+                if (worldName.isEmpty()) return@forEach
+                val resolvedWorld = createWorldWithStatusUnsafe(worldName, seed = 0L).world.name
+                val sanitized = linkedMapOf<String, String>()
+                values.forEach { (k, v) ->
+                    val keyName = k.trim()
+                    val value = v.trim()
+                    if (keyName.isNotEmpty() && value.isNotEmpty()) {
+                        sanitized[keyName] = value
+                    }
+                }
+                if (sanitized.isNotEmpty()) {
+                    worldData[canonicalKey(resolvedWorld)] = sanitized
+                }
+            }
+
+            snapshot.worldWeather.forEach { (worldNameRaw, weatherRaw) ->
+                val worldName = worldNameRaw.trim()
+                val weather = normalizeWeather(weatherRaw)
+                if (worldName.isEmpty() || weather == null) return@forEach
+                val resolvedWorld = createWorldWithStatusUnsafe(worldName, seed = 0L).world.name
+                worldWeather[canonicalKey(resolvedWorld)] = weather
             }
 
             snapshot.entityData.forEach { (uuidRaw, values) ->
@@ -620,6 +654,7 @@ class StandaloneHostState(
         }
         val created = StandaloneWorld(name = worldName, seed = seed, time = 0L)
         worlds[key] = created
+        worldWeather.putIfAbsent(key, "clear")
         worldEntityCounts.putIfAbsent(key, 0)
         worldsDirty = true
         return WorldCreateResult(world = created, created = true)
@@ -765,6 +800,61 @@ class StandaloneHostState(
         }
     }
 
+    fun worldData(name: String): Map<String, String>? {
+        val worldName = name.trim()
+        if (worldName.isEmpty()) return null
+        return synchronized(stateLock) {
+            val key = canonicalKey(worldName)
+            if (!worlds.containsKey(key)) return@synchronized null
+            worldData[key]?.toMap() ?: emptyMap()
+        }
+    }
+
+    fun setWorldData(name: String, data: Map<String, String>): Map<String, String>? {
+        val worldName = name.trim()
+        if (worldName.isEmpty()) return null
+        return synchronized(stateLock) {
+            val key = canonicalKey(worldName)
+            if (!worlds.containsKey(key)) return@synchronized null
+            val sanitized = linkedMapOf<String, String>()
+            data.forEach { (k, v) ->
+                val keyName = k.trim()
+                val value = v.trim()
+                if (keyName.isNotEmpty() && value.isNotEmpty()) {
+                    sanitized[keyName] = value
+                }
+            }
+            if (sanitized.isEmpty()) {
+                worldData.remove(key)
+                return@synchronized emptyMap()
+            }
+            worldData[key] = sanitized
+            sanitized.toMap()
+        }
+    }
+
+    fun worldWeather(name: String): String? {
+        val worldName = name.trim()
+        if (worldName.isEmpty()) return null
+        return synchronized(stateLock) {
+            val key = canonicalKey(worldName)
+            if (!worlds.containsKey(key)) return@synchronized null
+            worldWeather[key] ?: "clear"
+        }
+    }
+
+    fun setWorldWeather(name: String, weather: String): String? {
+        val worldName = name.trim()
+        if (worldName.isEmpty()) return null
+        val normalized = normalizeWeather(weather) ?: return null
+        return synchronized(stateLock) {
+            val key = canonicalKey(worldName)
+            if (!worlds.containsKey(key)) return@synchronized null
+            worldWeather[key] = normalized
+            normalized
+        }
+    }
+
     private fun firstFreeInventorySlotUnsafe(slots: Map<Int, String>): Int? {
         for (slot in 0..35) {
             if (!slots.containsKey(slot)) return slot
@@ -774,5 +864,14 @@ class StandaloneHostState(
 
     private fun blockKey(world: String, x: Int, y: Int, z: Int): String {
         return "${canonicalKey(world)}:$x:$y:$z"
+    }
+
+    private fun normalizeWeather(value: String): String? {
+        return when (value.trim().lowercase()) {
+            "clear" -> "clear"
+            "rain" -> "rain"
+            "thunder", "storm" -> "thunder"
+            else -> null
+        }
     }
 }

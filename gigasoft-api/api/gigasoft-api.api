@@ -343,6 +343,24 @@ public final class com/gigasoft/api/GigaWorldCreatedEvent {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class com/gigasoft/api/GigaWorldDataChangeEvent {
+	public fun <init> (Ljava/lang/String;Ljava/util/Map;Ljava/util/Map;Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/util/Map;Ljava/util/Map;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/util/Map;
+	public final fun component3 ()Ljava/util/Map;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/util/Map;Ljava/util/Map;Ljava/lang/String;)Lcom/gigasoft/api/GigaWorldDataChangeEvent;
+	public static synthetic fun copy$default (Lcom/gigasoft/api/GigaWorldDataChangeEvent;Ljava/lang/String;Ljava/util/Map;Ljava/util/Map;Ljava/lang/String;ILjava/lang/Object;)Lcom/gigasoft/api/GigaWorldDataChangeEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCause ()Ljava/lang/String;
+	public final fun getCurrentData ()Ljava/util/Map;
+	public final fun getPreviousData ()Ljava/util/Map;
+	public final fun getWorld ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public final class com/gigasoft/api/GigaWorldTimeChangeEvent {
 	public fun <init> (Ljava/lang/String;JJ)V
 	public final fun component1 ()Ljava/lang/String;
@@ -353,6 +371,24 @@ public final class com/gigasoft/api/GigaWorldTimeChangeEvent {
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getCurrentTime ()J
 	public final fun getPreviousTime ()J
+	public final fun getWorld ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/gigasoft/api/GigaWorldWeatherChangeEvent {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lcom/gigasoft/api/GigaWorldWeatherChangeEvent;
+	public static synthetic fun copy$default (Lcom/gigasoft/api/GigaWorldWeatherChangeEvent;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/gigasoft/api/GigaWorldWeatherChangeEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCause ()Ljava/lang/String;
+	public final fun getCurrentWeather ()Ljava/lang/String;
+	public final fun getPreviousWeather ()Ljava/lang/String;
 	public final fun getWorld ()Ljava/lang/String;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
@@ -379,9 +415,13 @@ public abstract interface class com/gigasoft/api/HostAccess {
 	public abstract fun setBlockData (Ljava/lang/String;IIILjava/util/Map;)Ljava/util/Map;
 	public abstract fun setEntityData (Ljava/lang/String;Ljava/util/Map;)Ljava/util/Map;
 	public abstract fun setPlayerInventoryItem (Ljava/lang/String;ILjava/lang/String;)Z
+	public abstract fun setWorldData (Ljava/lang/String;Ljava/util/Map;)Ljava/util/Map;
 	public abstract fun setWorldTime (Ljava/lang/String;J)Z
+	public abstract fun setWorldWeather (Ljava/lang/String;Ljava/lang/String;)Z
 	public abstract fun spawnEntity (Ljava/lang/String;Lcom/gigasoft/api/HostLocationRef;)Lcom/gigasoft/api/HostEntitySnapshot;
+	public abstract fun worldData (Ljava/lang/String;)Ljava/util/Map;
 	public abstract fun worldTime (Ljava/lang/String;)Ljava/lang/Long;
+	public abstract fun worldWeather (Ljava/lang/String;)Ljava/lang/String;
 	public abstract fun worlds ()Ljava/util/List;
 }
 
@@ -407,8 +447,12 @@ public final class com/gigasoft/api/HostAccess$DefaultImpls {
 	public static fun setBlock (Lcom/gigasoft/api/HostAccess;Ljava/lang/String;IIILjava/lang/String;)Lcom/gigasoft/api/HostBlockSnapshot;
 	public static fun setBlockData (Lcom/gigasoft/api/HostAccess;Ljava/lang/String;IIILjava/util/Map;)Ljava/util/Map;
 	public static fun setEntityData (Lcom/gigasoft/api/HostAccess;Ljava/lang/String;Ljava/util/Map;)Ljava/util/Map;
+	public static fun setWorldData (Lcom/gigasoft/api/HostAccess;Ljava/lang/String;Ljava/util/Map;)Ljava/util/Map;
 	public static fun setWorldTime (Lcom/gigasoft/api/HostAccess;Ljava/lang/String;J)Z
+	public static fun setWorldWeather (Lcom/gigasoft/api/HostAccess;Ljava/lang/String;Ljava/lang/String;)Z
+	public static fun worldData (Lcom/gigasoft/api/HostAccess;Ljava/lang/String;)Ljava/util/Map;
 	public static fun worldTime (Lcom/gigasoft/api/HostAccess;Ljava/lang/String;)Ljava/lang/Long;
+	public static fun worldWeather (Lcom/gigasoft/api/HostAccess;Ljava/lang/String;)Ljava/lang/String;
 }
 
 public final class com/gigasoft/api/HostBlockSnapshot {
@@ -494,7 +538,11 @@ public final class com/gigasoft/api/HostPermissions {
 	public static final field PLAYER_READ Ljava/lang/String;
 	public static final field SERVER_BROADCAST Ljava/lang/String;
 	public static final field SERVER_READ Ljava/lang/String;
+	public static final field WORLD_DATA_READ Ljava/lang/String;
+	public static final field WORLD_DATA_WRITE Ljava/lang/String;
 	public static final field WORLD_READ Ljava/lang/String;
+	public static final field WORLD_WEATHER_READ Ljava/lang/String;
+	public static final field WORLD_WEATHER_WRITE Ljava/lang/String;
 	public static final field WORLD_WRITE Ljava/lang/String;
 }
 

@@ -17,13 +17,15 @@
   - typed adapter payload parsing helpers on `AdapterInvocation` (`payloadString/Trimmed/Required/Int/Long/Double/Bool`).
   - expanded host gameplay API surface for mod-like plugins:
     - `createWorld`, `worldTime`, `setWorldTime`,
+    - `worldData`, `setWorldData`,
+    - `worldWeather`, `setWorldWeather`,
     - `findEntity`, `removeEntity`,
     - `entityData`, `setEntityData`,
     - `movePlayer`,
     - `inventoryItem`, `givePlayerItem`,
     - `blockAt`, `setBlock`, `breakBlock`,
     - `blockData`, `setBlockData`.
-  - new gameplay events: `GigaEntityRemoveEvent`, `GigaEntityDataChangeEvent`, `GigaPlayerTeleportEvent`, `GigaWorldTimeChangeEvent`, `GigaBlockChangeEvent`, `GigaBlockDataChangeEvent`.
+  - new gameplay events: `GigaEntityRemoveEvent`, `GigaEntityDataChangeEvent`, `GigaPlayerTeleportEvent`, `GigaWorldTimeChangeEvent`, `GigaWorldDataChangeEvent`, `GigaWorldWeatherChangeEvent`, `GigaBlockChangeEvent`, `GigaBlockDataChangeEvent`.
 
 ### Planned
 - Network v1.1 improvements (session throughput and backpressure tuning).

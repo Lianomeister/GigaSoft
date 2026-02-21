@@ -31,6 +31,10 @@ interface HostAccess {
     fun createWorld(name: String, seed: Long = 0L): HostWorldSnapshot? = null
     fun worldTime(name: String): Long? = null
     fun setWorldTime(name: String, time: Long): Boolean = false
+    fun worldData(name: String): Map<String, String>? = null
+    fun setWorldData(name: String, data: Map<String, String>): Map<String, String>? = null
+    fun worldWeather(name: String): String? = null
+    fun setWorldWeather(name: String, weather: String): Boolean = false
     fun findEntity(uuid: String): HostEntitySnapshot? = null
     fun removeEntity(uuid: String): Boolean = false
     fun entityData(uuid: String): Map<String, String>? = null
@@ -63,6 +67,10 @@ object HostPermissions {
     const val SERVER_BROADCAST = "host.server.broadcast"
     const val WORLD_READ = "host.world.read"
     const val WORLD_WRITE = "host.world.write"
+    const val WORLD_DATA_READ = "host.world.data.read"
+    const val WORLD_DATA_WRITE = "host.world.data.write"
+    const val WORLD_WEATHER_READ = "host.world.weather.read"
+    const val WORLD_WEATHER_WRITE = "host.world.weather.write"
     const val ENTITY_READ = "host.entity.read"
     const val ENTITY_SPAWN = "host.entity.spawn"
     const val ENTITY_REMOVE = "host.entity.remove"
@@ -171,6 +179,20 @@ data class GigaWorldTimeChangeEvent(
     val world: String,
     val previousTime: Long,
     val currentTime: Long
+)
+
+data class GigaWorldDataChangeEvent(
+    val world: String,
+    val previousData: Map<String, String>,
+    val currentData: Map<String, String>,
+    val cause: String = "plugin"
+)
+
+data class GigaWorldWeatherChangeEvent(
+    val world: String,
+    val previousWeather: String,
+    val currentWeather: String,
+    val cause: String = "plugin"
 )
 
 data class GigaBlockChangeEvent(

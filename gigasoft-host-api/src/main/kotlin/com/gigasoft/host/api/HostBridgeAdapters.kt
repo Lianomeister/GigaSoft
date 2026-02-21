@@ -14,6 +14,10 @@ object HostBridgeAdapters {
         const val HOST_BROADCAST = HostPermissions.SERVER_BROADCAST
         const val HOST_WORLD_READ = HostPermissions.WORLD_READ
         const val HOST_WORLD_WRITE = HostPermissions.WORLD_WRITE
+        const val HOST_WORLD_DATA_READ = HostPermissions.WORLD_DATA_READ
+        const val HOST_WORLD_DATA_WRITE = HostPermissions.WORLD_DATA_WRITE
+        const val HOST_WORLD_WEATHER_READ = HostPermissions.WORLD_WEATHER_READ
+        const val HOST_WORLD_WEATHER_WRITE = HostPermissions.WORLD_WEATHER_WRITE
         const val HOST_ENTITY_READ = HostPermissions.ENTITY_READ
         const val HOST_ENTITY_SPAWN = HostPermissions.ENTITY_SPAWN
         const val HOST_ENTITY_REMOVE = HostPermissions.ENTITY_REMOVE

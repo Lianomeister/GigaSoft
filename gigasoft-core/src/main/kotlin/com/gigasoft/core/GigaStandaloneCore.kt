@@ -8,6 +8,8 @@ import com.gigasoft.api.GigaInventoryChangeEvent
 import com.gigasoft.api.GigaBlockChangeEvent
 import com.gigasoft.api.GigaBlockDataChangeEvent
 import com.gigasoft.api.GigaEntityDataChangeEvent
+import com.gigasoft.api.GigaWorldDataChangeEvent
+import com.gigasoft.api.GigaWorldWeatherChangeEvent
 import com.gigasoft.api.GigaPlayerJoinEvent
 import com.gigasoft.api.GigaPlayerLeaveEvent
 import com.gigasoft.api.GigaPlayerMoveEvent
@@ -361,6 +363,42 @@ class GigaStandaloneCore(
         true
     }
 
+    fun worldData(name: String): Map<String, String>? = hostState.worldData(name)
+
+    fun setWorldData(name: String, data: Map<String, String>, cause: String = "plugin"): Map<String, String>? = mutate {
+        val previous = hostState.worldData(name) ?: return@mutate null
+        val updated = hostState.setWorldData(name, data) ?: return@mutate null
+        if (previous != updated) {
+            publishEvent(
+                GigaWorldDataChangeEvent(
+                    world = name,
+                    previousData = previous,
+                    currentData = updated,
+                    cause = cause
+                )
+            )
+        }
+        updated
+    }
+
+    fun worldWeather(name: String): String? = hostState.worldWeather(name)
+
+    fun setWorldWeather(name: String, weather: String, cause: String = "plugin"): Boolean = mutate {
+        val previous = hostState.worldWeather(name) ?: return@mutate false
+        val updated = hostState.setWorldWeather(name, weather) ?: return@mutate false
+        if (!previous.equals(updated, ignoreCase = true)) {
+            publishEvent(
+                GigaWorldWeatherChangeEvent(
+                    world = name,
+                    previousWeather = previous,
+                    currentWeather = updated,
+                    cause = cause
+                )
+            )
+        }
+        true
+    }
+
     fun findEntity(uuid: String): StandaloneEntity? = hostState.findEntity(uuid)
 
     fun removeEntity(uuid: String, reason: String = "plugin"): StandaloneEntity? = mutate {
@@ -612,6 +650,14 @@ class GigaStandaloneCore(
             }
             override fun worldTime(name: String): Long? = this@GigaStandaloneCore.worldTime(name)
             override fun setWorldTime(name: String, time: Long): Boolean = this@GigaStandaloneCore.setWorldTime(name, time)
+            override fun worldData(name: String): Map<String, String>? = this@GigaStandaloneCore.worldData(name)
+            override fun setWorldData(name: String, data: Map<String, String>): Map<String, String>? {
+                return this@GigaStandaloneCore.setWorldData(name, data, cause = "plugin")
+            }
+            override fun worldWeather(name: String): String? = this@GigaStandaloneCore.worldWeather(name)
+            override fun setWorldWeather(name: String, weather: String): Boolean {
+                return this@GigaStandaloneCore.setWorldWeather(name, weather, cause = "plugin")
+            }
             override fun findEntity(uuid: String): HostEntitySnapshot? = this@GigaStandaloneCore.findEntity(uuid)?.toHostSnapshot()
             override fun removeEntity(uuid: String): Boolean = this@GigaStandaloneCore.removeEntity(uuid) != null
             override fun entityData(uuid: String): Map<String, String>? = this@GigaStandaloneCore.entityData(uuid)

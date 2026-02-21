@@ -12,6 +12,10 @@ interface HostBridgePort {
     fun createWorld(name: String, seed: Long = 0L): HostWorldSnapshot? = null
     fun worldTime(name: String): Long? = null
     fun setWorldTime(name: String, time: Long): Boolean = false
+    fun worldData(name: String): Map<String, String>? = null
+    fun setWorldData(name: String, data: Map<String, String>): Map<String, String>? = null
+    fun worldWeather(name: String): String? = null
+    fun setWorldWeather(name: String, weather: String): Boolean = false
     fun findEntity(uuid: String): HostEntitySnapshot? = null
     fun removeEntity(uuid: String): Boolean = false
     fun entityData(uuid: String): Map<String, String>? = null

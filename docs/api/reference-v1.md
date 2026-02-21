@@ -68,6 +68,8 @@ Built-in events:
 - `GigaEntityRemoveEvent`
 - `GigaPlayerTeleportEvent`
 - `GigaWorldTimeChangeEvent`
+- `GigaWorldDataChangeEvent`
+- `GigaWorldWeatherChangeEvent`
 - `GigaBlockChangeEvent`
 - `GigaBlockDataChangeEvent`
 - `GigaEntityDataChangeEvent`
@@ -96,6 +98,10 @@ Built-in events:
 - `createWorld(name, seed)`
 - `worldTime(name)`
 - `setWorldTime(name, time)`
+- `worldData(name)`
+- `setWorldData(name, data)`
+- `worldWeather(name)`
+- `setWorldWeather(name, weather)`
 - `movePlayer(name, location)`
 
 Note:
@@ -111,6 +117,10 @@ Host permission enforcement:
   - `host.player.read`
   - `host.world.read`
   - `host.world.write`
+  - `host.world.data.read`
+  - `host.world.data.write`
+  - `host.world.weather.read`
+  - `host.world.weather.write`
   - `host.entity.read`
   - `host.entity.spawn`
   - `host.entity.remove`
