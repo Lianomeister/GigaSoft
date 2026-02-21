@@ -1,0 +1,70 @@
+name: release-assets
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (e.g. v1.1.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  upload-jars:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Resolve release tag
+        id: tag
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ github.event.inputs.tag }}"
+          else
+            TAG="${{ github.event.release.tag_name }}"
+          fi
+          if [ -z "$TAG" ]; then
+            echo "Tag is empty" >&2
+            exit 1
+          fi
+          VERSION="${TAG#v}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Build standalone release candidate artifacts
+        run: ./gradlew --no-daemon clean standaloneReleaseCandidateArtifacts
+
+      - name: Prepare release assets
+        id: assets
+        shell: bash
+        run: |
+          mkdir -p release-assets
+          VERSION="${{ steps.tag.outputs.version }}"
+          mapfile -t JARS < <(find build/release-standalone -type f -name "*.jar" | sort)
+          if [ "${#JARS[@]}" -eq 0 ]; then
+            echo "No jar artifacts found under build/release-standalone" >&2
+            exit 1
+          fi
+          for src in "${JARS[@]}"; do
+            base="$(basename "$src")"
+            out="$(echo "$base" | sed -E "s/-[0-9]+\.[0-9]+\.[0-9]+(-SNAPSHOT)?\.jar$/-$VERSION.jar/")"
+            cp "$src" "release-assets/$out"
+          done
+          ls -lah release-assets
+
+      - name: Upload jars to GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          gh release upload "${{ steps.tag.outputs.tag }}" release-assets/*.jar --clobber
