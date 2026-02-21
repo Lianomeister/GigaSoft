@@ -88,6 +88,7 @@ fun main(args: Array<String>) {
         )
     )
 
+    var netListenAddress: String? = null
     val netServer = if (launchConfig.netPort > 0) {
         StandaloneNetServer(
             config = StandaloneNetConfig(
@@ -112,7 +113,13 @@ fun main(args: Array<String>) {
                 textFlushEveryResponses = launchConfig.netTextFlushEveryResponses,
                 frameFlushEveryResponses = launchConfig.netFrameFlushEveryResponses
             ),
-            logger = { message -> println("[GigaNet] $message") },
+            logger = { message ->
+                if (message.contains("listening on", ignoreCase = true)) {
+                    netListenAddress = message.substringAfter("listening on", "").trim().ifEmpty { null }
+                } else {
+                    println("[GigaNet] $message")
+                }
+            },
             handler = object : StandaloneSessionHandler {
                 override fun joinWithContext(
                     name: String,
@@ -278,12 +285,55 @@ fun main(args: Array<String>) {
 
     core.start()
     netServer?.start()
-    val commandHelp = "Commands: help, status [--json], save, load, plugins, plugin list [--json], plugin error [pluginId] [--json], plugin scan, plugin reload <id|all|changed>, worlds, world create, entities, entity spawn, players, player join|leave|move, inventory, scan, sync, reload <id|all|changed>, doctor [--json] [--pretty|--compact], profile <id> [--json] [--pretty|--compact], diag export [--compact] [path], profile export <id> [--compact] [path], run <plugin> <command...>, adapters <plugin> [--json], adapter invoke <plugin> <adapterId> <action> [k=v ...] [--json], stop"
-    println("Clockwork standalone core is running (name=${launchConfig.serverName} version=${launchConfig.serverVersion} defaultWorld=${launchConfig.defaultWorld} maxPlayers=${launchConfig.maxPlayers} maxWorlds=${launchConfig.maxWorlds} maxEntities=${launchConfig.maxEntities} tickMs=${launchConfig.tickPeriodMillis} autosaveTicks=${launchConfig.autoSaveEveryTicks} runtimeSchedulerThreads=${launchConfig.runtimeSchedulerWorkerThreads} netPort=${if (netServer == null) "disabled" else launchConfig.netPort} netAuthRequired=${launchConfig.netAuthRequired} netSessionTtlSeconds=${launchConfig.netSessionTtlSeconds} netMaxTextLineBytes=${launchConfig.netMaxTextLineBytes} netReadTimeoutMs=${launchConfig.netReadTimeoutMillis} netMaxConcurrentSessions=${launchConfig.netMaxConcurrentSessions} netMaxSessionsPerIp=${launchConfig.netMaxSessionsPerIp} netRpmConnection=${launchConfig.netMaxRequestsPerMinutePerConnection} netRpmIp=${launchConfig.netMaxRequestsPerMinutePerIp} netWorkerThreads=${launchConfig.netWorkerThreads} netWorkerQueueCapacity=${launchConfig.netWorkerQueueCapacity} netTextFlushEvery=${launchConfig.netTextFlushEveryResponses} netFrameFlushEvery=${launchConfig.netFrameFlushEveryResponses} adapterSchema=${launchConfig.securityConfigSchemaVersion} adapterMode=${launchConfig.adapterExecutionMode} adapterTimeoutMs=${launchConfig.adapterTimeoutMillis} adapterRateLimitPerMinute=${launchConfig.adapterRateLimitPerMinute} adapterRateLimitPerMinutePerPlugin=${launchConfig.adapterRateLimitPerMinutePerPlugin} adapterMaxConcurrentPerAdapter=${launchConfig.adapterMaxConcurrentInvocationsPerAdapter} adapterAuditRetentionPlugin=${launchConfig.adapterAuditRetentionMaxEntriesPerPlugin} adapterAuditRetentionAdapter=${launchConfig.adapterAuditRetentionMaxEntriesPerAdapter} adapterAuditRetentionAgeMs=${launchConfig.adapterAuditRetentionMaxAgeMillis} faultBudgetMaxFaults=${launchConfig.faultBudgetMaxFaultsPerWindow} faultBudgetWindowMs=${launchConfig.faultBudgetWindowMillis} faultBudgetWarnRatio=${launchConfig.faultBudgetWarnUsageRatio} faultBudgetThrottleRatio=${launchConfig.faultBudgetThrottleUsageRatio} faultBudgetIsolateRatio=${launchConfig.faultBudgetIsolateUsageRatio} faultBudgetThrottleBudgetMultiplier=${launchConfig.faultBudgetThrottleBudgetMultiplier} eventDispatchMode=${launchConfig.eventDispatchMode}).")
+    val commandHelp = """
+        Commands:
+          help
+          status [--json]
+          save | load
+          plugins
+          plugin list [--json]
+          plugin error [pluginId] [--json]
+          plugin scan
+          plugin reload <id|all|changed>
+          worlds | world create
+          entities | entity spawn
+          players | player join|leave|move
+          inventory
+          scan | sync | reload <id|all|changed>
+          doctor [--json] [--pretty|--compact]
+          profile <id> [--json] [--pretty|--compact]
+          diag export [--compact] [path]
+          profile export <id> [--compact] [path]
+          run <plugin> <command...>
+          adapters <plugin> [--json]
+          adapter invoke <plugin> <adapterId> <action> [k=v ...] [--json]
+          stop
+    """.trimIndent()
+    println(
+        """
+        Clockwork Standalone
+        --------------------
+        Name: ${launchConfig.serverName}
+        Version: ${launchConfig.serverVersion}
+        World: ${launchConfig.defaultWorld}
+        Limits: players=${launchConfig.maxPlayers}, worlds=${launchConfig.maxWorlds}, entities=${launchConfig.maxEntities}
+        Tick: ${launchConfig.tickPeriodMillis}ms (autosave=${launchConfig.autoSaveEveryTicks} ticks)
+        Runtime: schedulerThreads=${launchConfig.runtimeSchedulerWorkerThreads}, eventDispatch=${launchConfig.eventDispatchMode}
+        Network: ${if (netServer == null) "disabled" else "enabled (port=${launchConfig.netPort}, auth=${launchConfig.netAuthRequired})"}
+        Adapter: schema=${launchConfig.securityConfigSchemaVersion}, mode=${launchConfig.adapterExecutionMode}, timeoutMs=${launchConfig.adapterTimeoutMillis}
+        Fault Budget: maxFaults=${launchConfig.faultBudgetMaxFaultsPerWindow}, windowMs=${launchConfig.faultBudgetWindowMillis}, warn=${launchConfig.faultBudgetWarnUsageRatio}, throttle=${launchConfig.faultBudgetThrottleUsageRatio}, isolate=${launchConfig.faultBudgetIsolateUsageRatio}
+        """.trimIndent()
+    )
     launchConfig.securityConfigWarnings.forEach { warning ->
         println("[security-config] $warning")
     }
     println(commandHelp)
+    val ipDisplay = if (netServer == null) {
+        "disabled"
+    } else {
+        netListenAddress ?: "0.0.0.0:${launchConfig.netPort}"
+    }
+    println("IP: $ipDisplay")
 
     while (true) {
         print("> ")
