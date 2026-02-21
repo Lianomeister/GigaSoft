@@ -64,6 +64,14 @@ fun HostBridgePort.asHostAccess(): HostAccess {
         return bridge.removeEntity(uuid)
     }
 
+    override fun entityData(uuid: String): Map<String, String>? {
+        return bridge.entityData(uuid)
+    }
+
+    override fun setEntityData(uuid: String, data: Map<String, String>): Map<String, String>? {
+        return bridge.setEntityData(uuid, data)
+    }
+
     override fun movePlayer(name: String, location: ApiHostLocationRef): ApiHostPlayerSnapshot? {
         return bridge.movePlayer(name, location.toHost())?.toApi()
     }

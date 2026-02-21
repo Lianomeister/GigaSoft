@@ -186,6 +186,24 @@ public final class com/gigasoft/api/GigaBlockDataChangeEvent {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class com/gigasoft/api/GigaEntityDataChangeEvent {
+	public fun <init> (Lcom/gigasoft/api/HostEntitySnapshot;Ljava/util/Map;Ljava/util/Map;Ljava/lang/String;)V
+	public synthetic fun <init> (Lcom/gigasoft/api/HostEntitySnapshot;Ljava/util/Map;Ljava/util/Map;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/gigasoft/api/HostEntitySnapshot;
+	public final fun component2 ()Ljava/util/Map;
+	public final fun component3 ()Ljava/util/Map;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun copy (Lcom/gigasoft/api/HostEntitySnapshot;Ljava/util/Map;Ljava/util/Map;Ljava/lang/String;)Lcom/gigasoft/api/GigaEntityDataChangeEvent;
+	public static synthetic fun copy$default (Lcom/gigasoft/api/GigaEntityDataChangeEvent;Lcom/gigasoft/api/HostEntitySnapshot;Ljava/util/Map;Ljava/util/Map;Ljava/lang/String;ILjava/lang/Object;)Lcom/gigasoft/api/GigaEntityDataChangeEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCause ()Ljava/lang/String;
+	public final fun getCurrentData ()Ljava/util/Map;
+	public final fun getEntity ()Lcom/gigasoft/api/HostEntitySnapshot;
+	public final fun getPreviousData ()Ljava/util/Map;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public final class com/gigasoft/api/GigaEntityRemoveEvent {
 	public fun <init> (Lcom/gigasoft/api/HostEntitySnapshot;Ljava/lang/String;)V
 	public synthetic fun <init> (Lcom/gigasoft/api/HostEntitySnapshot;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
@@ -348,6 +366,7 @@ public abstract interface class com/gigasoft/api/HostAccess {
 	public abstract fun broadcast (Ljava/lang/String;)Z
 	public abstract fun createWorld (Ljava/lang/String;J)Lcom/gigasoft/api/HostWorldSnapshot;
 	public abstract fun entities (Ljava/lang/String;)Ljava/util/List;
+	public abstract fun entityData (Ljava/lang/String;)Ljava/util/Map;
 	public abstract fun findEntity (Ljava/lang/String;)Lcom/gigasoft/api/HostEntitySnapshot;
 	public abstract fun findPlayer (Ljava/lang/String;)Lcom/gigasoft/api/HostPlayerSnapshot;
 	public abstract fun givePlayerItem (Ljava/lang/String;Ljava/lang/String;I)I
@@ -358,6 +377,7 @@ public abstract interface class com/gigasoft/api/HostAccess {
 	public abstract fun serverInfo ()Lcom/gigasoft/api/HostServerSnapshot;
 	public abstract fun setBlock (Ljava/lang/String;IIILjava/lang/String;)Lcom/gigasoft/api/HostBlockSnapshot;
 	public abstract fun setBlockData (Ljava/lang/String;IIILjava/util/Map;)Ljava/util/Map;
+	public abstract fun setEntityData (Ljava/lang/String;Ljava/util/Map;)Ljava/util/Map;
 	public abstract fun setPlayerInventoryItem (Ljava/lang/String;ILjava/lang/String;)Z
 	public abstract fun setWorldTime (Ljava/lang/String;J)Z
 	public abstract fun spawnEntity (Ljava/lang/String;Lcom/gigasoft/api/HostLocationRef;)Lcom/gigasoft/api/HostEntitySnapshot;
@@ -377,6 +397,7 @@ public final class com/gigasoft/api/HostAccess$DefaultImpls {
 	public static fun createWorld (Lcom/gigasoft/api/HostAccess;Ljava/lang/String;J)Lcom/gigasoft/api/HostWorldSnapshot;
 	public static synthetic fun createWorld$default (Lcom/gigasoft/api/HostAccess;Ljava/lang/String;JILjava/lang/Object;)Lcom/gigasoft/api/HostWorldSnapshot;
 	public static synthetic fun entities$default (Lcom/gigasoft/api/HostAccess;Ljava/lang/String;ILjava/lang/Object;)Ljava/util/List;
+	public static fun entityData (Lcom/gigasoft/api/HostAccess;Ljava/lang/String;)Ljava/util/Map;
 	public static fun findEntity (Lcom/gigasoft/api/HostAccess;Ljava/lang/String;)Lcom/gigasoft/api/HostEntitySnapshot;
 	public static fun givePlayerItem (Lcom/gigasoft/api/HostAccess;Ljava/lang/String;Ljava/lang/String;I)I
 	public static synthetic fun givePlayerItem$default (Lcom/gigasoft/api/HostAccess;Ljava/lang/String;Ljava/lang/String;IILjava/lang/Object;)I
@@ -385,6 +406,7 @@ public final class com/gigasoft/api/HostAccess$DefaultImpls {
 	public static fun removeEntity (Lcom/gigasoft/api/HostAccess;Ljava/lang/String;)Z
 	public static fun setBlock (Lcom/gigasoft/api/HostAccess;Ljava/lang/String;IIILjava/lang/String;)Lcom/gigasoft/api/HostBlockSnapshot;
 	public static fun setBlockData (Lcom/gigasoft/api/HostAccess;Ljava/lang/String;IIILjava/util/Map;)Ljava/util/Map;
+	public static fun setEntityData (Lcom/gigasoft/api/HostAccess;Ljava/lang/String;Ljava/util/Map;)Ljava/util/Map;
 	public static fun setWorldTime (Lcom/gigasoft/api/HostAccess;Ljava/lang/String;J)Z
 	public static fun worldTime (Lcom/gigasoft/api/HostAccess;Ljava/lang/String;)Ljava/lang/Long;
 }
@@ -460,6 +482,8 @@ public final class com/gigasoft/api/HostPermissions {
 	public static final field BLOCK_DATA_WRITE Ljava/lang/String;
 	public static final field BLOCK_READ Ljava/lang/String;
 	public static final field BLOCK_WRITE Ljava/lang/String;
+	public static final field ENTITY_DATA_READ Ljava/lang/String;
+	public static final field ENTITY_DATA_WRITE Ljava/lang/String;
 	public static final field ENTITY_READ Ljava/lang/String;
 	public static final field ENTITY_REMOVE Ljava/lang/String;
 	public static final field ENTITY_SPAWN Ljava/lang/String;

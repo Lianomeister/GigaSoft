@@ -17,6 +17,8 @@ object HostBridgeAdapters {
         const val HOST_ENTITY_READ = HostPermissions.ENTITY_READ
         const val HOST_ENTITY_SPAWN = HostPermissions.ENTITY_SPAWN
         const val HOST_ENTITY_REMOVE = HostPermissions.ENTITY_REMOVE
+        const val HOST_ENTITY_DATA_READ = HostPermissions.ENTITY_DATA_READ
+        const val HOST_ENTITY_DATA_WRITE = HostPermissions.ENTITY_DATA_WRITE
         const val HOST_INVENTORY_READ = HostPermissions.INVENTORY_READ
         const val HOST_INVENTORY_WRITE = HostPermissions.INVENTORY_WRITE
         const val HOST_PLAYER_READ = HostPermissions.PLAYER_READ

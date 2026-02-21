@@ -58,10 +58,14 @@ class StandaloneHostStateConsistencyTest {
         assertEquals("copper_ingot", state.inventoryItem("Alex", 2))
 
         val entity = state.spawnEntity("sheep", "mod_world", 1.0, 64.0, 1.0)
+        assertEquals(emptyMap(), state.entityData(entity.uuid))
+        assertEquals("adult", state.setEntityData(entity.uuid, mapOf("variant" to "adult"))?.get("variant"))
+        assertEquals("adult", state.entityData(entity.uuid)?.get("variant"))
         assertNotNull(state.findEntity(entity.uuid))
         val removed = state.removeEntity(entity.uuid)
         assertNotNull(removed)
         assertEquals(null, state.findEntity(entity.uuid))
+        assertEquals(null, state.entityData(entity.uuid))
 
         val block = state.setBlock("mod_world", 1, 64, 1, "stone")
         assertNotNull(block)

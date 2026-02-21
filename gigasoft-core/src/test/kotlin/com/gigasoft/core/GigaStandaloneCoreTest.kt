@@ -240,10 +240,13 @@ class GigaStandaloneCoreTest {
             assertEquals("adventure", core.players().first { it.name == "Alex" }.world)
 
             val entity = core.spawnEntity("zombie", "adventure", 1.0, 64.0, 1.0)
+            assertEquals("1", core.setEntityData(entity.uuid, mapOf("stage" to "1"), "test")?.get("stage"))
+            assertEquals("1", core.entityData(entity.uuid)?.get("stage"))
             assertNotNull(core.findEntity(entity.uuid))
             val removed = core.removeEntity(entity.uuid, "test")
             assertNotNull(removed)
             assertEquals(null, core.findEntity(entity.uuid))
+            assertEquals(null, core.entityData(entity.uuid))
 
             val block = core.setBlock("adventure", 1, 64, 1, "stone", "test")
             assertNotNull(block)

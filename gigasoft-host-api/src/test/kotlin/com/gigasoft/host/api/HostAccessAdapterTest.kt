@@ -22,6 +22,8 @@ class HostAccessAdapterTest {
         assertTrue(access.setWorldTime("world", 200L))
         assertNotNull(access.findEntity("e1"))
         assertTrue(access.removeEntity("e1"))
+        assertEquals("adult", access.entityData("e1")?.get("variant"))
+        assertEquals("baby", access.setEntityData("e1", mapOf("variant" to "baby"))?.get("variant"))
         assertNotNull(access.movePlayer("Alex", com.gigasoft.api.HostLocationRef("world", 1.0, 65.0, 1.0)))
         assertEquals("stone", access.inventoryItem("Alex", 0))
         assertEquals(2, access.givePlayerItem("Alex", "stone", 2))
@@ -80,6 +82,8 @@ class HostAccessAdapterTest {
         override fun setWorldTime(name: String, time: Long): Boolean = true
         override fun findEntity(uuid: String): HostEntitySnapshot? = entities("world").firstOrNull()
         override fun removeEntity(uuid: String): Boolean = true
+        override fun entityData(uuid: String): Map<String, String>? = mapOf("variant" to "adult")
+        override fun setEntityData(uuid: String, data: Map<String, String>): Map<String, String>? = data
         override fun movePlayer(name: String, location: HostLocationRef): HostPlayerSnapshot? {
             return HostPlayerSnapshot(uuid = "u1", name = name, location = location)
         }

@@ -70,6 +70,7 @@ Built-in events:
 - `GigaWorldTimeChangeEvent`
 - `GigaBlockChangeEvent`
 - `GigaBlockDataChangeEvent`
+- `GigaEntityDataChangeEvent`
 
 ## HostAccess
 
@@ -81,6 +82,8 @@ Built-in events:
 - `spawnEntity(type, location)`
 - `findEntity(uuid)`
 - `removeEntity(uuid)`
+- `entityData(uuid)`
+- `setEntityData(uuid, data)`
 - `blockAt(world, x, y, z)`
 - `setBlock(world, x, y, z, blockId)`
 - `breakBlock(world, x, y, z, dropLoot)`
@@ -111,6 +114,8 @@ Host permission enforcement:
   - `host.entity.read`
   - `host.entity.spawn`
   - `host.entity.remove`
+  - `host.entity.data.read`
+  - `host.entity.data.write`
   - `host.inventory.read`
   - `host.inventory.write`
   - `host.player.move`

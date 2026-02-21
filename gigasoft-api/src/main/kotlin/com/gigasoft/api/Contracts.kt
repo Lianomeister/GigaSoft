@@ -33,6 +33,8 @@ interface HostAccess {
     fun setWorldTime(name: String, time: Long): Boolean = false
     fun findEntity(uuid: String): HostEntitySnapshot? = null
     fun removeEntity(uuid: String): Boolean = false
+    fun entityData(uuid: String): Map<String, String>? = null
+    fun setEntityData(uuid: String, data: Map<String, String>): Map<String, String>? = null
     fun movePlayer(name: String, location: HostLocationRef): HostPlayerSnapshot? = null
     fun inventoryItem(name: String, slot: Int): String? = null
     fun givePlayerItem(name: String, itemId: String, count: Int = 1): Int = 0
@@ -64,6 +66,8 @@ object HostPermissions {
     const val ENTITY_READ = "host.entity.read"
     const val ENTITY_SPAWN = "host.entity.spawn"
     const val ENTITY_REMOVE = "host.entity.remove"
+    const val ENTITY_DATA_READ = "host.entity.data.read"
+    const val ENTITY_DATA_WRITE = "host.entity.data.write"
     const val INVENTORY_READ = "host.inventory.read"
     const val INVENTORY_WRITE = "host.inventory.write"
     const val PLAYER_READ = "host.player.read"
@@ -184,6 +188,13 @@ data class GigaBlockDataChangeEvent(
     val x: Int,
     val y: Int,
     val z: Int,
+    val previousData: Map<String, String>,
+    val currentData: Map<String, String>,
+    val cause: String = "plugin"
+)
+
+data class GigaEntityDataChangeEvent(
+    val entity: HostEntitySnapshot,
     val previousData: Map<String, String>,
     val currentData: Map<String, String>,
     val cause: String = "plugin"

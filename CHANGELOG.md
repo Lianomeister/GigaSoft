@@ -18,11 +18,12 @@
   - expanded host gameplay API surface for mod-like plugins:
     - `createWorld`, `worldTime`, `setWorldTime`,
     - `findEntity`, `removeEntity`,
+    - `entityData`, `setEntityData`,
     - `movePlayer`,
     - `inventoryItem`, `givePlayerItem`,
     - `blockAt`, `setBlock`, `breakBlock`,
     - `blockData`, `setBlockData`.
-  - new gameplay events: `GigaEntityRemoveEvent`, `GigaPlayerTeleportEvent`, `GigaWorldTimeChangeEvent`, `GigaBlockChangeEvent`, `GigaBlockDataChangeEvent`.
+  - new gameplay events: `GigaEntityRemoveEvent`, `GigaEntityDataChangeEvent`, `GigaPlayerTeleportEvent`, `GigaWorldTimeChangeEvent`, `GigaBlockChangeEvent`, `GigaBlockDataChangeEvent`.
 
 ### Planned
 - Network v1.1 improvements (session throughput and backpressure tuning).

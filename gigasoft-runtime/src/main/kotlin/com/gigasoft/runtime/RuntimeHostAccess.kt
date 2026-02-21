@@ -83,6 +83,16 @@ internal class RuntimeHostAccess(
         return delegate.removeEntity(uuid)
     }
 
+    override fun entityData(uuid: String): Map<String, String>? {
+        if (!allowed(HostPermissions.ENTITY_DATA_READ)) return null
+        return delegate.entityData(uuid)
+    }
+
+    override fun setEntityData(uuid: String, data: Map<String, String>): Map<String, String>? {
+        if (!allowed(HostPermissions.ENTITY_DATA_WRITE)) return null
+        return delegate.setEntityData(uuid, data)
+    }
+
     override fun movePlayer(name: String, location: HostLocationRef): HostPlayerSnapshot? {
         if (!allowed(HostPermissions.PLAYER_MOVE)) return null
         return delegate.movePlayer(name, location)

@@ -7,6 +7,7 @@ import com.gigasoft.api.GigaEntitySpawnEvent
 import com.gigasoft.api.GigaInventoryChangeEvent
 import com.gigasoft.api.GigaBlockChangeEvent
 import com.gigasoft.api.GigaBlockDataChangeEvent
+import com.gigasoft.api.GigaEntityDataChangeEvent
 import com.gigasoft.api.GigaPlayerJoinEvent
 import com.gigasoft.api.GigaPlayerLeaveEvent
 import com.gigasoft.api.GigaPlayerMoveEvent
@@ -368,6 +369,25 @@ class GigaStandaloneCore(
         removed
     }
 
+    fun entityData(uuid: String): Map<String, String>? = hostState.entityData(uuid)
+
+    fun setEntityData(uuid: String, data: Map<String, String>, cause: String = "plugin"): Map<String, String>? = mutate {
+        val entity = hostState.findEntity(uuid) ?: return@mutate null
+        val previous = hostState.entityData(uuid) ?: return@mutate null
+        val updated = hostState.setEntityData(uuid, data) ?: return@mutate null
+        if (previous != updated) {
+            publishEvent(
+                GigaEntityDataChangeEvent(
+                    entity = entity.toHostSnapshot(),
+                    previousData = previous,
+                    currentData = updated,
+                    cause = cause
+                )
+            )
+        }
+        updated
+    }
+
     fun inventoryItem(owner: String, slot: Int): String? = hostState.inventoryItem(owner, slot)
 
     fun givePlayerItem(owner: String, itemId: String, count: Int = 1): Int = mutate {
@@ -594,6 +614,10 @@ class GigaStandaloneCore(
             override fun setWorldTime(name: String, time: Long): Boolean = this@GigaStandaloneCore.setWorldTime(name, time)
             override fun findEntity(uuid: String): HostEntitySnapshot? = this@GigaStandaloneCore.findEntity(uuid)?.toHostSnapshot()
             override fun removeEntity(uuid: String): Boolean = this@GigaStandaloneCore.removeEntity(uuid) != null
+            override fun entityData(uuid: String): Map<String, String>? = this@GigaStandaloneCore.entityData(uuid)
+            override fun setEntityData(uuid: String, data: Map<String, String>): Map<String, String>? {
+                return this@GigaStandaloneCore.setEntityData(uuid, data, cause = "plugin")
+            }
             override fun movePlayer(name: String, location: HostLocationRef): HostPlayerSnapshot? {
                 return this@GigaStandaloneCore.movePlayerWithCause(
                     name = name,

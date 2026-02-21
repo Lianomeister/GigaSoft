@@ -26,6 +26,8 @@ class RuntimeHostAccessTest {
                 HostPermissions.WORLD_WRITE,
                 HostPermissions.WORLD_READ,
                 HostPermissions.ENTITY_REMOVE,
+                HostPermissions.ENTITY_DATA_READ,
+                HostPermissions.ENTITY_DATA_WRITE,
                 HostPermissions.PLAYER_MOVE,
                 HostPermissions.INVENTORY_WRITE,
                 HostPermissions.BLOCK_READ,
@@ -40,6 +42,8 @@ class RuntimeHostAccessTest {
         assertEquals(50L, access.worldTime("mod"))
         assertTrue(access.setWorldTime("mod", 200L))
         assertTrue(access.removeEntity("e1"))
+        assertEquals("true", access.entityData("e1")?.get("angry"))
+        assertEquals("false", access.setEntityData("e1", mapOf("angry" to "false"))?.get("angry"))
         assertNotNull(access.movePlayer("Alex", HostLocationRef("mod", 3.0, 64.0, 3.0)))
         assertEquals(2, access.givePlayerItem("Alex", "iron_ingot", 2))
         assertEquals("stone", access.blockAt("world", 1, 64, 1)?.blockId)
@@ -67,6 +71,8 @@ class RuntimeHostAccessTest {
             return HostEntitySnapshot(uuid, "zombie", HostLocationRef("world", 0.0, 64.0, 0.0))
         }
         override fun removeEntity(uuid: String): Boolean = true
+        override fun entityData(uuid: String): Map<String, String>? = mapOf("angry" to "true")
+        override fun setEntityData(uuid: String, data: Map<String, String>): Map<String, String>? = data
         override fun movePlayer(name: String, location: HostLocationRef): HostPlayerSnapshot? {
             return HostPlayerSnapshot("u1", name, location)
         }

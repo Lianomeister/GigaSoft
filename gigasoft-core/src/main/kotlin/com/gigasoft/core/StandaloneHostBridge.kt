@@ -137,6 +137,14 @@ class StandaloneHostBridge(
         return hostState.removeEntity(uuid) != null
     }
 
+    override fun entityData(uuid: String): Map<String, String>? {
+        return hostState.entityData(uuid)
+    }
+
+    override fun setEntityData(uuid: String, data: Map<String, String>): Map<String, String>? {
+        return hostState.setEntityData(uuid, data)
+    }
+
     override fun movePlayer(name: String, location: HostLocationRef): HostPlayerSnapshot? {
         val moved = hostState.movePlayer(name, location.x, location.y, location.z, location.world) ?: return null
         return HostPlayerSnapshot(
