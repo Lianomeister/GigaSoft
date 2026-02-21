@@ -12,10 +12,11 @@ Standalone-first Minecraft server runtime focused on easy, powerful plugins with
 - `gigasoft-cli`: local developer CLI
 - `gigasoft-demo-standalone`: standalone reference GigaPlugin
 
-## API v1.0 Freeze
-- Frozen API contract: `docs/api/v1.0.0.md`
+## API Docs
+- Frozen baseline API contract: `docs/api/v1.0.0.md`
+- Current versioned API contract: `docs/api/v1.5.0.md`
 - Full API reference: `docs/api/reference-v1.md`
-- Migration guide: `docs/migrations/v1.0.md`
+- Migration guide (1.1 -> 1.5): `docs/migrations/v1.5.md`
 - Changelog: `CHANGELOG.md`
 - Performance targets + gate: `docs/performance/targets-v1.md`
 
@@ -42,12 +43,12 @@ Standalone-first Minecraft server runtime focused on easy, powerful plugins with
 
 ## Standalone Run
 ```bash
-java -jar gigasoft-standalone/build/libs/gigasoft-standalone-1.1.0-SNAPSHOT.jar
+java -jar gigasoft-standalone/build/libs/gigasoft-standalone-1.5.0-SNAPSHOT.jar
 ```
 
 Optional config file (`.properties`):
 ```bash
-java -jar gigasoft-standalone/build/libs/gigasoft-standalone-1.1.0-SNAPSHOT.jar --config gigasoft-standalone/standalone.example.properties
+java -jar gigasoft-standalone/build/libs/gigasoft-standalone-1.5.0-SNAPSHOT.jar --config gigasoft-standalone/standalone.example.properties
 ```
 
 ## Standalone Commands
@@ -56,6 +57,10 @@ java -jar gigasoft-standalone/build/libs/gigasoft-standalone-1.1.0-SNAPSHOT.jar 
 - `save`
 - `load`
 - `plugins`
+- `plugin list [--json]`
+- `plugin error [pluginId] [--json]`
+- `plugin scan`
+- `plugin reload <id|all|changed>`
 - `worlds`
 - `world create <name> [seed]`
 - `entities [world]`

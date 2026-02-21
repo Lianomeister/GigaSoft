@@ -1,6 +1,8 @@
 package com.gigasoft.standalone
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.gigasoft.api.CommandSender
+import com.gigasoft.api.CommandSenderType
 import com.gigasoft.core.GigaStandaloneCore
 import com.gigasoft.core.StandaloneCoreConfig
 import com.gigasoft.runtime.AdapterExecutionMode
@@ -204,8 +206,9 @@ fun main(args: Array<String>) {
 
     core.start()
     netServer?.start()
+    val commandHelp = "Commands: help, status [--json], save, load, plugins, plugin list [--json], plugin error [pluginId] [--json], plugin scan, plugin reload <id|all|changed>, worlds, world create, entities, entity spawn, players, player join|leave|move, inventory, scan, sync, reload <id|all|changed>, doctor [--json], profile <id> [--json], run <plugin> <command...>, adapters <plugin> [--json], adapter invoke <plugin> <adapterId> <action> [k=v ...] [--json], stop"
     println("GigaSoft standalone core is running (name=${launchConfig.serverName} version=${launchConfig.serverVersion} maxPlayers=${launchConfig.maxPlayers} tickMs=${launchConfig.tickPeriodMillis} autosaveTicks=${launchConfig.autoSaveEveryTicks} netPort=${if (netServer == null) "disabled" else launchConfig.netPort} netAuthRequired=${launchConfig.netAuthRequired} netSessionTtlSeconds=${launchConfig.netSessionTtlSeconds} netMaxTextLineBytes=${launchConfig.netMaxTextLineBytes} netReadTimeoutMs=${launchConfig.netReadTimeoutMillis} netMaxConcurrentSessions=${launchConfig.netMaxConcurrentSessions} netMaxSessionsPerIp=${launchConfig.netMaxSessionsPerIp} netRpmConnection=${launchConfig.netMaxRequestsPerMinutePerConnection} netRpmIp=${launchConfig.netMaxRequestsPerMinutePerIp} netTextFlushEvery=${launchConfig.netTextFlushEveryResponses} netFrameFlushEvery=${launchConfig.netFrameFlushEveryResponses} adapterMode=${launchConfig.adapterExecutionMode} adapterTimeoutMs=${launchConfig.adapterTimeoutMillis} adapterRateLimitPerMinute=${launchConfig.adapterRateLimitPerMinute} adapterRateLimitPerMinutePerPlugin=${launchConfig.adapterRateLimitPerMinutePerPlugin} adapterMaxConcurrentPerAdapter=${launchConfig.adapterMaxConcurrentInvocationsPerAdapter} eventDispatchMode=${launchConfig.eventDispatchMode}).")
-    println("Commands: help, status [--json], save, load, plugins, worlds, world create, entities, entity spawn, players, player join|leave|move, inventory, scan, reload <id|all>, doctor [--json], profile <id> [--json], run <plugin> <command...>, adapters <plugin> [--json], adapter invoke <plugin> <adapterId> <action> [k=v ...] [--json], stop")
+    println(commandHelp)
 
     while (true) {
         print("> ")
@@ -213,7 +216,7 @@ fun main(args: Array<String>) {
         if (line.isEmpty()) continue
         val parts = line.split(" ").filter { it.isNotBlank() }
         when (parts.first().lowercase()) {
-            "help" -> println("Commands: help, status [--json], save, load, plugins, worlds, world create, entities, entity spawn, players, player join|leave|move, inventory, scan, reload <id|all>, doctor [--json], profile <id> [--json], run <plugin> <command...>, adapters <plugin> [--json], adapter invoke <plugin> <adapterId> <action> [k=v ...] [--json], stop")
+            "help" -> println(commandHelp)
             "status" -> {
                 val jsonMode = parts.any { it.equals("--json", ignoreCase = true) }
                 val s = core.status()
@@ -398,21 +401,116 @@ fun main(args: Array<String>) {
                     }
                 }
             }
+            "plugin" -> {
+                when (parts.getOrNull(1)?.lowercase()) {
+                    "list" -> {
+                        val list = core.plugins()
+                        val jsonMode = parts.any { it.equals("--json", ignoreCase = true) }
+                        if (jsonMode) {
+                            println(objectMapper.writeValueAsString(list))
+                        } else {
+                            println("plugins=${list.size}")
+                            list.forEach { println("- $it") }
+                        }
+                    }
+                    "scan" -> println("Loaded ${core.loadNewPlugins()} new plugin(s)")
+                    "reload" -> {
+                        val target = parts.getOrNull(2)
+                        if (target == null) {
+                            println("Usage: plugin reload <id|all|changed>")
+                            continue
+                        }
+                        val report = when (target.lowercase()) {
+                            "all" -> core.reloadAll()
+                            "changed" -> {
+                                val changed = core.syncPlugins()
+                                println(
+                                    "loaded=${changed.loadedNewPlugins} changed=${changed.changedPluginsDetected} " +
+                                        "reloadStatus=${changed.reloadStatus} reloaded=${changed.reloadedPlugins.joinToString(",")} " +
+                                        "reason=${changed.reason ?: "<none>"}"
+                                )
+                                continue
+                            }
+                            else -> core.reload(target)
+                        }
+                        println("status=${report.status} reloaded=${report.reloadedPlugins.joinToString(",")} reason=${report.reason ?: "<none>"}")
+                    }
+                    "error", "errors" -> {
+                        val jsonMode = parts.any { it.equals("--json", ignoreCase = true) }
+                        val pluginIdFilter = parts
+                            .drop(2)
+                            .firstOrNull { !it.equals("--json", ignoreCase = true) }
+                        val diagnostics = core.doctor()
+                        val errors = collectPluginLoadIssues(diagnostics, pluginIdFilter)
+                        if (jsonMode) {
+                            println(
+                                objectMapper.writeValueAsString(
+                                    mapOf(
+                                        "pluginIdFilter" to pluginIdFilter,
+                                        "errors" to errors
+                                    )
+                                )
+                            )
+                        } else {
+                            if (errors.isEmpty()) {
+                                if (pluginIdFilter.isNullOrBlank()) {
+                                    println("No plugin load errors recorded.")
+                                } else {
+                                    println("No plugin load errors for '$pluginIdFilter'.")
+                                }
+                            } else {
+                                errors.forEach { issue ->
+                                    println("plugin.error[${issue.pluginId}] source=${issue.source} reason=${issue.reason}")
+                                }
+                            }
+                        }
+                    }
+                    else -> println("Usage: plugin list [--json] | plugin error [pluginId] [--json] | plugin scan | plugin reload <id|all|changed>")
+                }
+            }
             "scan" -> println("Loaded ${core.loadNewPlugins()} new plugin(s)")
+            "sync" -> {
+                val report = core.syncPlugins()
+                println(
+                    "loaded=${report.loadedNewPlugins} changed=${report.changedPluginsDetected} " +
+                        "reloadStatus=${report.reloadStatus} reloaded=${report.reloadedPlugins.joinToString(",")} " +
+                        "reason=${report.reason ?: "<none>"}"
+                )
+            }
             "reload" -> {
                 val target = parts.getOrNull(1)
                 if (target == null) {
-                    println("Usage: reload <id|all>")
+                    println("Usage: reload <id|all|changed>")
                     continue
                 }
-                val report = if (target == "all") core.reloadAll() else core.reload(target)
+                val report = when (target.lowercase()) {
+                    "all" -> core.reloadAll()
+                    "changed" -> {
+                        val changed = core.syncPlugins()
+                        println(
+                            "loaded=${changed.loadedNewPlugins} changed=${changed.changedPluginsDetected} " +
+                                "reloadStatus=${changed.reloadStatus} reloaded=${changed.reloadedPlugins.joinToString(",")} " +
+                                "reason=${changed.reason ?: "<none>"}"
+                        )
+                        continue
+                    }
+                    else -> core.reload(target)
+                }
                 println("status=${report.status} reloaded=${report.reloadedPlugins.joinToString(",")} reason=${report.reason ?: "<none>"}")
             }
             "doctor" -> {
                 val d = core.doctor()
                 val jsonMode = parts.any { it.equals("--json", ignoreCase = true) }
                 if (jsonMode) {
-                    println(objectMapper.writeValueAsString(d))
+                    val recommendations = buildDoctorRecommendations(d)
+                    println(
+                        objectMapper.writeValueAsString(
+                            mapOf(
+                                "diagnostics" to d,
+                                "recommendations" to recommendations
+                            )
+                        )
+                    )
                 } else {
                     println("loaded=${d.loadedPlugins.size} loadOrder=${d.currentLoadOrder.joinToString("->")}")
                     if (d.currentDependencyIssues.isNotEmpty()) {
@@ -455,6 +553,15 @@ fun main(args: Array<String>) {
                                         )
                                     }
                             }
+                            if (perf.faultBudget.used > 0) {
+                                println(
+                                    "fault.budget[$pluginId]=used:${perf.faultBudget.used},remaining:${perf.faultBudget.remaining},tripped:${perf.faultBudget.tripped}"
+                                )
+                            }
+                            val recommendations = buildPluginPerformanceRecommendations(pluginId, perf)
+                            recommendations.forEach { rec ->
+                                println("recommend[$pluginId]=$rec")
+                            }
                         }
                     }
                 }
@@ -476,7 +583,14 @@ fun main(args: Array<String>) {
                     continue
                 }
                 if (jsonMode) {
-                    println(objectMapper.writeValueAsString(p))
+                    println(
+                        objectMapper.writeValueAsString(
+                            mapOf(
+                                "profile" to p,
+                                "recommendations" to buildProfileRecommendations(p)
+                            )
+                        )
+                    )
                 } else {
                     println("plugin=${p.pluginId} activeTasks=${p.activeTasks}")
                     if (p.systems.isNotEmpty()) {
@@ -513,6 +627,14 @@ fun main(args: Array<String>) {
                                 )
                             }
                     }
+                    if (p.faultBudget.used > 0) {
+                        println(
+                            "fault.budget=used:${p.faultBudget.used},remaining:${p.faultBudget.remaining},tripped:${p.faultBudget.tripped}"
+                        )
+                    }
+                    buildProfileRecommendations(p).forEach { rec ->
+                        println("recommend=$rec")
+                    }
                 }
             }
             "run" -> {
@@ -522,7 +644,13 @@ fun main(args: Array<String>) {
                     println("Usage: run <plugin> <command...>")
                     continue
                 }
-                println(core.run(pluginId = pluginId, sender = "standalone-console", commandLine = commandLine))
+                println(
+                    core.run(
+                        pluginId = pluginId,
+                        sender = CommandSender(id = "standalone-console", type = CommandSenderType.CONSOLE),
+                        commandLine = commandLine
+                    )
+                )
             }
             "adapters" -> {
                 val pluginId = parts.getOrNull(1)
@@ -594,6 +722,40 @@ private fun parsePayload(rawPairs: List<String>): Map<String, String> {
     }.toMap()
 }
 
+private data class PluginLoadIssue(
+    val pluginId: String,
+    val source: String,
+    val reason: String
+)
+
+private fun collectPluginLoadIssues(
+    diagnostics: com.gigasoft.runtime.RuntimeDiagnostics,
+    pluginIdFilter: String?
+): List<PluginLoadIssue> {
+    val issues = mutableListOf<PluginLoadIssue>()
+    fun addAll(source: String, data: Map<String, String>) {
+        data.forEach { (pluginId, reason) ->
+            issues += PluginLoadIssue(pluginId = pluginId, source = source, reason = reason)
+        }
+    }
+    addAll("lastScanRejected", diagnostics.lastScanRejected)
+    addAll("lastScanVersionMismatch", diagnostics.lastScanVersionMismatches)
+    addAll("lastScanApiCompatibility", diagnostics.lastScanApiCompatibility)
+    addAll("currentDependencyIssue", diagnostics.currentDependencyIssues)
+    addAll("currentVersionMismatch", diagnostics.versionMismatches)
+    addAll("currentApiCompatibility", diagnostics.apiCompatibility)
+
+    val normalizedFilter = pluginIdFilter?.trim()?.lowercase().orEmpty()
+    return issues
+        .asSequence()
+        .filter { issue ->
+            normalizedFilter.isEmpty() || issue.pluginId.equals(normalizedFilter, ignoreCase = true)
+        }
+        .distinctBy { "${it.source}|${it.pluginId}|${it.reason}" }
+        .sortedWith(compareBy<PluginLoadIssue> { it.pluginId.lowercase() }.thenBy { it.source })
+        .toList()
+}
+
 internal fun statusView(
     core: GigaStandaloneCore,
     netServer: StandaloneNetServer?,
@@ -657,4 +819,53 @@ internal fun statusView(
         },
         "topCoreSystems" to topCoreSystems
     )
+}
+
+private fun buildDoctorRecommendations(
+    diagnostics: com.gigasoft.runtime.RuntimeDiagnostics
+): Map<String, List<String>> {
+    val out = linkedMapOf<String, List<String>>()
+    diagnostics.pluginPerformance.toSortedMap().forEach { (pluginId, perf) ->
+        val rec = buildPluginPerformanceRecommendations(pluginId, perf)
+        if (rec.isNotEmpty()) {
+            out[pluginId] = rec
+        }
+    }
+    return out
+}
+
+private fun buildProfileRecommendations(
+    profile: com.gigasoft.runtime.PluginRuntimeProfile
+): List<String> {
+    val perf = com.gigasoft.runtime.PluginPerformanceDiagnostics(
+        slowSystems = profile.slowSystems,
+        adapterHotspots = profile.adapterHotspots,
+        isolatedSystems = profile.isolatedSystems,
+        faultBudget = profile.faultBudget
+    )
+    return buildPluginPerformanceRecommendations(profile.pluginId, perf)
+}
+
+private fun buildPluginPerformanceRecommendations(
+    pluginId: String,
+    perf: com.gigasoft.runtime.PluginPerformanceDiagnostics
+): List<String> {
+    val out = mutableListOf<String>()
+    if (perf.slowSystems.isNotEmpty()) {
+        val worst = perf.slowSystems.first()
+        out += "Optimize system '${worst.systemId}' (avgNs=${worst.averageNanos}, maxNs=${worst.maxNanos}); consider batching/cache reductions."
+    }
+    if (perf.adapterHotspots.isNotEmpty()) {
+        val worst = perf.adapterHotspots.first()
+        out += "Review adapter '${worst.adapterId}' usage (denyRate=${"%.3f".format(worst.deniedRate)}, timeoutRate=${"%.3f".format(worst.timeoutRate)}); tighten payloads/capabilities or raise quotas intentionally."
+    }
+    val isolated = perf.isolatedSystems.filter { it.isolated || it.isolationCount > 0L }
+    if (isolated.isNotEmpty()) {
+        val worst = isolated.first()
+        out += "System isolation detected for '${worst.systemId}' (isolations=${worst.isolationCount}); add failure guards and backoff-safe logic."
+    }
+    if (perf.faultBudget.tripped || perf.faultBudget.remaining <= 10) {
+        out += "Fault budget is under pressure (used=${perf.faultBudget.used}, remaining=${perf.faultBudget.remaining}); reduce repeated failures/timeouts in plugin '$pluginId'."
+    }
+    return out
 }

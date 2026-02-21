@@ -64,10 +64,37 @@ class DslPluginTest {
             systems { system("tick") {} }
             commands {
                 command(
-                    name = "demo",
-                    description = "Demo command",
-                    aliases = listOf("d")
-                ) { _, sender, _ -> "ok:$sender" }
+                    spec = CommandSpec(
+                        command = "demo",
+                        aliases = listOf("d")
+                    )
+                ) { sender, _ ->
+                    CommandResult.ok("ok:${sender.id}")
+                }
+                command(
+                    spec = CommandSpec(
+                        command = "math",
+                        aliases = listOf("m"),
+                        argsSchema = listOf(
+                            CommandArgSpec(
+                                name = "mode",
+                                type = CommandArgType.ENUM,
+                                enumValues = listOf("SAFE", "FAST")
+                            ),
+                            CommandArgSpec(name = "value", type = CommandArgType.INT)
+                        ),
+                        help = "Adds two numbers."
+                    ),
+                    middleware = listOf(
+                        authMiddleware { null },
+                        validationMiddleware { null },
+                        auditMiddleware { _, _ -> }
+                    )
+                ) { _, parsed ->
+                    val value = parsed.int("value") ?: 0
+                    val factor = if (parsed.enum("mode").equals("FAST", ignoreCase = true)) 2 else 1
+                    CommandResult.ok((value * factor).toString())
+                }
             }
             adapters {
                 adapter(
@@ -97,6 +124,16 @@ class DslPluginTest {
         assertTrue(ctx.eventsSeen.any { it is GigaTextureRegisteredEvent })
         assertTrue(ctx.eventsSeen.any { it is GigaModelRegisteredEvent })
         assertEquals("ok:alice", ctx.commandRegistry.invoke("d", "alice", emptyList()))
+        assertEquals("8", ctx.commandRegistry.invoke("m", "alice", listOf("FAST", "4")))
+        val completions = CommandCompletionCatalog.suggest(
+            commandOrAlias = "m",
+            ctx = ctx,
+            sender = CommandSender.player("alice"),
+            args = listOf("")
+        )
+        assertEquals(listOf("SAFE", "FAST"), completions.map { it.value })
+        CommandCompletionCatalog.unregister("math")
+        CommandCompletionCatalog.unregister("m")
     }
 
     private class RuntimelessContext(
@@ -128,23 +165,50 @@ class DslPluginTest {
     }
 
     private class RecordingCommands : CommandRegistry {
-        private val handlers = linkedMapOf<String, (PluginContext, String, List<String>) -> String>()
+        private data class Entry(
+            val spec: CommandSpec,
+            val middleware: List<CommandMiddlewareBinding>,
+            val action: (CommandInvocationContext) -> CommandResult
+        )
+        private val handlers = linkedMapOf<String, Entry>()
         private val aliases = linkedMapOf<String, String>()
 
-        override fun register(
-            command: String,
-            description: String,
-            action: (ctx: PluginContext, sender: String, args: List<String>) -> String
+        override fun registerSpec(
+            spec: CommandSpec,
+            middleware: List<CommandMiddlewareBinding>,
+            completion: CommandCompletionContract?,
+            completionAsync: CommandCompletionAsyncContract?,
+            policy: CommandPolicyProfile?,
+            action: (CommandInvocationContext) -> CommandResult
         ) {
-            handlers.putIfAbsent(command, action)
-        }
-
-        override fun registerOrReplace(
-            command: String,
-            description: String,
-            action: (ctx: PluginContext, sender: String, args: List<String>) -> String
-        ) {
-            handlers[command] = action
+            val key = spec.command.trim().lowercase()
+            require(key.isNotBlank()) { "Command id must not be blank" }
+            require(!handlers.containsKey(key)) { "Duplicate command '$key'" }
+            handlers[key] = Entry(
+                spec = spec.copy(command = key),
+                middleware = middleware,
+                action = action
+            )
+            spec.aliases.forEach { alias ->
+                aliases.putIfAbsent(alias.trim().lowercase(), key)
+            }
+            val completionProvider = completion ?: CommandCompletionContract { _, _, commandSpec, args ->
+                commandSpec.defaultCompletions(args)
+            }
+            CommandCompletionCatalog.register(
+                command = key,
+                provider = completionProvider,
+                providerAsync = completionAsync,
+                spec = spec
+            )
+            spec.aliases.forEach { alias ->
+                CommandCompletionCatalog.register(
+                    command = alias,
+                    provider = completionProvider,
+                    providerAsync = completionAsync,
+                    spec = spec
+                )
+            }
         }
 
         override fun registerAlias(alias: String, command: String): Boolean {
@@ -159,8 +223,13 @@ class DslPluginTest {
         }
 
         fun invoke(commandOrAlias: String, sender: String, args: List<String>): String {
-            val key = resolve(commandOrAlias) ?: return "missing"
-            val action = handlers[key] ?: return "missing"
+            val key = resolve(commandOrAlias.trim().lowercase()) ?: return "missing"
+            val entry = handlers[key] ?: return "missing"
+            val route = resolveCommandRoute(entry.spec, args)
+            val routedSpec = route.spec
+            val routedArgs = if (route.consumedArgs <= 0) args else args.drop(route.consumedArgs)
+            val parsed = parseCommandArgs(routedSpec, routedArgs)
+            parsed.error?.let { return it.render() }
             val ctx = object : PluginContext {
                 override val manifest: PluginManifest = PluginManifest("test", "test", "1", "main")
                 override val logger: GigaLogger = GigaLogger { }
@@ -205,7 +274,27 @@ class DslPluginTest {
                     override fun publish(event: Any) {}
                 }
             }
-            return action(ctx, sender, args)
+            val invocation = CommandInvocationContext(
+                pluginContext = ctx,
+                sender = CommandSender.player(sender),
+                rawArgs = routedArgs,
+                spec = routedSpec,
+                parsedArgs = parsed.parsed
+            )
+            val orderedMiddleware = entry.middleware.sortedWith(
+                compareBy<CommandMiddlewareBinding> { it.phase.ordinal }
+                    .thenBy { it.order }
+                    .thenBy { it.id }
+            )
+            var index = -1
+            fun executeNext(): CommandResult {
+                index++
+                if (index < orderedMiddleware.size) {
+                    return orderedMiddleware[index].middleware.invoke(invocation, ::executeNext)
+                }
+                return entry.action(invocation)
+            }
+            return executeNext().render()
         }
     }
 }

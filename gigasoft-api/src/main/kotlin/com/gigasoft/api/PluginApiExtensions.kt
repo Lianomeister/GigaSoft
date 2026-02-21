@@ -1,7 +1,17 @@
 package com.gigasoft.api
 
+import java.util.ArrayDeque
+import java.util.concurrent.ConcurrentHashMap
+
 inline fun <reified T : Any> EventBus.subscribe(noinline listener: (T) -> Unit) {
     subscribe(T::class.java, listener)
+}
+
+inline fun <reified T : Any> EventBus.subscribe(
+    options: EventSubscriptionOptions,
+    noinline listener: (T) -> Unit
+) {
+    subscribe(T::class.java, options, listener)
 }
 
 inline fun <reified T : Any> EventBus.subscribeOnce(noinline listener: (T) -> Unit) {
@@ -13,62 +23,10 @@ inline fun <reified T : Any> EventBus.subscribeOnce(noinline listener: (T) -> Un
     subscribe(T::class.java, wrapper)
 }
 
+fun EventBus.publishAsyncUnit(event: Any): java.util.concurrent.CompletableFuture<Unit> = publishAsync(event)
+
 inline fun <reified T : Any> StorageProvider.store(key: String, version: Int = 1): PersistentStore<T> {
     return store(key, T::class.java, version)
-}
-
-fun CommandRegistry.register(
-    command: String,
-    description: String = "",
-    action: (sender: String, args: List<String>) -> String
-) {
-    register(command, description) { _, sender, args -> action(sender, args) }
-}
-
-fun CommandRegistry.registerOrReplace(
-    command: String,
-    description: String = "",
-    action: (sender: String, args: List<String>) -> String
-) {
-    registerOrReplace(command, description) { _, sender, args -> action(sender, args) }
-}
-
-fun CommandRegistry.registerWithAliases(
-    command: String,
-    description: String = "",
-    aliases: List<String> = emptyList(),
-    action: (ctx: PluginContext, sender: String, args: List<String>) -> String
-) {
-    register(command, description, action)
-    aliases.forEach { registerAliasOrThrow(it, command) }
-}
-
-fun CommandRegistry.registerWithAliases(
-    command: String,
-    description: String = "",
-    aliases: List<String> = emptyList(),
-    action: (sender: String, args: List<String>) -> String
-) {
-    registerWithAliases(command, description, aliases) { _, sender, args -> action(sender, args) }
-}
-
-fun CommandRegistry.registerOrReplaceWithAliases(
-    command: String,
-    description: String = "",
-    aliases: List<String> = emptyList(),
-    action: (ctx: PluginContext, sender: String, args: List<String>) -> String
-) {
-    registerOrReplace(command, description, action)
-    aliases.forEach { registerAliasOrThrow(it, command) }
-}
-
-fun CommandRegistry.registerOrReplaceWithAliases(
-    command: String,
-    description: String = "",
-    aliases: List<String> = emptyList(),
-    action: (sender: String, args: List<String>) -> String
-) {
-    registerOrReplaceWithAliases(command, description, aliases) { _, sender, args -> action(sender, args) }
 }
 
 fun CommandRegistry.registerAliasOrThrow(alias: String, command: String) {
@@ -86,29 +44,157 @@ fun CommandRegistry.unregisterAll(vararg commands: String): Int {
     return removed
 }
 
-fun CommandRegistry.registerValidated(
-    command: String,
-    description: String = "",
-    validator: (sender: String, args: List<String>) -> CommandResult?,
-    action: (ctx: PluginContext, sender: String, args: List<String>) -> CommandResult
+fun CommandRegistry.registerSpec(
+    spec: CommandSpec,
+    middleware: List<CommandMiddlewareBinding> = emptyList(),
+    completion: CommandCompletionContract? = null,
+    completionAsync: CommandCompletionAsyncContract? = null,
+    policy: CommandPolicyProfile? = null,
+    clockMillis: () -> Long = { System.currentTimeMillis() },
+    action: (CommandInvocationContext) -> CommandResult
 ) {
-    register(command, description) { ctx, sender, args ->
-        val validation = validator(sender, args)
-        if (validation != null) return@register validation.render()
-        action(ctx, sender, args).render()
+    val effectivePolicy = policy
+    val effectivePermission = spec.permission?.trim()?.takeIf { it.isNotEmpty() } ?: run {
+        val prefix = effectivePolicy?.permissionPrefix?.trim().orEmpty()
+        if (prefix.isBlank()) null else "$prefix.${spec.command.trim().lowercase()}"
+    }
+    val normalizedSpec = spec.copy(
+        command = spec.command.trim().lowercase(),
+        permission = effectivePermission,
+        cooldownMillis = if (spec.cooldownMillis > 0L) spec.cooldownMillis else (effectivePolicy?.defaultCooldownMillis ?: 0L),
+        rateLimitPerMinute = if (spec.rateLimitPerMinute > 0) spec.rateLimitPerMinute else (effectivePolicy?.defaultRateLimitPerMinute ?: 0)
+    )
+    val completionProvider = completion ?: CommandCompletionContract { _, _, commandSpec, args ->
+        commandSpec.defaultCompletions(args)
+    }
+    val cooldownBySender = ConcurrentHashMap<String, Long>()
+    val rateWindowBySender = ConcurrentHashMap<String, ArrayDeque<Long>>()
+
+    CommandCompletionCatalog.register(
+        command = normalizedSpec.command,
+        provider = completionProvider,
+        providerAsync = completionAsync,
+        spec = normalizedSpec
+    )
+    normalizedSpec.aliases.forEach {
+        CommandCompletionCatalog.register(
+            command = it,
+            provider = completionProvider,
+            providerAsync = completionAsync,
+            spec = normalizedSpec
+        )
+    }
+
+    registerOrReplaceSpec(
+        spec = normalizedSpec,
+        middleware = middleware,
+        completion = completionProvider,
+        completionAsync = completionAsync,
+        policy = effectivePolicy
+    ) { invocation ->
+        val ctx = invocation.pluginContext
+        val sender = invocation.sender
+        val args = invocation.rawArgs
+
+        val route = resolveCommandRoute(normalizedSpec, args)
+        val routedSpec = route.spec
+        val routedArgs = if (route.consumedArgs <= 0) args else args.drop(route.consumedArgs)
+
+        if (args.isNotEmpty() && (args[0].equals("help", ignoreCase = true) || args[0] == "--help")) {
+            return@registerOrReplaceSpec CommandResult.ok(routedSpec.helpText())
+        }
+
+        val parsedResult = parseCommandArgs(routedSpec, routedArgs)
+        parsedResult.error?.let { return@registerOrReplaceSpec it }
+
+        if (!routedSpec.permission.isNullOrBlank() && !ctx.hasPermission(routedSpec.permission)) {
+            return@registerOrReplaceSpec CommandResult.error(
+                "Missing permission '${routedSpec.permission}' for command '${routedSpec.command}'",
+                code = "E_PERMISSION"
+            )
+        }
+
+        val now = clockMillis()
+        val senderId = sender.id
+        if (routedSpec.rateLimitPerMinute > 0) {
+            val queue = rateWindowBySender.computeIfAbsent(senderId) { ArrayDeque() }
+            synchronized(queue) {
+                while (queue.isNotEmpty() && now - queue.first() > 60_000L) {
+                    queue.removeFirst()
+                }
+                if (queue.size >= routedSpec.rateLimitPerMinute) {
+                    return@registerOrReplaceSpec CommandResult.error(
+                        "Rate limit exceeded for '${routedSpec.command}' (${routedSpec.rateLimitPerMinute}/min)",
+                        code = "E_RATE_LIMIT"
+                    )
+                }
+                queue.addLast(now)
+            }
+        }
+
+        if (routedSpec.cooldownMillis > 0L) {
+            val last = cooldownBySender[senderId]
+            if (last != null && now - last < routedSpec.cooldownMillis) {
+                val waitMillis = routedSpec.cooldownMillis - (now - last)
+                return@registerOrReplaceSpec CommandResult.error(
+                    "Command '${routedSpec.command}' is on cooldown (${waitMillis}ms remaining)",
+                    code = "E_COOLDOWN"
+                )
+            }
+        }
+
+        val routedInvocation = CommandInvocationContext(
+            pluginContext = ctx,
+            sender = sender,
+            rawArgs = routedArgs,
+            spec = routedSpec,
+            parsedArgs = parsedResult.parsed
+        )
+
+        val orderedMiddleware = middleware.sortedWith(
+            compareBy<CommandMiddlewareBinding> { it.phase.ordinal }
+                .thenBy { it.order }
+                .thenBy { it.id }
+        )
+
+        var index = -1
+        fun executeNext(): CommandResult {
+            index++
+            if (index < orderedMiddleware.size) {
+                return orderedMiddleware[index].middleware.invoke(routedInvocation, ::executeNext)
+            }
+            return action(routedInvocation)
+        }
+
+        val result = executeNext()
+        if (result.success && routedSpec.cooldownMillis > 0L) {
+            cooldownBySender[senderId] = now
+        }
+        result
+    }
+    normalizedSpec.aliases.forEach { alias ->
+        registerAliasOrThrow(alias, normalizedSpec.command)
     }
 }
 
-fun CommandRegistry.registerOrReplaceValidated(
-    command: String,
-    description: String = "",
-    validator: (sender: String, args: List<String>) -> CommandResult?,
-    action: (ctx: PluginContext, sender: String, args: List<String>) -> CommandResult
+fun CommandRegistry.registerSpec(
+    spec: CommandSpec,
+    middleware: List<CommandMiddlewareBinding> = emptyList(),
+    completion: CommandCompletionContract? = null,
+    completionAsync: CommandCompletionAsyncContract? = null,
+    policy: CommandPolicyProfile? = null,
+    clockMillis: () -> Long = { System.currentTimeMillis() },
+    action: (sender: CommandSender, args: CommandParsedArgs) -> CommandResult
 ) {
-    registerOrReplace(command, description) { ctx, sender, args ->
-        val validation = validator(sender, args)
-        if (validation != null) return@registerOrReplace validation.render()
-        action(ctx, sender, args).render()
+    registerSpec(
+        spec = spec,
+        middleware = middleware,
+        completion = completion,
+        completionAsync = completionAsync,
+        policy = policy,
+        clockMillis = clockMillis
+    ) { invocation ->
+        action(invocation.sender, invocation.parsedArgs)
     }
 }
 
@@ -124,45 +210,121 @@ fun PluginContext.requirePermission(permission: String) {
     }
 }
 
+fun PluginContext.notifyInfo(player: String, message: String, title: String = ""): Boolean {
+    return ui.notify(
+        player = player,
+        notice = UiNotice(title = title, message = message, level = UiLevel.INFO)
+    )
+}
+
+fun PluginContext.notifySuccess(player: String, message: String, title: String = ""): Boolean {
+    return ui.notify(
+        player = player,
+        notice = UiNotice(title = title, message = message, level = UiLevel.SUCCESS)
+    )
+}
+
+fun PluginContext.notifyWarning(player: String, message: String, title: String = ""): Boolean {
+    return ui.notify(
+        player = player,
+        notice = UiNotice(title = title, message = message, level = UiLevel.WARNING)
+    )
+}
+
+fun PluginContext.notifyError(player: String, message: String, title: String = ""): Boolean {
+    return ui.notify(
+        player = player,
+        notice = UiNotice(title = title, message = message, level = UiLevel.ERROR)
+    )
+}
+
+fun PluginContext.notify(
+    player: String,
+    level: UiLevel,
+    message: String,
+    title: String = "",
+    durationMillis: Long = 3_000L
+): Boolean {
+    return ui.notify(
+        player = player,
+        notice = UiNotice(
+            title = title,
+            message = message,
+            level = level,
+            durationMillis = durationMillis
+        )
+    )
+}
+
+fun PluginContext.actionBar(player: String, message: String, durationTicks: Int = 40): Boolean {
+    return ui.actionBar(player, message, durationTicks)
+}
+
+fun PluginContext.showMenu(player: String, menu: UiMenu): Boolean = ui.openMenu(player, menu)
+
+fun PluginContext.showDialog(player: String, dialog: UiDialog): Boolean = ui.openDialog(player, dialog)
+
+fun PluginContext.closeUi(player: String): Boolean = ui.close(player)
+
+fun PluginContext.broadcastNotice(
+    message: String,
+    level: UiLevel = UiLevel.INFO,
+    title: String = ""
+): Boolean {
+    val prefix = when (level) {
+        UiLevel.SUCCESS -> "[OK]"
+        UiLevel.WARNING -> "[WARN]"
+        UiLevel.ERROR -> "[ERR]"
+        UiLevel.INFO -> "[INFO]"
+    }
+    val body = buildString {
+        if (title.isNotBlank()) {
+            append(title.trim())
+            append(": ")
+        }
+        append(message.trim())
+    }.trim()
+    if (body.isEmpty()) return false
+    return host.broadcast("$prefix $body")
+}
+
+fun PluginContext.validateAssets(options: ResourcePackBundleOptions = ResourcePackBundleOptions()): AssetValidationResult {
+    return registry.validateAssets(options)
+}
+
+fun PluginContext.buildResourcePackBundle(options: ResourcePackBundleOptions = ResourcePackBundleOptions()): ResourcePackBundle {
+    return registry.buildResourcePackBundle(options)
+}
+
+fun PluginContext.registerNetworkChannel(spec: PluginChannelSpec): Boolean = network.registerChannel(spec)
+
+fun PluginContext.sendPluginMessage(channel: String, payload: Map<String, String>): PluginMessageResult {
+    return network.send(
+        channel = channel,
+        message = PluginMessage(
+            channel = channel,
+            payload = payload,
+            sourcePluginId = manifest.id
+        )
+    )
+}
+
+fun PluginContext.applyHostMutationBatch(
+    batch: HostMutationBatch,
+    onRollback: ((HostMutationBatchResult) -> Unit)? = null
+): HostMutationBatchResult {
+    val result = host.applyMutationBatch(batch)
+    if (!result.success && result.rolledBack) {
+        onRollback?.invoke(result)
+    }
+    return result
+}
+
 fun CommandResult.render(): String {
     val normalizedCode = code?.trim()?.takeIf { it.isNotEmpty() }
-    return if (normalizedCode == null) {
-        message
-    } else {
-        "[$normalizedCode] $message"
-    }
-}
-
-fun CommandRegistry.registerResult(
-    command: String,
-    description: String = "",
-    action: (ctx: PluginContext, sender: String, args: List<String>) -> CommandResult
-) {
-    register(command, description) { ctx, sender, args -> action(ctx, sender, args).render() }
-}
-
-fun CommandRegistry.registerOrReplaceResult(
-    command: String,
-    description: String = "",
-    action: (ctx: PluginContext, sender: String, args: List<String>) -> CommandResult
-) {
-    registerOrReplace(command, description) { ctx, sender, args -> action(ctx, sender, args).render() }
-}
-
-fun CommandRegistry.registerResult(
-    command: String,
-    description: String = "",
-    action: (sender: String, args: List<String>) -> CommandResult
-) {
-    registerResult(command, description) { _, sender, args -> action(sender, args) }
-}
-
-fun CommandRegistry.registerOrReplaceResult(
-    command: String,
-    description: String = "",
-    action: (sender: String, args: List<String>) -> CommandResult
-) {
-    registerOrReplaceResult(command, description) { _, sender, args -> action(sender, args) }
+    val hint = error?.hint?.trim()?.takeIf { it.isNotEmpty() }
+    val body = if (normalizedCode == null) message else "[$normalizedCode] $message"
+    return if (hint == null) body else "$body (hint: $hint)"
 }
 
 fun AdapterInvocation.payloadString(key: String): String? {

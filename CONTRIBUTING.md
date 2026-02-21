@@ -16,7 +16,7 @@
 ## Coding rules
 - Keep API module stable and backwards compatible.
 - For API 1.x, apply additive-only changes and use deprecations before removals.
-- Update `docs/api/v1.0.0.md`, `docs/migrations/v1.0.md`, and `CHANGELOG.md` for any API-surface change.
+- Update `docs/api/v1.5.0.md`, `docs/migrations/v1.5.md`, and `CHANGELOG.md` for any API-surface change.
 - Keep `website/` and `docs/tutorials/*` aligned with CLI/API behavior.
 - Keep host-neutral abstractions in core/runtime modules.
 - Add tests for registry, lifecycle, persistence, scheduler, and performance-sensitive changes.

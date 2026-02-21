@@ -33,6 +33,17 @@ class PluginApiExtensionsTest {
     }
 
     @Test
+    fun `event bus publishAsync helper returns completed future`() {
+        val bus = RuntimeLikeEventBus()
+        var calls = 0
+        bus.subscribe<GigaTickEvent> { calls++ }
+
+        bus.publishAsyncUnit(GigaTickEvent(1)).get()
+
+        assertEquals(1, calls)
+    }
+
+    @Test
     fun `storage reified store resolves class automatically`() {
         val storage = RecordingStorageProvider()
         val store = storage.store<TestPayload>("plugin:data", version = 2)
@@ -45,36 +56,13 @@ class PluginApiExtensionsTest {
     }
 
     @Test
-    fun `command helpers adapt simplified action signature`() {
+    fun `register alias helper enforces registration and resolves aliases`() {
         val commands = RecordingCommandRegistry()
-        commands.register("hello") { sender, args -> "$sender:${args.joinToString(",")}" }
-        commands.registerOrReplace("hello") { sender, _ -> "$sender:replaced" }
-
-        val response = commands.invoke("hello", sender = "alice", args = listOf("x"))
-        assertEquals("alice:replaced", response)
-    }
-
-    @Test
-    fun `command result helpers render typed responses`() {
-        val commands = RecordingCommandRegistry()
-        commands.registerResult("safe") { _, _ ->
-            CommandResult.ok("done", code = "OK")
+        commands.registerSpec(CommandSpec(command = "hello")) { inv ->
+            CommandResult.ok("hello:${inv.sender.id}")
         }
-        commands.registerOrReplaceResult("safe") { _, _ ->
-            CommandResult.error("denied", code = "E_PERMISSION")
-        }
-
-        val response = commands.invoke("safe", sender = "alice", args = emptyList())
-        assertEquals("[E_PERMISSION] denied", response)
-    }
-
-    @Test
-    fun `command alias helpers register and resolve aliases`() {
-        val commands = RecordingCommandRegistry()
-        commands.registerWithAliases(
-            command = "hello",
-            aliases = listOf("hi", "hey")
-        ) { sender, _ -> "hello:$sender" }
+        commands.registerAliasOrThrow("hi", "hello")
+        commands.registerAliasOrThrow("hey", "hello")
 
         assertEquals("hello:alice", commands.invoke("hi", sender = "alice", args = emptyList()))
         assertEquals("hello:alice", commands.invoke("hey", sender = "alice", args = emptyList()))
@@ -82,20 +70,91 @@ class PluginApiExtensionsTest {
     }
 
     @Test
-    fun `validated command helper short-circuits with error response`() {
+    fun `command spec parses typed args and provides auto help`() {
         val commands = RecordingCommandRegistry()
-        commands.registerValidated(
+        val spec = CommandSpec(
             command = "sum",
-            validator = { _, args ->
-                if (args.size < 2) CommandResult.error("need at least 2 args", code = "E_ARGS") else null
-            }
-        ) { _, _, args ->
-            val total = args.map(String::toInt).sum()
-            CommandResult.ok(total.toString())
+            description = "Adds two numbers",
+            argsSchema = listOf(
+                CommandArgSpec("a", CommandArgType.INT),
+                CommandArgSpec("b", CommandArgType.INT)
+            )
+        )
+        commands.registerSpec(spec) { _, parsed ->
+            CommandResult.ok((parsed.int("a")!! + parsed.int("b")!!).toString())
         }
 
-        assertEquals("[E_ARGS] need at least 2 args", commands.invoke("sum", sender = "alice", args = listOf("1")))
-        assertEquals("3", commands.invoke("sum", sender = "alice", args = listOf("1", "2")))
+        assertEquals("7", commands.invoke("sum", "alice", listOf("3", "4")))
+        assertTrue(commands.invoke("sum", "alice", listOf("--help")).contains("Usage: sum <a> <b>"))
+        assertTrue(commands.invoke("sum", "alice", listOf("x", "4")).startsWith("[E_ARGS]"))
+    }
+
+    @Test
+    fun `command spec middleware chain is deterministic`() {
+        val commands = RecordingCommandRegistry()
+        val calls = mutableListOf<String>()
+        val spec = CommandSpec(command = "guarded")
+        commands.registerSpec(
+            spec = spec,
+            middleware = listOf(
+                validationMiddleware { calls += "validation"; null },
+                auditMiddleware { _, _ -> calls += "audit" },
+                authMiddleware { calls += "auth"; null }
+            )
+        ) {
+            calls += "action"
+            CommandResult.ok("ok")
+        }
+
+        assertEquals("ok", commands.invoke("guarded", "alice", emptyList()))
+        assertEquals(listOf("auth", "validation", "action", "audit"), calls)
+    }
+
+    @Test
+    fun `command spec supports cooldown and rate limit`() {
+        val commands = RecordingCommandRegistry()
+        var now = 1_000L
+        commands.registerSpec(
+            spec = CommandSpec(command = "cool", cooldownMillis = 100L),
+            clockMillis = { now }
+        ) { _, _ ->
+            CommandResult.ok("ok")
+        }
+        assertEquals("ok", commands.invoke("cool", "alice", emptyList()))
+        assertTrue(commands.invoke("cool", "alice", emptyList()).startsWith("[E_COOLDOWN]"))
+        now += 150L
+        assertEquals("ok", commands.invoke("cool", "alice", emptyList()))
+
+        now = 5_000L
+        commands.registerSpec(
+            spec = CommandSpec(command = "rate", rateLimitPerMinute = 2),
+            clockMillis = { now }
+        ) { _, _ ->
+            CommandResult.ok("ok")
+        }
+        assertEquals("ok", commands.invoke("rate", "alice", emptyList()))
+        assertEquals("ok", commands.invoke("rate", "alice", emptyList()))
+        assertTrue(commands.invoke("rate", "alice", emptyList()).startsWith("[E_RATE_LIMIT]"))
+        now += 61_000L
+        assertEquals("ok", commands.invoke("rate", "alice", emptyList()))
+    }
+
+    @Test
+    fun `command completion catalog exposes schema based completions`() {
+        val commands = RecordingCommandRegistry()
+        val spec = CommandSpec(
+            command = "mode",
+            aliases = listOf("m"),
+            argsSchema = listOf(CommandArgSpec("kind", type = CommandArgType.ENUM, enumValues = listOf("SAFE", "FAST")))
+        )
+        commands.registerSpec(spec) { _, _ -> CommandResult.ok("ok") }
+        val ctx = contextWithPermissions(emptyList())
+
+        val completions = CommandCompletionCatalog.suggest("m", ctx, CommandSender.player("alice"), listOf(""))
+        assertEquals(listOf("SAFE", "FAST"), completions.map { it.value })
+
+        CommandCompletionCatalog.unregister("mode")
+        CommandCompletionCatalog.unregister("m")
     }
 
     @Test
@@ -111,6 +170,251 @@ class PluginApiExtensionsTest {
         assertFalse(ctx.hasPermission("host.world.read"))
         assertFailsWith<IllegalArgumentException> { ctx.requirePermission("host.world.read") }
         ctx.requirePermission("x.y.z")
+    }
+
+    @Test
+    fun `ui helpers delegate to plugin ui contract`() {
+        val calls = mutableListOf<String>()
+        val ui = object : PluginUi {
+            override fun notify(player: String, notice: UiNotice): Boolean {
+                calls += "notify:${player}:${notice.level}:${notice.title}:${notice.message}"
+                return true
+            }
+
+            override fun actionBar(player: String, message: String, durationTicks: Int): Boolean {
+                calls += "actionbar:${player}:${durationTicks}:${message}"
+                return true
+            }
+
+            override fun openMenu(player: String, menu: UiMenu): Boolean {
+                calls += "menu:${player}:${menu.id}"
+                return true
+            }
+
+            override fun openDialog(player: String, dialog: UiDialog): Boolean {
+                calls += "dialog:${player}:${dialog.id}"
+                return true
+            }
+
+            override fun close(player: String): Boolean {
+                calls += "close:$player"
+                return true
+            }
+        }
+        val ctx = contextWithPermissions(emptyList(), ui = ui)
+
+        assertTrue(ctx.notifyInfo("Alex", "hello", "Title"))
+        assertTrue(ctx.notifySuccess("Alex", "done"))
+        assertTrue(ctx.notify("Alex", UiLevel.WARNING, "careful", "Warn", durationMillis = 1_500L))
+        assertTrue(ctx.actionBar("Alex", "Heads up", durationTicks = 30))
+        assertTrue(
+            ctx.showMenu(
+                "Alex",
+                UiMenu(
+                    id = "main",
+                    title = "Main",
+                    items = listOf(UiMenuItem(id = "play", label = "Play"))
+                )
+            )
+        )
+        assertTrue(
+            ctx.showDialog(
+                "Alex",
+                UiDialog(
+                    id = "settings",
+                    title = "Settings",
+                    fields = listOf(UiDialogField(id = "volume", label = "Volume"))
+                )
+            )
+        )
+        assertTrue(ctx.closeUi("Alex"))
+
+        assertTrue(calls.any { it.startsWith("notify:Alex:INFO:Title:hello") })
+        assertTrue(calls.any { it.startsWith("notify:Alex:SUCCESS::done") })
+        assertTrue(calls.any { it.startsWith("notify:Alex:WARNING:Warn:careful") })
+        assertTrue(calls.any { it == "actionbar:Alex:30:Heads up" })
+        assertTrue(calls.any { it == "menu:Alex:main" })
+        assertTrue(calls.any { it == "dialog:Alex:settings" })
+        assertTrue(calls.any { it == "close:Alex" })
+    }
+
+    @Test
+    fun `broadcast notice helper formats level prefix and delegates to host`() {
+        val broadcasts = mutableListOf<String>()
+        val ctx = object : PluginContext {
+            override val manifest: PluginManifest = PluginManifest("test", "test", "1.0.0", "main")
+            override val logger: GigaLogger = GigaLogger { }
+            override val scheduler: Scheduler = object : Scheduler {
+                override fun repeating(taskId: String, periodTicks: Int, block: () -> Unit) {}
+                override fun once(taskId: String, delayTicks: Int, block: () -> Unit) {}
+                override fun cancel(taskId: String) {}
+                override fun clear() {}
+            }
+            override val registry: RegistryFacade = object : RegistryFacade {
+                override fun registerItem(definition: ItemDefinition) {}
+                override fun registerBlock(definition: BlockDefinition) {}
+                override fun registerRecipe(definition: RecipeDefinition) {}
+                override fun registerMachine(definition: MachineDefinition) {}
+                override fun registerTexture(definition: TextureDefinition) {}
+                override fun registerModel(definition: ModelDefinition) {}
+                override fun registerSystem(id: String, system: TickSystem) {}
+                override fun items(): List<ItemDefinition> = emptyList()
+                override fun blocks(): List<BlockDefinition> = emptyList()
+                override fun recipes(): List<RecipeDefinition> = emptyList()
+                override fun machines(): List<MachineDefinition> = emptyList()
+                override fun textures(): List<TextureDefinition> = emptyList()
+                override fun models(): List<ModelDefinition> = emptyList()
+                override fun systems(): Map<String, TickSystem> = emptyMap()
+            }
+            override val adapters: ModAdapterRegistry = object : ModAdapterRegistry {
+                override fun register(adapter: ModAdapter) {}
+                override fun list(): List<ModAdapter> = emptyList()
+                override fun find(id: String): ModAdapter? = null
+                override fun invoke(adapterId: String, invocation: AdapterInvocation): AdapterResponse {
+                    return AdapterResponse(success = false)
+                }
+            }
+            override val storage: StorageProvider = RecordingStorageProvider()
+            override val commands: CommandRegistry = RecordingCommandRegistry()
+            override val events: EventBus = RuntimeLikeEventBus()
+            override val host: HostAccess = object : HostAccess by HostAccess.unavailable() {
+                override fun broadcast(message: String): Boolean {
+                    broadcasts += message
+                    return true
+                }
+            }
+        }
+
+        assertTrue(ctx.broadcastNotice("hello", level = UiLevel.SUCCESS, title = "Demo"))
+        assertEquals("[OK] Demo: hello", broadcasts.single())
+    }
+
+    @Test
+    fun `asset helpers delegate to registry bundle and validation contracts`() {
+        val registry = object : RegistryFacade {
+            override fun registerItem(definition: ItemDefinition) {}
+            override fun registerBlock(definition: BlockDefinition) {}
+            override fun registerRecipe(definition: RecipeDefinition) {}
+            override fun registerMachine(definition: MachineDefinition) {}
+            override fun registerTexture(definition: TextureDefinition) {}
+            override fun registerModel(definition: ModelDefinition) {}
+            override fun registerSystem(id: String, system: TickSystem) {}
+            override fun items(): List<ItemDefinition> = emptyList()
+            override fun blocks(): List<BlockDefinition> = emptyList()
+            override fun recipes(): List<RecipeDefinition> = emptyList()
+            override fun machines(): List<MachineDefinition> = emptyList()
+            override fun textures(): List<TextureDefinition> = listOf(TextureDefinition("gear", "assets/demo/textures/item/gear.png"))
+            override fun models(): List<ModelDefinition> = listOf(ModelDefinition("gear_model", geometryPath = "assets/demo/models/item/gear.json"))
+            override fun systems(): Map<String, TickSystem> = emptyMap()
+            override fun validateAssets(options: ResourcePackBundleOptions): AssetValidationResult {
+                return AssetValidationResult(
+                    valid = true,
+                    issues = emptyList()
+                )
+            }
+            override fun buildResourcePackBundle(options: ResourcePackBundleOptions): ResourcePackBundle {
+                return ResourcePackBundle(
+                    pluginId = "demo",
+                    textures = textures(),
+                    models = models()
+                )
+            }
+        }
+        val ctx = object : PluginContext {
+            override val manifest = PluginManifest("demo", "demo", "1.0.0", "main")
+            override val logger = GigaLogger { }
+            override val scheduler = object : Scheduler {
+                override fun repeating(taskId: String, periodTicks: Int, block: () -> Unit) {}
+                override fun once(taskId: String, delayTicks: Int, block: () -> Unit) {}
+                override fun cancel(taskId: String) {}
+                override fun clear() {}
+            }
+            override val registry: RegistryFacade = registry
+            override val adapters: ModAdapterRegistry = object : ModAdapterRegistry {
+                override fun register(adapter: ModAdapter) {}
+                override fun list(): List<ModAdapter> = emptyList()
+                override fun find(id: String): ModAdapter? = null
+                override fun invoke(adapterId: String, invocation: AdapterInvocation): AdapterResponse {
+                    return AdapterResponse(false)
+                }
+            }
+            override val storage: StorageProvider = RecordingStorageProvider()
+            override val commands: CommandRegistry = RecordingCommandRegistry()
+            override val events: EventBus = RuntimeLikeEventBus()
+        }
+
+        val validation = ctx.validateAssets()
+        val bundle = ctx.buildResourcePackBundle()
+        assertTrue(validation.valid)
+        assertEquals("demo", bundle.pluginId)
+        assertEquals(1, bundle.textures.size)
+        assertEquals(1, bundle.models.size)
+    }
+
+    @Test
+    fun `host mutation batch helper triggers rollback callback`() {
+        val ctx = object : PluginContext {
+            override val manifest: PluginManifest = PluginManifest("test", "test", "1.0.0", "main")
+            override val logger: GigaLogger = GigaLogger { }
+            override val scheduler: Scheduler = object : Scheduler {
+                override fun repeating(taskId: String, periodTicks: Int, block: () -> Unit) {}
+                override fun once(taskId: String, delayTicks: Int, block: () -> Unit) {}
+                override fun cancel(taskId: String) {}
+                override fun clear() {}
+            }
+            override val registry: RegistryFacade = object : RegistryFacade {
+                override fun registerItem(definition: ItemDefinition) {}
+                override fun registerBlock(definition: BlockDefinition) {}
+                override fun registerRecipe(definition: RecipeDefinition) {}
+                override fun registerMachine(definition: MachineDefinition) {}
+                override fun registerTexture(definition: TextureDefinition) {}
+                override fun registerModel(definition: ModelDefinition) {}
+                override fun registerSystem(id: String, system: TickSystem) {}
+                override fun items(): List<ItemDefinition> = emptyList()
+                override fun blocks(): List<BlockDefinition> = emptyList()
+                override fun recipes(): List<RecipeDefinition> = emptyList()
+                override fun machines(): List<MachineDefinition> = emptyList()
+                override fun textures(): List<TextureDefinition> = emptyList()
+                override fun models(): List<ModelDefinition> = emptyList()
+                override fun systems(): Map<String, TickSystem> = emptyMap()
+            }
+            override val adapters: ModAdapterRegistry = object : ModAdapterRegistry {
+                override fun register(adapter: ModAdapter) {}
+                override fun list(): List<ModAdapter> = emptyList()
+                override fun find(id: String): ModAdapter? = null
+                override fun invoke(adapterId: String, invocation: AdapterInvocation): AdapterResponse {
+                    return AdapterResponse(success = false)
+                }
+            }
+            override val storage: StorageProvider = RecordingStorageProvider()
+            override val commands: CommandRegistry = RecordingCommandRegistry()
+            override val events: EventBus = RuntimeLikeEventBus()
+            override val host: HostAccess = object : HostAccess by HostAccess.unavailable() {
+                override fun applyMutationBatch(batch: HostMutationBatch): HostMutationBatchResult {
+                    return HostMutationBatchResult(
+                        batchId = batch.id,
+                        success = false,
+                        appliedOperations = 1,
+                        rolledBack = true,
+                        error = "rolled back"
+                    )
+                }
+            }
+        }
+
+        var callbackCalled = false
+        val result = ctx.applyHostMutationBatch(
+            HostMutationBatch(
+                id = "tx-1",
+                operations = listOf(HostMutationOp(type = HostMutationType.SET_WORLD_TIME, target = "world", longValue = 1L))
+            )
+        ) {
+            callbackCalled = true
+        }
+
+        assertFalse(result.success)
+        assertTrue(result.rolledBack)
+        assertTrue(callbackCalled)
     }
 
     @Test
@@ -262,23 +566,51 @@ class PluginApiExtensionsTest {
     }
 
     private class RecordingCommandRegistry : CommandRegistry {
-        private val handlers = linkedMapOf<String, (PluginContext, String, List<String>) -> String>()
+        private data class Entry(
+            val spec: CommandSpec,
+            val middleware: List<CommandMiddlewareBinding>,
+            val action: (CommandInvocationContext) -> CommandResult
+        )
+
+        private val handlers = linkedMapOf<String, Entry>()
         private val aliases = linkedMapOf<String, String>()
 
-        override fun register(
-            command: String,
-            description: String,
-            action: (ctx: PluginContext, sender: String, args: List<String>) -> String
+        override fun registerSpec(
+            spec: CommandSpec,
+            middleware: List<CommandMiddlewareBinding>,
+            completion: CommandCompletionContract?,
+            completionAsync: CommandCompletionAsyncContract?,
+            policy: CommandPolicyProfile?,
+            action: (CommandInvocationContext) -> CommandResult
         ) {
-            handlers.putIfAbsent(command, action)
-        }
-
-        override fun registerOrReplace(
-            command: String,
-            description: String,
-            action: (ctx: PluginContext, sender: String, args: List<String>) -> String
-        ) {
-            handlers[command] = action
+            val key = spec.command.trim().lowercase()
+            require(key.isNotBlank()) { "Command id must not be blank" }
+            require(!handlers.containsKey(key)) { "Duplicate command '$key'" }
+            handlers[key] = Entry(
+                spec = spec.copy(command = key),
+                middleware = middleware,
+                action = action
+            )
+            spec.aliases.forEach { alias ->
+                aliases.putIfAbsent(alias.trim().lowercase(), key)
+            }
+            val completionProvider = completion ?: CommandCompletionContract { _, _, commandSpec, args ->
+                commandSpec.defaultCompletions(args)
+            }
+            CommandCompletionCatalog.register(
+                command = key,
+                provider = completionProvider,
+                providerAsync = completionAsync,
+                spec = spec
+            )
+            spec.aliases.forEach { alias ->
+                CommandCompletionCatalog.register(
+                    command = alias,
+                    provider = completionProvider,
+                    providerAsync = completionAsync,
+                    spec = spec
+                )
+            }
         }
 
         override fun registerAlias(alias: String, command: String): Boolean {
@@ -306,10 +638,18 @@ class PluginApiExtensionsTest {
         }
 
         fun invoke(command: String, sender: String, args: List<String>): String {
-            val key = resolve(command) ?: command
-            val action = handlers[key] ?: return "missing"
-            return action(
-                object : PluginContext {
+            val key = resolve(command.trim().lowercase()) ?: command.trim().lowercase()
+            val entry = handlers[key] ?: return "missing"
+            val route = resolveCommandRoute(entry.spec, args)
+            val routedSpec = route.spec
+            val routedArgs = if (route.consumedArgs <= 0) args else args.drop(route.consumedArgs)
+            if (routedArgs.isNotEmpty() && (routedArgs[0].equals("help", ignoreCase = true) || routedArgs[0] == "--help")) {
+                return CommandResult.ok(routedSpec.helpText()).render()
+            }
+            val parsed = parseCommandArgs(routedSpec, routedArgs)
+            parsed.error?.let { return it.render() }
+            val invocation = CommandInvocationContext(
+                pluginContext = object : PluginContext {
                     override val manifest: PluginManifest = PluginManifest("test", "test", "1", "main")
                     override val logger: GigaLogger = GigaLogger { }
                     override val scheduler: Scheduler = object : Scheduler {
@@ -346,13 +686,32 @@ class PluginApiExtensionsTest {
                     override val commands: CommandRegistry = this@RecordingCommandRegistry
                     override val events: EventBus = RuntimeLikeEventBus()
                 },
-                sender,
-                args
+                sender = CommandSender.player(sender),
+                rawArgs = routedArgs,
+                spec = routedSpec,
+                parsedArgs = parsed.parsed
             )
+            val orderedMiddleware = entry.middleware.sortedWith(
+                compareBy<CommandMiddlewareBinding> { it.phase.ordinal }
+                    .thenBy { it.order }
+                    .thenBy { it.id }
+            )
+            var index = -1
+            fun executeNext(): CommandResult {
+                index++
+                if (index < orderedMiddleware.size) {
+                    return orderedMiddleware[index].middleware.invoke(invocation, ::executeNext)
+                }
+                return entry.action(invocation)
+            }
+            return executeNext().render()
         }
     }
 
-    private fun contextWithPermissions(permissions: List<String>): PluginContext {
+    private fun contextWithPermissions(
+        permissions: List<String>,
+        ui: PluginUi = PluginUi.unavailable()
+    ): PluginContext {
         return object : PluginContext {
             override val manifest: PluginManifest = PluginManifest(
                 id = "test",
@@ -394,6 +753,7 @@ class PluginApiExtensionsTest {
             }
             override val storage: StorageProvider = RecordingStorageProvider()
             override val commands: CommandRegistry = RecordingCommandRegistry()
+            override val ui: PluginUi = ui
             override val events: EventBus = RuntimeLikeEventBus()
         }
     }

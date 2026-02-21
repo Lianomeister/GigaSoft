@@ -2,6 +2,7 @@ package com.gigasoft.runtime
 
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
+import java.util.ArrayDeque
 import kotlin.math.max
 
 data class MetricSnapshot(
@@ -24,7 +25,21 @@ data class PluginRuntimeProfile(
     val slowSystems: List<SlowSystemSnapshot>,
     val adapterHotspots: List<AdapterHotspotSnapshot>,
     val isolatedSystems: List<SystemIsolationSnapshot>,
+    val faultBudget: PluginFaultBudgetSnapshot,
     val diagnosticsThresholds: ProfileDiagnosticsThresholds
+)
+
+data class FaultBudgetPolicy(
+    val maxFaultsPerWindow: Int = 100,
+    val windowMillis: Long = 60_000L
+)
+
+data class PluginFaultBudgetSnapshot(
+    val policy: FaultBudgetPolicy,
+    val used: Int,
+    val remaining: Int,
+    val tripped: Boolean,
+    val recentSources: Map<String, Int>
 )
 
 data class SystemIsolationSnapshot(
@@ -93,9 +108,11 @@ data class AdapterMetricSnapshot(
 
 class RuntimeMetrics {
     private val thresholds = ProfileDiagnosticsThresholds()
+    private val faultBudgetPolicy = FaultBudgetPolicy()
     private val systemMetrics = ConcurrentHashMap<String, ConcurrentHashMap<String, MutableMetric>>()
     private val taskMetrics = ConcurrentHashMap<String, ConcurrentHashMap<String, MutableMetric>>()
     private val adapterMetrics = ConcurrentHashMap<String, ConcurrentHashMap<String, MutableAdapterMetric>>()
+    private val pluginFaults = ConcurrentHashMap<String, MutableFaultWindow>()
 
     fun recordSystemTick(pluginId: String, systemId: String, durationNanos: Long, success: Boolean) {
         val metric = systemMetrics
@@ -116,6 +133,26 @@ class RuntimeMetrics {
             .computeIfAbsent(pluginId) { ConcurrentHashMap() }
             .computeIfAbsent(adapterId) { MutableAdapterMetric() }
         metric.record(outcome)
+        if (outcome == AdapterInvocationOutcome.FAILED || outcome == AdapterInvocationOutcome.TIMEOUT) {
+            recordPluginFault(pluginId, "adapter:$adapterId")
+        }
+    }
+
+    fun recordPluginFault(pluginId: String, source: String) {
+        val now = System.currentTimeMillis()
+        val windowStart = now - faultBudgetPolicy.windowMillis
+        val window = pluginFaults.computeIfAbsent(pluginId) { MutableFaultWindow() }
+        synchronized(window) {
+            while (true) {
+                val head = window.faults.peekFirst() ?: break
+                if (head.atMillis >= windowStart) break
+                window.faults.removeFirst()
+                val count = (window.sourceCounts[head.source] ?: 0) - 1
+                if (count <= 0) window.sourceCounts.remove(head.source) else window.sourceCounts[head.source] = count
+            }
+            window.faults.addLast(FaultStamp(now, source))
+            window.sourceCounts[source] = (window.sourceCounts[source] ?: 0) + 1
+        }
     }
 
     fun snapshot(
@@ -135,6 +172,7 @@ class RuntimeMetrics {
         val sortedTaskIds = activeTaskIds.sorted()
         val slowSystems = detectSlowSystems(systems, thresholds)
         val adapterHotspots = detectAdapterHotspots(adapters, thresholds)
+        val faultBudget = snapshotFaultBudget(pluginId)
         return PluginRuntimeProfile(
             pluginId = pluginId,
             activeTasks = sortedTaskIds.size,
@@ -145,8 +183,33 @@ class RuntimeMetrics {
             slowSystems = slowSystems,
             adapterHotspots = adapterHotspots,
             isolatedSystems = isolatedSystems.sortedByDescending { it.remainingTicks },
+            faultBudget = faultBudget,
             diagnosticsThresholds = thresholds
         )
+    }
+
+    private fun snapshotFaultBudget(pluginId: String): PluginFaultBudgetSnapshot {
+        val now = System.currentTimeMillis()
+        val windowStart = now - faultBudgetPolicy.windowMillis
+        val window = pluginFaults.computeIfAbsent(pluginId) { MutableFaultWindow() }
+        synchronized(window) {
+            while (true) {
+                val head = window.faults.peekFirst() ?: break
+                if (head.atMillis >= windowStart) break
+                window.faults.removeFirst()
+                val count = (window.sourceCounts[head.source] ?: 0) - 1
+                if (count <= 0) window.sourceCounts.remove(head.source) else window.sourceCounts[head.source] = count
+            }
+            val used = window.faults.size
+            val remaining = (faultBudgetPolicy.maxFaultsPerWindow - used).coerceAtLeast(0)
+            return PluginFaultBudgetSnapshot(
+                policy = faultBudgetPolicy,
+                used = used,
+                remaining = remaining,
+                tripped = used >= faultBudgetPolicy.maxFaultsPerWindow,
+                recentSources = window.sourceCounts.toSortedMap(compareByDescending<String> { window.sourceCounts[it] ?: 0 }.thenBy { it })
+            )
+        }
     }
 
     private fun detectSlowSystems(
@@ -271,5 +334,15 @@ class RuntimeMetrics {
                 failures = failures.get()
             )
         }
+    }
+
+    private data class FaultStamp(
+        val atMillis: Long,
+        val source: String
+    )
+
+    private class MutableFaultWindow {
+        val faults = ArrayDeque<FaultStamp>()
+        val sourceCounts = linkedMapOf<String, Int>()
     }
 }

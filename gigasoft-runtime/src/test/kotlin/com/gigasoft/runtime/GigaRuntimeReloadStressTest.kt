@@ -7,9 +7,33 @@ import java.util.jar.JarOutputStream
 import org.junit.jupiter.api.Tag
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 @Tag("soak")
 class GigaRuntimeReloadStressTest {
+    @Test
+    fun `reload changed detects modified jars without explicit plugin id`() {
+        val root = Files.createTempDirectory("giga-reload-changed")
+        val pluginsDir = root.resolve("plugins")
+        val dataDir = root.resolve("data")
+        Files.createDirectories(pluginsDir)
+        Files.createDirectories(dataDir)
+
+        val sourceJar = pluginsDir.resolve("demo.jar")
+        createPluginManifestJar(sourceJar, "1.0.0")
+
+        val runtime = GigaRuntime(pluginsDir, dataDir)
+        runtime.scanAndLoad()
+        createPluginManifestJar(sourceJar, "1.0.1")
+
+        val report = runtime.reloadChangedWithReport()
+        assertEquals(ReloadStatus.SUCCESS, report.status)
+        assertTrue(report.reloadedPlugins.contains("demo"))
+        assertEquals("1.0.1", runtime.loadedPlugins().single().manifest.version)
+
+        runtime.unload("demo")
+    }
+
     @Test
     fun `repeated reload stays stable`() {
         val root = Files.createTempDirectory("giga-reload-stress")

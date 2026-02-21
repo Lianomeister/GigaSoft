@@ -9,6 +9,10 @@ import com.gigasoft.api.HostPlayerStatusSnapshot
 import com.gigasoft.api.HostServerSnapshot
 import com.gigasoft.api.HostWorldSnapshot
 import com.gigasoft.api.HostInventorySnapshot
+import com.gigasoft.api.HostMutationBatch
+import com.gigasoft.api.HostMutationBatchResult
+import com.gigasoft.api.HostMutationOp
+import com.gigasoft.api.HostMutationType
 import com.gigasoft.api.HostPermissions
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -17,6 +21,62 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class RuntimeHostAccessTest {
+    @Test
+    fun `mutation batch is denied when permission is missing`() {
+        val delegate = FakeHostAccess()
+        val access = RuntimeHostAccess(
+            delegate = delegate,
+            pluginId = "plugin-x",
+            rawPermissions = listOf(HostPermissions.WORLD_READ),
+            logger = GigaLogger { }
+        )
+
+        val result = access.applyMutationBatch(
+            HostMutationBatch(
+                id = "batch-denied",
+                operations = listOf(
+                    HostMutationOp(
+                        type = HostMutationType.SET_WORLD_TIME,
+                        target = "world",
+                        longValue = 200L
+                    )
+                )
+            )
+        )
+
+        assertEquals(false, result.success)
+        assertEquals(0, result.appliedOperations)
+        assertEquals(false, result.rolledBack)
+        assertTrue(result.error?.contains(HostPermissions.MUTATION_BATCH) == true)
+    }
+
+    @Test
+    fun `mutation batch delegates when permissions are present`() {
+        val delegate = FakeHostAccess()
+        val access = RuntimeHostAccess(
+            delegate = delegate,
+            pluginId = "plugin-x",
+            rawPermissions = listOf(HostPermissions.WORLD_WRITE, HostPermissions.MUTATION_BATCH),
+            logger = GigaLogger { }
+        )
+        val batch = HostMutationBatch(
+            id = "batch-ok",
+            operations = listOf(
+                HostMutationOp(
+                    type = HostMutationType.SET_WORLD_TIME,
+                    target = "world",
+                    longValue = 200L
+                )
+            )
+        )
+
+        val result = access.applyMutationBatch(batch)
+
+        assertEquals(true, result.success)
+        assertEquals("batch-ok", result.batchId)
+        assertEquals("batch-ok", delegate.lastBatchId)
+    }
+
     @Test
     fun `new host operations honor permission checks`() {
         val delegate = FakeHostAccess()
@@ -162,6 +222,16 @@ class RuntimeHostAccessTest {
         }
         override fun setBlockData(world: String, x: Int, y: Int, z: Int, data: Map<String, String>): Map<String, String>? {
             return data
+        }
+        var lastBatchId: String? = null
+        override fun applyMutationBatch(batch: HostMutationBatch): HostMutationBatchResult {
+            lastBatchId = batch.id
+            return HostMutationBatchResult(
+                batchId = batch.id,
+                success = true,
+                appliedOperations = batch.operations.size,
+                rolledBack = false
+            )
         }
     }
 }

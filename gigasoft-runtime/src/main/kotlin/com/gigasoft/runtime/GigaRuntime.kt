@@ -22,7 +22,9 @@ data class LoadedPlugin(
     val context: RuntimePluginContext,
     val scheduler: RuntimeScheduler,
     val sourceJarPath: Path,
-    val runtimeJarPath: Path
+    val runtimeJarPath: Path,
+    val sourceJarSizeBytes: Long,
+    val sourceJarLastModifiedMillis: Long
 )
 
 class GigaRuntime(
@@ -37,6 +39,7 @@ class GigaRuntime(
     private val normalizedDataDirectory = dataDirectory.toAbsolutePath().normalize()
     private val maxPluginJarBytes = 64L * 1024L * 1024L
     private val loaded = ConcurrentHashMap<String, LoadedPlugin>()
+    private val pluginNetworkHub = RuntimePluginNetworkHub()
     private val metrics = RuntimeMetrics()
     private val isolatedSystems = ConcurrentHashMap<String, ConcurrentHashMap<String, SystemIsolationSnapshot>>()
     @Volatile
@@ -61,8 +64,7 @@ class GigaRuntime(
 
         val discovered = pluginEntries.mapNotNull { jarCandidate ->
             try {
-                val jar = assertPluginJarPath(jarCandidate)
-                PluginDescriptor(ManifestReader.readFromJar(jar), jar)
+                descriptorFromSource(jarCandidate)
             } catch (t: Throwable) {
                 rootLogger.info("Skipped '$jarCandidate': ${t.message}")
                 null
@@ -87,6 +89,50 @@ class GigaRuntime(
         }
 
         return resolution.ordered.map(::loadDescriptor)
+    }
+
+    fun reloadChangedWithReport(): ReloadReport {
+        val changedRoots = loaded.values
+            .filter { plugin ->
+                val source = plugin.sourceJarPath
+                if (!Files.exists(source)) return@filter false
+                val fingerprint = sourceFingerprint(source)
+                fingerprint.sizeBytes != plugin.sourceJarSizeBytes ||
+                    fingerprint.lastModifiedMillis != plugin.sourceJarLastModifiedMillis
+            }
+            .map { it.manifest.id }
+            .toSet()
+
+        if (changedRoots.isEmpty()) {
+            return ReloadReport(
+                target = "changed",
+                affectedPlugins = emptyList(),
+                reloadedPlugins = emptyList(),
+                status = ReloadStatus.SUCCESS,
+                reason = "No changed plugin jars detected"
+            )
+        }
+
+        val reloadSet = collectReloadSet(changedRoots)
+        val descriptors = try {
+            reloadSet.mapNotNull { id ->
+                loaded[id]?.let { descriptorFromSource(it.sourceJarPath) }
+            }
+        } catch (t: Throwable) {
+            return ReloadReport(
+                target = "changed",
+                affectedPlugins = reloadSet.toList().sorted(),
+                reloadedPlugins = emptyList(),
+                status = ReloadStatus.FAILED,
+                reason = "Failed to read updated manifest: ${t.message}"
+            )
+        }
+
+        return reloadTransaction(
+            target = "changed",
+            targetPluginIds = reloadSet,
+            descriptors = descriptors
+        )
     }
 
     fun loadJar(jarPath: Path): LoadedPlugin {
@@ -138,7 +184,7 @@ class GigaRuntime(
         val reloadSet = collectReloadSet(pluginId)
         val descriptors = try {
             reloadSet.mapNotNull { id ->
-                loaded[id]?.let { PluginDescriptor(ManifestReader.readFromJar(it.sourceJarPath), it.sourceJarPath) }
+                loaded[id]?.let { descriptorFromSource(it.sourceJarPath) }
             }
         } catch (t: Throwable) {
             return ReloadReport(
@@ -166,7 +212,7 @@ class GigaRuntime(
         val descriptors = try {
             loaded.values
                 .sortedBy { it.manifest.id }
-                .map { PluginDescriptor(ManifestReader.readFromJar(it.sourceJarPath), it.sourceJarPath) }
+                .map { descriptorFromSource(it.sourceJarPath) }
         } catch (t: Throwable) {
             return ReloadReport(
                 target = "all",
@@ -192,6 +238,10 @@ class GigaRuntime(
 
     fun recordSystemTick(pluginId: String, systemId: String, durationNanos: Long, success: Boolean) {
         metrics.recordSystemTick(pluginId, systemId, durationNanos, success)
+    }
+
+    fun recordPluginFault(pluginId: String, source: String) {
+        metrics.recordPluginFault(pluginId, source)
     }
 
     fun profile(pluginId: String): PluginRuntimeProfile? {
@@ -232,7 +282,8 @@ class GigaRuntime(
                 plugin.manifest.id to PluginPerformanceDiagnostics(
                     slowSystems = profile.slowSystems,
                     adapterHotspots = profile.adapterHotspots,
-                    isolatedSystems = profile.isolatedSystems
+                    isolatedSystems = profile.isolatedSystems,
+                    faultBudget = profile.faultBudget
                 )
             }
 
@@ -332,7 +383,11 @@ class GigaRuntime(
                 loadFromRuntimeArtifact(
                     manifest = plugin.manifest,
                     sourceJarPath = plugin.sourceJarPath,
-                    runtimeJarPath = plugin.runtimeJarPath
+                    runtimeJarPath = plugin.runtimeJarPath,
+                    sourceFingerprint = JarFingerprint(
+                        sizeBytes = plugin.sourceJarSizeBytes,
+                        lastModifiedMillis = plugin.sourceJarLastModifiedMillis
+                    )
                 )
             }
             null
@@ -364,12 +419,15 @@ class GigaRuntime(
 
     private fun loadDescriptor(descriptor: PluginDescriptor): LoadedPlugin {
         require(!loaded.containsKey(descriptor.manifest.id)) { "Plugin '${descriptor.manifest.id}' is already loaded" }
-        val staged = stageRuntimeJar(descriptor.manifest.id, descriptor.jarPath)
+        val sourceJar = assertPluginJarPath(descriptor.jarPath)
+        val sourceFingerprint = sourceFingerprint(sourceJar)
+        val staged = stageRuntimeJar(descriptor.manifest.id, sourceJar)
         try {
             return loadFromRuntimeArtifact(
                 manifest = descriptor.manifest,
-                sourceJarPath = descriptor.jarPath,
-                runtimeJarPath = staged
+                sourceJarPath = sourceJar,
+                runtimeJarPath = staged,
+                sourceFingerprint = sourceFingerprint
             )
         } catch (t: Throwable) {
             safeDeleteIfExists(staged)
@@ -380,7 +438,8 @@ class GigaRuntime(
     private fun loadFromRuntimeArtifact(
         manifest: PluginManifest,
         sourceJarPath: Path,
-        runtimeJarPath: Path
+        runtimeJarPath: Path,
+        sourceFingerprint: JarFingerprint
     ): LoadedPlugin {
         val loader = URLClassLoader(arrayOf(runtimeJarPath.toUri().toURL()), javaClass.classLoader)
         try {
@@ -406,10 +465,15 @@ class GigaRuntime(
                 pluginId = manifest.id,
                 logger = pluginLogger,
                 securityConfig = adapterSecurity,
+                rawPermissions = manifest.permissions,
                 eventBus = eventBus,
                 invocationObserver = { adapterId, outcome ->
                     metrics.recordAdapterInvocation(manifest.id, adapterId, outcome)
                 }
+            )
+            val pluginUi = RuntimePluginUi(
+                hostAccess = pluginHostAccess,
+                events = eventBus
             )
             val context = RuntimePluginContext(
                 manifest,
@@ -420,10 +484,23 @@ class GigaRuntime(
                 storage,
                 commandRegistry,
                 eventBus,
+                pluginNetworkHub.viewFor(manifest.id),
+                pluginUi,
                 pluginHostAccess
             )
 
             plugin.onEnable(context)
+            val assetValidation = registry.validateAssets()
+            if (!assetValidation.valid) {
+                val details = assetValidation.issues
+                    .filter { it.severity == com.gigasoft.api.AssetValidationSeverity.ERROR }
+                    .joinToString("; ") { issue ->
+                        val idPart = issue.assetId?.let { "[$it] " } ?: ""
+                        "${issue.code}: $idPart${issue.message}"
+                    }
+                throw IllegalStateException("Asset validation failed for plugin '${manifest.id}': $details")
+            }
+            registry.buildResourcePackBundle()
 
             val loadedPlugin = LoadedPlugin(
                 manifest = manifest,
@@ -432,7 +509,9 @@ class GigaRuntime(
                 context = context,
                 scheduler = scheduler,
                 sourceJarPath = sourceJarPath,
-                runtimeJarPath = runtimeJarPath
+                runtimeJarPath = runtimeJarPath,
+                sourceJarSizeBytes = sourceFingerprint.sizeBytes,
+                sourceJarLastModifiedMillis = sourceFingerprint.lastModifiedMillis
             )
             loaded[manifest.id] = loadedPlugin
             rootLogger.info("Loaded GigaPlugin ${manifest.id}@${manifest.version}")
@@ -445,6 +524,7 @@ class GigaRuntime(
 
     private fun unloadInternal(pluginId: String, deleteRuntimeJar: Boolean): Boolean {
         val plugin = loaded.remove(pluginId) ?: return false
+        pluginNetworkHub.removePlugin(pluginId)
         clearPluginIsolation(pluginId)
         safely("disable $pluginId") { plugin.instance.onDisable(plugin.context) }
         safely("adapter shutdown $pluginId") {
@@ -565,6 +645,50 @@ class GigaRuntime(
     private fun loadedVersions(): Map<String, String> {
         return loaded.values.associate { it.manifest.id to it.manifest.version }
     }
+
+    private fun collectReloadSet(rootIds: Set<String>): Set<String> {
+        val reverseDeps = mutableMapOf<String, MutableSet<String>>()
+        loaded.values.forEach { plugin ->
+            plugin.manifest.dependencies.forEach { dependency ->
+                reverseDeps.computeIfAbsent(dependency.id) { linkedSetOf() }.add(plugin.manifest.id)
+            }
+        }
+        val visited = linkedSetOf<String>()
+        val queue = ArrayDeque<String>()
+        rootIds.forEach(queue::addLast)
+        while (queue.isNotEmpty()) {
+            val current = queue.removeFirst()
+            if (!visited.add(current)) continue
+            reverseDeps[current].orEmpty().forEach(queue::addLast)
+        }
+        return visited
+    }
+
+    private fun descriptorFromSource(jarCandidate: Path): PluginDescriptor {
+        val jar = assertPluginJarPath(jarCandidate)
+        var lastError: Throwable? = null
+        repeat(5) { attempt ->
+            try {
+                return PluginDescriptor(ManifestReader.readFromJar(jar), jar)
+            } catch (t: Throwable) {
+                lastError = t
+                if (attempt < 4) Thread.sleep(80L)
+            }
+        }
+        throw IllegalStateException("Failed to read manifest from '$jar': ${lastError?.message}", lastError)
+    }
+
+    private fun sourceFingerprint(jarPath: Path): JarFingerprint {
+        val safe = assertPluginJarPath(jarPath)
+        val size = Files.size(safe)
+        val modified = Files.getLastModifiedTime(safe).toMillis()
+        return JarFingerprint(sizeBytes = size, lastModifiedMillis = modified)
+    }
+
+    private data class JarFingerprint(
+        val sizeBytes: Long,
+        val lastModifiedMillis: Long
+    )
 
     private fun assertPluginJarPath(inputPath: Path): Path {
         val absolute = inputPath.toAbsolutePath().normalize()

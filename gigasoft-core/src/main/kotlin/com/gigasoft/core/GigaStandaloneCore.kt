@@ -2,6 +2,7 @@ package com.gigasoft.core
 
 import com.gigasoft.api.AdapterInvocation
 import com.gigasoft.api.AdapterResponse
+import com.gigasoft.api.CommandSender
 import com.gigasoft.api.GigaLogger
 import com.gigasoft.api.GigaEntitySpawnEvent
 import com.gigasoft.api.GigaInventoryChangeEvent
@@ -36,6 +37,10 @@ import com.gigasoft.api.HostAccess
 import com.gigasoft.api.HostEntitySnapshot
 import com.gigasoft.api.HostBlockSnapshot
 import com.gigasoft.api.HostLocationRef
+import com.gigasoft.api.HostMutationBatch
+import com.gigasoft.api.HostMutationBatchResult
+import com.gigasoft.api.HostMutationType
+import com.gigasoft.api.HostMutationOp
 import com.gigasoft.api.HostPlayerSnapshot
 import com.gigasoft.api.HostPlayerStatusSnapshot
 import com.gigasoft.api.HostWorldSnapshot
@@ -47,6 +52,7 @@ import com.gigasoft.runtime.EventDispatchMode
 import com.gigasoft.runtime.GigaRuntime
 import com.gigasoft.runtime.PluginRuntimeProfile
 import com.gigasoft.runtime.ReloadReport
+import com.gigasoft.runtime.ReloadStatus
 import com.gigasoft.runtime.RuntimeCommandRegistry
 import com.gigasoft.runtime.RuntimeDiagnostics
 import com.gigasoft.runtime.RuntimeRegistry
@@ -67,7 +73,7 @@ data class StandaloneCoreConfig(
     val dataDirectory: Path,
     val tickPeriodMillis: Long = 50L,
     val serverName: String = "GigaSoft Standalone",
-    val serverVersion: String = "1.1.0-SNAPSHOT",
+    val serverVersion: String = "1.5.0-SNAPSHOT",
     val maxPlayers: Int = 0,
     val autoSaveEveryTicks: Long = 200L,
     val systemIsolationFailureThreshold: Int = 5,
@@ -100,6 +106,14 @@ data class StandaloneCoreStatus(
     val worlds: Int,
     val entities: Int,
     val queuedMutations: Int
+)
+
+data class PluginSyncReport(
+    val loadedNewPlugins: Int,
+    val changedPluginsDetected: Int,
+    val reloadedPlugins: List<String>,
+    val reloadStatus: ReloadStatus,
+    val reason: String? = null
 )
 
 class GigaStandaloneCore(
@@ -214,7 +228,7 @@ class GigaStandaloneCore(
         }
     }
 
-    fun reload(pluginId: String): ReloadReport = mutate {
+    fun reload(pluginId: String): ReloadReport = mutate(timeoutMillis = 30_000L) {
         ensureRuntimeInitialized()
         val report = runtime.reloadWithReport(pluginId)
         installStandaloneBridgeAdapters(runtime.loadedPlugins().filter { it.manifest.id in report.reloadedPlugins.toSet() })
@@ -222,7 +236,7 @@ class GigaStandaloneCore(
         report
     }
 
-    fun reloadAll(): ReloadReport = mutate {
+    fun reloadAll(): ReloadReport = mutate(timeoutMillis = 30_000L) {
         ensureRuntimeInitialized()
         val report = runtime.reloadAllWithReport()
         installStandaloneBridgeAdapters(runtime.loadedPlugins().filter { it.manifest.id in report.reloadedPlugins.toSet() })
@@ -250,7 +264,33 @@ class GigaStandaloneCore(
         loadedPlugins.size
     }
 
-    fun run(pluginId: String, sender: String, commandLine: String): String {
+    fun syncPlugins(): PluginSyncReport = mutate(timeoutMillis = 30_000L) {
+        ensureRuntimeInitialized()
+        val loadedPlugins = runtime.scanAndLoad()
+        if (loadedPlugins.isNotEmpty()) {
+            installStandaloneBridgeAdapters(loadedPlugins)
+        }
+
+        val changedReload = runtime.reloadChangedWithReport()
+        if (changedReload.reloadedPlugins.isNotEmpty()) {
+            installStandaloneBridgeAdapters(
+                runtime.loadedPlugins().filter { it.manifest.id in changedReload.reloadedPlugins.toSet() }
+            )
+        }
+        if (loadedPlugins.isNotEmpty() || changedReload.reloadedPlugins.isNotEmpty()) {
+            refreshTickPluginsSnapshot()
+        }
+
+        PluginSyncReport(
+            loadedNewPlugins = loadedPlugins.size,
+            changedPluginsDetected = changedReload.affectedPlugins.size,
+            reloadedPlugins = changedReload.reloadedPlugins,
+            reloadStatus = changedReload.status,
+            reason = changedReload.reason
+        )
+    }
+
+    fun run(pluginId: String, sender: CommandSender, commandLine: String): String {
         ensureRuntimeInitialized()
         val plugin = runtime.loadedPlugin(pluginId)
             ?: return "Unknown plugin: $pluginId"
@@ -282,6 +322,44 @@ class GigaStandaloneCore(
         val plugin = runtime.loadedPlugin(pluginId)
             ?: return AdapterResponse(success = false, message = "Unknown plugin: $pluginId")
         return plugin.context.adapters.invoke(adapterId, AdapterInvocation(action, payload))
+    }
+
+    fun applyMutationBatch(batch: HostMutationBatch, cause: String = "plugin"): HostMutationBatchResult = mutate(timeoutMillis = 30_000L) {
+        if (batch.id.trim().isEmpty()) {
+            return@mutate HostMutationBatchResult(
+                batchId = batch.id,
+                success = false,
+                appliedOperations = 0,
+                rolledBack = false,
+                error = "Batch id must not be blank"
+            )
+        }
+        val before = hostState.snapshot()
+        var applied = 0
+        return@mutate try {
+            batch.operations.forEachIndexed { index, op ->
+                val ok = applyMutationOp(op, cause)
+                if (!ok) {
+                    error("Operation #$index (${op.type}) failed")
+                }
+                applied++
+            }
+            HostMutationBatchResult(
+                batchId = batch.id,
+                success = true,
+                appliedOperations = applied,
+                rolledBack = false
+            )
+        } catch (t: Throwable) {
+            hostState.restore(before)
+            HostMutationBatchResult(
+                batchId = batch.id,
+                success = false,
+                appliedOperations = applied,
+                rolledBack = true,
+                error = t.message ?: t.javaClass.simpleName
+            )
+        }
     }
 
     fun players(): List<StandalonePlayer> = hostState.players()
@@ -848,8 +926,23 @@ class GigaStandaloneCore(
     fun loadState() {
         mutate {
             runCatching {
-                val snapshot = statePersistence.load() ?: return@runCatching
-                hostState.restore(snapshot)
+                val loaded = statePersistence.loadWithReport() ?: return@runCatching
+                hostState.restore(loaded.snapshot)
+                if (loaded.report.warnings.isNotEmpty()) {
+                    loaded.report.warnings.forEach { warning ->
+                        logger.info("State load warning: $warning")
+                    }
+                }
+                if (loaded.report.migrated) {
+                    logger.info(
+                        "State migrated from schema ${loaded.report.originalSchemaVersion} " +
+                            "to ${loaded.report.targetSchemaVersion} (${loaded.report.appliedSteps.joinToString()})"
+                    )
+                    statePersistence.save(
+                        snapshot = loaded.snapshot,
+                        migrationHistory = loaded.report.appliedSteps
+                    )
+                }
             }.onFailure {
                 logger.info("Failed loading standalone state: ${it.message}")
             }
@@ -912,6 +1005,10 @@ class GigaStandaloneCore(
                     success = false
                     tickFailure = true
                     val error = t.message ?: t.javaClass.simpleName
+                    runtime.recordPluginFault(
+                        pluginId = entry.pluginId,
+                        source = "system:$systemId"
+                    )
                     val cooldown = systemIsolation.onFailure(
                         pluginId = entry.pluginId,
                         systemId = systemId,
@@ -1097,6 +1194,103 @@ class GigaStandaloneCore(
             override fun setBlockData(world: String, x: Int, y: Int, z: Int, data: Map<String, String>): Map<String, String>? {
                 return this@GigaStandaloneCore.setBlockData(world, x, y, z, data, cause = "plugin")
             }
+            override fun applyMutationBatch(batch: HostMutationBatch): HostMutationBatchResult {
+                return this@GigaStandaloneCore.applyMutationBatch(batch, cause = "plugin")
+            }
+        }
+    }
+
+    private fun applyMutationOp(op: HostMutationOp, cause: String): Boolean {
+        return when (op.type) {
+            HostMutationType.CREATE_WORLD -> {
+                val worldName = op.target.trim()
+                if (worldName.isEmpty()) false else createWorld(worldName, op.longValue ?: 0L).name.equals(worldName, ignoreCase = true)
+            }
+            HostMutationType.SET_WORLD_TIME -> {
+                val worldName = op.target.trim()
+                val time = op.longValue ?: return false
+                if (worldName.isEmpty()) false else setWorldTime(worldName, time)
+            }
+            HostMutationType.SET_WORLD_DATA -> {
+                val worldName = op.target.trim()
+                if (worldName.isEmpty()) false else setWorldData(worldName, op.data, cause = cause) != null
+            }
+            HostMutationType.SET_WORLD_WEATHER -> {
+                val worldName = op.target.trim()
+                val weather = op.stringValue?.trim().orEmpty()
+                if (worldName.isEmpty() || weather.isEmpty()) false else setWorldWeather(worldName, weather, cause = cause)
+            }
+            HostMutationType.SPAWN_ENTITY -> {
+                val type = op.target.trim()
+                val world = op.world?.trim().orEmpty()
+                val x = op.x ?: return false
+                val y = op.y ?: return false
+                val z = op.z ?: return false
+                if (type.isEmpty() || world.isEmpty()) false else runCatching { spawnEntity(type, world, x, y, z) }.isSuccess
+            }
+            HostMutationType.REMOVE_ENTITY -> {
+                val uuid = op.target.trim()
+                if (uuid.isEmpty()) false else removeEntity(uuid, reason = cause) != null
+            }
+            HostMutationType.SET_PLAYER_INVENTORY_ITEM -> {
+                val player = op.target.trim()
+                val slot = op.intValue ?: return false
+                val item = op.stringValue?.trim().orEmpty()
+                if (player.isEmpty() || item.isEmpty()) false else setInventoryItem(player, slot, item)
+            }
+            HostMutationType.GIVE_PLAYER_ITEM -> {
+                val player = op.target.trim()
+                val item = op.stringValue?.trim().orEmpty()
+                val count = op.intValue ?: 1
+                if (player.isEmpty() || item.isEmpty()) false else givePlayerItem(player, item, count) > 0
+            }
+            HostMutationType.MOVE_PLAYER -> {
+                val player = op.target.trim()
+                val world = op.world?.trim()
+                val x = op.x ?: return false
+                val y = op.y ?: return false
+                val z = op.z ?: return false
+                if (player.isEmpty()) false else movePlayerWithCause(player, x, y, z, world = world, cause = cause) != null
+            }
+            HostMutationType.SET_PLAYER_GAMEMODE -> {
+                val player = op.target.trim()
+                val gameMode = op.stringValue?.trim().orEmpty()
+                if (player.isEmpty() || gameMode.isEmpty()) false else setPlayerGameMode(player, gameMode, cause = cause) != null
+            }
+            HostMutationType.ADD_PLAYER_EFFECT -> {
+                val player = op.target.trim()
+                val effectId = op.stringValue?.trim().orEmpty()
+                val duration = op.intValue ?: return false
+                val amplifier = op.longValue?.toInt() ?: 0
+                if (player.isEmpty() || effectId.isEmpty()) false else addPlayerEffect(player, effectId, duration, amplifier, cause = cause)
+            }
+            HostMutationType.REMOVE_PLAYER_EFFECT -> {
+                val player = op.target.trim()
+                val effectId = op.stringValue?.trim().orEmpty()
+                if (player.isEmpty() || effectId.isEmpty()) false else removePlayerEffect(player, effectId, cause = cause)
+            }
+            HostMutationType.SET_BLOCK -> {
+                val world = op.world?.trim().orEmpty()
+                val blockId = op.stringValue?.trim().orEmpty()
+                val x = op.x?.toInt() ?: return false
+                val y = op.y?.toInt() ?: return false
+                val z = op.z?.toInt() ?: return false
+                if (world.isEmpty() || blockId.isEmpty()) false else setBlock(world, x, y, z, blockId, cause = cause) != null
+            }
+            HostMutationType.BREAK_BLOCK -> {
+                val world = op.world?.trim().orEmpty()
+                val x = op.x?.toInt() ?: return false
+                val y = op.y?.toInt() ?: return false
+                val z = op.z?.toInt() ?: return false
+                if (world.isEmpty()) false else breakBlock(world, x, y, z, dropLoot = op.boolValue ?: true, cause = cause)
+            }
+            HostMutationType.SET_BLOCK_DATA -> {
+                val world = op.world?.trim().orEmpty()
+                val x = op.x?.toInt() ?: return false
+                val y = op.y?.toInt() ?: return false
+                val z = op.z?.toInt() ?: return false
+                if (world.isEmpty()) false else setBlockData(world, x, y, z, op.data, cause = cause) != null
+            }
         }
     }
 
@@ -1170,7 +1364,7 @@ class GigaStandaloneCore(
         return Thread.currentThread().threadId() == coreThreadId.get()
     }
 
-    private fun <T> mutate(block: () -> T): T {
+    private fun <T> mutate(timeoutMillis: Long = 5_000L, block: () -> T): T {
         if (!running.get() || !this::scheduler.isInitialized || isOnCoreThread()) {
             return block()
         }
@@ -1183,9 +1377,9 @@ class GigaStandaloneCore(
             }
         }
         return try {
-            future.get(5, TimeUnit.SECONDS)
+            future.get(timeoutMillis, TimeUnit.MILLISECONDS)
         } catch (_: TimeoutException) {
-            throw IllegalStateException("Timed out waiting for core mutation execution")
+            throw IllegalStateException("Timed out waiting for core mutation execution (${timeoutMillis}ms)")
         }
     }
 
@@ -1296,3 +1490,4 @@ class GigaStandaloneCore(
         return hostState.findPlayer(name)?.toHostSnapshot()
     }
 }
+

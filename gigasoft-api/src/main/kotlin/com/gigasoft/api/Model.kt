@@ -56,6 +56,70 @@ data class ModelDefinition(
     val animations: Map<String, String> = emptyMap()
 )
 
+data class AnimationDefinition(
+    val id: String,
+    val path: String,
+    val targetModelId: String? = null,
+    val loop: Boolean = false
+)
+
+data class SoundDefinition(
+    val id: String,
+    val path: String,
+    val category: String = "master",
+    val stream: Boolean = false,
+    val volume: Double = 1.0,
+    val pitch: Double = 1.0
+)
+
+enum class ResourceAssetType {
+    TEXTURE,
+    MODEL_GEOMETRY,
+    MODEL_LOD,
+    MODEL_ANIMATION,
+    ANIMATION,
+    SOUND
+}
+
+data class ResourcePackAsset(
+    val id: String,
+    val type: ResourceAssetType,
+    val path: String,
+    val metadata: Map<String, String> = emptyMap()
+)
+
+data class ResourcePackBundle(
+    val pluginId: String,
+    val textures: List<TextureDefinition> = emptyList(),
+    val models: List<ModelDefinition> = emptyList(),
+    val animations: List<AnimationDefinition> = emptyList(),
+    val sounds: List<SoundDefinition> = emptyList(),
+    val assets: List<ResourcePackAsset> = emptyList()
+)
+
+enum class AssetValidationSeverity {
+    WARNING,
+    ERROR
+}
+
+data class AssetValidationIssue(
+    val severity: AssetValidationSeverity,
+    val code: String,
+    val message: String,
+    val assetId: String? = null
+)
+
+data class AssetValidationResult(
+    val valid: Boolean,
+    val issues: List<AssetValidationIssue> = emptyList()
+)
+
+data class ResourcePackBundleOptions(
+    val strict: Boolean = true,
+    val validateReferences: Boolean = true,
+    val validatePaths: Boolean = true
+)
+
 data class MachineState(
     val machineId: String,
     val metadata: MutableMap<String, String> = linkedMapOf(),

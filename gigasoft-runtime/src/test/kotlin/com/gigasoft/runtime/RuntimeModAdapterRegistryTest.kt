@@ -270,6 +270,47 @@ class RuntimeModAdapterRegistryTest {
         assertEquals("ACCEPTED", post?.outcome)
     }
 
+    @Test
+    fun `adapter invocation can be restricted per adapter id`() {
+        val registry = RuntimeModAdapterRegistry(
+            pluginId = "demo",
+            logger = logger(),
+            rawPermissions = listOf("adapter.invoke.bridge")
+        )
+        registry.register(adapter("bridge"))
+        registry.register(adapter("other"))
+
+        val allowed = registry.invoke("bridge", AdapterInvocation("ping"))
+        val denied = registry.invoke("other", AdapterInvocation("ping"))
+        assertTrue(allowed.success)
+        assertFalse(denied.success)
+        assertTrue(denied.message?.contains("not allowed to invoke adapter") == true)
+    }
+
+    @Test
+    fun `adapter capability can be restricted by plugin permissions`() {
+        val registry = RuntimeModAdapterRegistry(
+            pluginId = "demo",
+            logger = logger(),
+            rawPermissions = listOf("adapter.capability.read", "adapter.invoke.*")
+        )
+        registry.register(
+            object : ModAdapter {
+                override val id: String = "bridge"
+                override val name: String = "Bridge"
+                override val version: String = "1.0.0"
+                override val capabilities: Set<String> = setOf("read", "write")
+                override fun invoke(invocation: AdapterInvocation): AdapterResponse = AdapterResponse(success = true)
+            }
+        )
+
+        val ok = registry.invoke("bridge", AdapterInvocation("ping", mapOf("required_capability" to "read")))
+        val denied = registry.invoke("bridge", AdapterInvocation("ping", mapOf("required_capability" to "write")))
+        assertTrue(ok.success)
+        assertFalse(denied.success)
+        assertTrue(denied.message?.contains("not allowed to request capability") == true)
+    }
+
     private fun logger() = com.gigasoft.api.GigaLogger { }
 
     private fun adapter(

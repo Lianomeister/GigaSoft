@@ -38,12 +38,18 @@ const KNOWN_PERMISSIONS = new Set([
   "host.block.read",
   "host.block.write",
   "host.block.data.read",
-  "host.block.data.write"
+  "host.block.data.write",
+  "host.mutation.batch"
 ]);
+const PERMISSION_PREFIX_PATTERNS = [
+  /^adapter\.invoke\.[a-z0-9.*_-]+$/i,
+  /^adapter\.capability\.[a-z0-9.*_-]+$/i
+];
 
 function activate(context) {
-  const diagnostics = vscode.languages.createDiagnosticCollection("gigasoft");
-  context.subscriptions.push(diagnostics);
+  const manifestDiagnostics = vscode.languages.createDiagnosticCollection("gigasoft-manifest");
+  const kotlinDiagnostics = vscode.languages.createDiagnosticCollection("gigasoft-kotlin");
+  context.subscriptions.push(manifestDiagnostics, kotlinDiagnostics);
   const manifestQuickFixProvider = vscode.languages.registerCodeActionsProvider(
     { language: "yaml", pattern: "**/gigaplugin.yml" },
     {
@@ -52,14 +58,29 @@ function activate(context) {
       }
     },
     {
-      providedCodeActionKinds: [vscode.CodeActionKind.QuickFix]
+      providedCodeActionKinds: [vscode.CodeActionKind.QuickFix, vscode.CodeActionKind.SourceFixAll]
     }
   );
   context.subscriptions.push(manifestQuickFixProvider);
+  const kotlinCodeActionProvider = vscode.languages.registerCodeActionsProvider(
+    { language: "kotlin", pattern: "**/*.kt" },
+    {
+      provideCodeActions(document, _range, codeActionContext) {
+        return buildKotlinCodeActions(document, codeActionContext.diagnostics || []);
+      }
+    },
+    {
+      providedCodeActionKinds: [vscode.CodeActionKind.QuickFix]
+    }
+  );
+  context.subscriptions.push(kotlinCodeActionProvider);
 
   const validateManifestCommand = vscode.commands.registerCommand(
     "gigasoft.validateManifest",
-    () => validateAllOpenManifestFiles(diagnostics)
+    () => {
+      validateAllOpenManifestFiles(manifestDiagnostics);
+      validateAllOpenKotlinFiles(kotlinDiagnostics);
+    }
   );
   context.subscriptions.push(validateManifestCommand);
 
@@ -82,18 +103,31 @@ function activate(context) {
   context.subscriptions.push(checkUpdatesCommand);
 
   context.subscriptions.push(
-    vscode.workspace.onDidOpenTextDocument((doc) => validateManifestIfRelevant(doc, diagnostics)),
-    vscode.workspace.onDidSaveTextDocument((doc) => validateManifestIfRelevant(doc, diagnostics)),
-    vscode.workspace.onDidChangeTextDocument((event) => validateManifestIfRelevant(event.document, diagnostics)),
+    vscode.workspace.onDidOpenTextDocument((doc) => {
+      validateManifestIfRelevant(doc, manifestDiagnostics);
+      validateKotlinIfRelevant(doc, kotlinDiagnostics);
+    }),
+    vscode.workspace.onDidSaveTextDocument((doc) => {
+      validateManifestIfRelevant(doc, manifestDiagnostics);
+      validateKotlinIfRelevant(doc, kotlinDiagnostics);
+    }),
+    vscode.workspace.onDidChangeTextDocument((event) => {
+      validateManifestIfRelevant(event.document, manifestDiagnostics);
+      validateKotlinIfRelevant(event.document, kotlinDiagnostics);
+    }),
     vscode.workspace.onDidCloseTextDocument((doc) => {
       if (isManifestFile(doc)) {
-        diagnostics.delete(doc.uri);
+        manifestDiagnostics.delete(doc.uri);
+      }
+      if (isKotlinFile(doc)) {
+        kotlinDiagnostics.delete(doc.uri);
       }
     })
   );
 
   for (const doc of vscode.workspace.textDocuments) {
-    validateManifestIfRelevant(doc, diagnostics);
+    validateManifestIfRelevant(doc, manifestDiagnostics);
+    validateKotlinIfRelevant(doc, kotlinDiagnostics);
   }
 }
 
@@ -110,7 +144,7 @@ async function createPluginTemplate() {
   const config = vscode.workspace.getConfiguration("gigasoft.plugin");
   const pluginId = config.get("defaultId", "my-plugin");
   const mainClass = config.get("defaultMainClass", "plugin.MainPlugin");
-  const pluginVersion = config.get("defaultVersion", "1.1.0-SNAPSHOT");
+  const pluginVersion = config.get("defaultVersion", "1.5.0-SNAPSHOT");
   const packageName = mainClass.includes(".")
     ? mainClass.substring(0, mainClass.lastIndexOf("."))
     : "plugin";
@@ -173,8 +207,11 @@ class ${className} : GigaPlugin {
             }
         }
         commands {
-            command("ping", "Health check") { sender, _ ->
-                "pong from $sender"
+            spec(
+                command = "ping",
+                description = "Health check"
+            ) { invocation ->
+                com.gigasoft.api.CommandResult.ok("pong from ${'$'}{invocation.sender.id}")
             }
         }
     }
@@ -291,6 +328,12 @@ function validateAllOpenManifestFiles(diagnostics) {
   }
 }
 
+function validateAllOpenKotlinFiles(diagnostics) {
+  for (const doc of vscode.workspace.textDocuments) {
+    validateKotlinIfRelevant(doc, diagnostics);
+  }
+}
+
 function validateManifestIfRelevant(document, diagnostics) {
   if (!isManifestFile(document)) return;
   const text = document.getText();
@@ -299,6 +342,10 @@ function validateManifestIfRelevant(document, diagnostics) {
 
 function isManifestFile(document) {
   return path.basename(document.uri.fsPath).toLowerCase() === "gigaplugin.yml";
+}
+
+function isKotlinFile(document) {
+  return document.languageId === "kotlin" || document.uri.fsPath.toLowerCase().endsWith(".kt");
 }
 
 function buildManifestDiagnostics(text, document) {
@@ -323,7 +370,7 @@ function buildManifestDiagnostics(text, document) {
 
   const version = String(parsed.map.get("version") || "").trim();
   if (version && !SEMVER_LIKE_PATTERN.test(version)) {
-    diagnostics.push(createDiagnostic(0, document, "Version should be semver-like (e.g. 1.0.0 or 1.1.0-SNAPSHOT).", vscode.DiagnosticSeverity.Warning, "gigasoft.manifest.invalidVersionFormat"));
+    diagnostics.push(createDiagnostic(0, document, "Version should be semver-like (e.g. 1.0.0 or 1.5.0-SNAPSHOT).", vscode.DiagnosticSeverity.Warning, "gigasoft.manifest.invalidVersionFormat"));
   }
 
   const dependencies = extractInlineYamlArray(String(parsed.map.get("dependencies") || ""));
@@ -353,6 +400,8 @@ function buildManifestDiagnostics(text, document) {
     }
     seenPermissions.add(entry.value);
     if (entry.value && !KNOWN_PERMISSIONS.has(entry.value)) {
+      const matchesKnownPrefix = PERMISSION_PREFIX_PATTERNS.some((re) => re.test(entry.value));
+      if (matchesKnownPrefix) continue;
       const lineIndex = Math.max(0, entry.lineNumber);
       diagnostics.push(
         createDiagnostic(
@@ -382,7 +431,9 @@ function createDiagnostic(lineIndex, document, message, severity, code, data) {
 
 function buildManifestCodeActions(document, diagnostics) {
   const actions = [];
+  let hasManifestIssues = false;
   for (const diagnostic of diagnostics) {
+    hasManifestIssues = true;
     const code = String(diagnostic.code || "");
     if (code === "gigasoft.manifest.duplicatePermission") {
       const removeAction = new vscode.CodeAction("Remove duplicate permission", vscode.CodeActionKind.QuickFix);
@@ -410,10 +461,10 @@ function buildManifestCodeActions(document, diagnostics) {
     } else if (code === "gigasoft.manifest.invalidVersionFormat") {
       const line = findLineNumberForKey(document, "version");
       if (line >= 0) {
-        const fixVersion = new vscode.CodeAction("Set version to 1.1.0-SNAPSHOT", vscode.CodeActionKind.QuickFix);
+        const fixVersion = new vscode.CodeAction("Set version to 1.5.0-SNAPSHOT", vscode.CodeActionKind.QuickFix);
         fixVersion.diagnostics = [diagnostic];
         const edit = new vscode.WorkspaceEdit();
-        edit.replace(document.uri, document.lineAt(line).range, "version: 1.1.0-SNAPSHOT");
+        edit.replace(document.uri, document.lineAt(line).range, "version: 1.5.0-SNAPSHOT");
         fixVersion.edit = edit;
         actions.push(fixVersion);
       }
@@ -429,6 +480,41 @@ function buildManifestCodeActions(document, diagnostics) {
         addKey.edit = edit;
         actions.push(addKey);
       }
+    } else if (code === "gigasoft.manifest.invalidApiVersion") {
+      const line = findLineNumberForKey(document, "apiVersion");
+      if (line >= 0) {
+        const fixApi = new vscode.CodeAction("Set apiVersion to 1", vscode.CodeActionKind.QuickFix);
+        fixApi.diagnostics = [diagnostic];
+        const edit = new vscode.WorkspaceEdit();
+        edit.replace(document.uri, document.lineAt(line).range, "apiVersion: 1");
+        fixApi.edit = edit;
+        actions.push(fixApi);
+      }
+    } else if (code === "gigasoft.manifest.unknownPermission") {
+      const permissionValue = String(diagnostic.data || "");
+      if (permissionValue.startsWith("adapter.invoke")) {
+        const fix = new vscode.CodeAction("Use adapter.invoke.* wildcard", vscode.CodeActionKind.QuickFix);
+        fix.diagnostics = [diagnostic];
+        const edit = new vscode.WorkspaceEdit();
+        edit.replace(document.uri, diagnostic.range, document.lineAt(diagnostic.range.start.line).text.replace(permissionValue, "adapter.invoke.*"));
+        fix.edit = edit;
+        actions.push(fix);
+      } else if (permissionValue.startsWith("adapter.capability")) {
+        const fix = new vscode.CodeAction("Use adapter.capability.* wildcard", vscode.CodeActionKind.QuickFix);
+        fix.diagnostics = [diagnostic];
+        const edit = new vscode.WorkspaceEdit();
+        edit.replace(document.uri, diagnostic.range, document.lineAt(diagnostic.range.start.line).text.replace(permissionValue, "adapter.capability.*"));
+        fix.edit = edit;
+        actions.push(fix);
+      }
+    }
+  }
+  if (hasManifestIssues) {
+    const fixAll = new vscode.CodeAction("Apply GigaSoft manifest best practices", vscode.CodeActionKind.SourceFixAll.append("gigasoft"));
+    const edit = buildManifestBestPracticeEdit(document);
+    if (edit) {
+      fixAll.edit = edit;
+      actions.push(fixAll);
     }
   }
   return actions;
@@ -438,7 +524,7 @@ function defaultManifestValueForKey(key) {
   switch (key) {
     case "id": return "my-plugin";
     case "name": return "My Plugin";
-    case "version": return "1.1.0-SNAPSHOT";
+    case "version": return "1.5.0-SNAPSHOT";
     case "main": return "plugin.MainPlugin";
     case "apiVersion": return "1";
     default: return "";
@@ -473,6 +559,26 @@ function sanitizePluginId(value) {
   if (!cleaned) return "";
   if (!/^[a-z0-9]/.test(cleaned)) return `p${cleaned}`;
   return cleaned;
+}
+
+function buildManifestBestPracticeEdit(document) {
+  const edit = new vscode.WorkspaceEdit();
+  const parsed = parseYamlLike(document.getText());
+  let changed = false;
+  const apiLine = findLineNumberForKey(document, "apiVersion");
+  if (apiLine >= 0 && String(parsed.map.get("apiVersion") || "").trim() !== "1") {
+    edit.replace(document.uri, document.lineAt(apiLine).range, "apiVersion: 1");
+    changed = true;
+  }
+  const versionLine = findLineNumberForKey(document, "version");
+  if (versionLine >= 0) {
+    const value = String(parsed.map.get("version") || "").trim();
+    if (!SEMVER_LIKE_PATTERN.test(value)) {
+      edit.replace(document.uri, document.lineAt(versionLine).range, "version: 1.5.0-SNAPSHOT");
+      changed = true;
+    }
+  }
+  return changed ? edit : null;
 }
 
 function parseYamlLike(text) {
@@ -541,6 +647,116 @@ function extractPermissionEntries(lines) {
   }
 
   return entries;
+}
+
+function validateKotlinIfRelevant(document, diagnostics) {
+  if (!isKotlinFile(document)) return;
+  const text = document.getText();
+  diagnostics.set(document.uri, buildKotlinDiagnostics(text, document));
+}
+
+function buildKotlinDiagnostics(text, document) {
+  const diagnostics = [];
+  const lines = text.split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (line.includes("commands {") || line.includes("ctx.commands.register(") || line.includes("command(\"")) {
+      if (line.includes("command(\"")) {
+        diagnostics.push(
+          createDiagnostic(
+            i,
+            document,
+            "String-based command DSL is removed. Use CommandSpec-first registration (`spec(...)` / `command(spec = ...)`).",
+            vscode.DiagnosticSeverity.Warning,
+            "gigasoft.kotlin.commandSpecRequired"
+          )
+        );
+      }
+    }
+    if (line.includes("ctx.events.subscribe<") && !line.includes("EventSubscriptionOptions")) {
+      diagnostics.push(
+        createDiagnostic(
+          i,
+          document,
+          "Consider subscribe<T>(EventSubscriptionOptions(...)) to set priority/ignoreCancelled/mainThreadOnly explicitly.",
+          vscode.DiagnosticSeverity.Information,
+          "gigasoft.kotlin.eventOptionsRecommended"
+        )
+      );
+    }
+    if (line.includes("ctx.adapters.invoke(") && !text.includes("required_capability")) {
+      diagnostics.push(
+        createDiagnostic(
+          i,
+          document,
+          "Adapter call has no required_capability payload guard. Add capability scoping for safer execution.",
+          vscode.DiagnosticSeverity.Warning,
+          "gigasoft.kotlin.adapterCapabilityRecommended"
+        )
+      );
+    }
+  }
+  return diagnostics;
+}
+
+function buildKotlinCodeActions(document, diagnostics) {
+  const actions = [];
+  for (const diagnostic of diagnostics) {
+    const code = String(diagnostic.code || "");
+    if (code === "gigasoft.kotlin.commandSpecRequired") {
+      const action = new vscode.CodeAction("Insert CommandSpec-first command template", vscode.CodeActionKind.QuickFix);
+      action.diagnostics = [diagnostic];
+      const edit = new vscode.WorkspaceEdit();
+      const line = diagnostic.range.start.line + 1;
+      edit.insert(
+        document.uri,
+        new vscode.Position(Math.min(line, document.lineCount), 0),
+        "        // CommandSpec-first template\n" +
+          "        spec(\n" +
+          "            command = \"example\",\n" +
+          "            argsSchema = listOf(com.gigasoft.api.CommandArgSpec(\"value\", com.gigasoft.api.CommandArgType.STRING)),\n" +
+          "            middleware = listOf(com.gigasoft.api.authMiddleware { null }, com.gigasoft.api.auditMiddleware { _, _ -> })\n" +
+          "        ) { _, args -> com.gigasoft.api.CommandResult.ok(args.string(\"value\") ?: \"\") }\n"
+      );
+      action.edit = edit;
+      actions.push(action);
+    } else if (code === "gigasoft.kotlin.eventOptionsRecommended") {
+      const action = new vscode.CodeAction("Add EventSubscriptionOptions template", vscode.CodeActionKind.QuickFix);
+      action.diagnostics = [diagnostic];
+      const edit = new vscode.WorkspaceEdit();
+      const line = diagnostic.range.start.line + 1;
+      edit.insert(
+        document.uri,
+        new vscode.Position(Math.min(line, document.lineCount), 0),
+        "ctx.events.subscribe<com.gigasoft.api.GigaTickEvent>(\n" +
+          "    com.gigasoft.api.EventSubscriptionOptions(\n" +
+          "        priority = com.gigasoft.api.EventPriority.NORMAL,\n" +
+          "        ignoreCancelled = false,\n" +
+          "        mainThreadOnly = true\n" +
+          "    )\n" +
+          ") { event ->\n" +
+          "    ctx.logger.info(\"tick=${event.tick}\")\n" +
+          "}\n"
+      );
+      action.edit = edit;
+      actions.push(action);
+    } else if (code === "gigasoft.kotlin.adapterCapabilityRecommended") {
+      const action = new vscode.CodeAction("Insert required_capability payload entry", vscode.CodeActionKind.QuickFix);
+      action.diagnostics = [diagnostic];
+      const edit = new vscode.WorkspaceEdit();
+      const lineText = document.lineAt(diagnostic.range.start.line).text;
+      if (lineText.includes("emptyMap()")) {
+        edit.replace(
+          document.uri,
+          document.lineAt(diagnostic.range.start.line).range,
+          lineText.replace("emptyMap()", "mapOf(\"required_capability\" to \"read\")")
+        );
+        action.edit = edit;
+        actions.push(action);
+      }
+    }
+  }
+  return actions;
 }
 
 async function checkForUpdates() {
@@ -629,3 +845,4 @@ module.exports = {
   activate,
   deactivate
 };
+

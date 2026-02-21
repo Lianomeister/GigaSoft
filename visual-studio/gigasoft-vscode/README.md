@@ -18,11 +18,17 @@ VS Code extension for GigaSoft plugin development.
   - warns for duplicate permissions
   - warns for non-standard plugin id and version format
   - validates inline dependency entries for common formatting errors
+  - validates new permission families:
+    - `host.mutation.batch`
+    - `adapter.invoke.*`
+    - `adapter.capability.*`
   - provides Quick Fixes for:
     - removing duplicate permission entries
     - normalizing plugin id
     - setting version to a valid default
     - inserting missing required keys
+    - setting `apiVersion: 1`
+    - applying manifest best-practice fix-all
   - supports both inline (`permissions: [a, b]`) and list style:
     - `permissions:`
     - `  - host.server.read`
@@ -32,6 +38,10 @@ VS Code extension for GigaSoft plugin development.
 ## Snippets
 
 - Kotlin snippets for plugin class, command result, adapter handler, typed event subscription, and texture/model DSL blocks
+- Kotlin snippets for:
+  - CommandSpec-first command templates
+  - Event 2.0 options/tracing
+  - Plugin network channels
 - YAML snippet for `gigaplugin.yml`
 
 Updated Kotlin snippets include:
@@ -39,6 +49,7 @@ Updated Kotlin snippets include:
 - advanced payload helpers: `payloadCsv`, `payloadEnum`, `payloadByPrefix`, and required numeric/bool helpers
 - extended model options: `ModelBounds`, `ModelLod`, `material`, `doubleSided`, `scale`, `collision`, `animations`
 - gameplay pre/post policy snippet for cancelable events
+- network and command/event snippets for the 1.5 API surface
 
 ## Settings
 

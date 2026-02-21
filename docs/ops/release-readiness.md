@@ -10,18 +10,22 @@ Standalone console diagnostics are expected to be machine-readable:
 
 `profile <id> --json` returns:
 
-- full profile object when present
+- `{ "profile": { ... }, "recommendations": [ ... ] }` when present
 - `{ "pluginId": "<id>", "found": false }` when not present
 - includes hotspot diagnostics for plugin tuning:
   - `slowSystems`
   - `adapterHotspots`
   - `isolatedSystems`
+  - `faultBudget`
+  - recommendation lines for plugin-focused remediation steps
 
 `doctor --json` includes cross-plugin hotspot overview:
 
-- `pluginPerformance.<pluginId>.slowSystems`
-- `pluginPerformance.<pluginId>.adapterHotspots`
-- `pluginPerformance.<pluginId>.isolatedSystems`
+- `diagnostics.pluginPerformance.<pluginId>.slowSystems`
+- `diagnostics.pluginPerformance.<pluginId>.adapterHotspots`
+- `diagnostics.pluginPerformance.<pluginId>.isolatedSystems`
+- `diagnostics.pluginPerformance.<pluginId>.faultBudget`
+- `recommendations.<pluginId>[]`
 
 ## Pipelines
 

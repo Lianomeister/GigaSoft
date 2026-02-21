@@ -11,5 +11,7 @@ class RuntimePluginContext(
     override val storage: StorageProvider,
     override val commands: CommandRegistry,
     override val events: EventBus,
+    override val network: PluginNetwork = PluginNetwork.unavailable(),
+    override val ui: PluginUi = PluginUi.unavailable(),
     override val host: HostAccess = HostAccess.unavailable()
 ) : PluginContext

@@ -30,7 +30,13 @@ class StandaloneHostBridge(
     }
 
     override fun broadcast(message: String) {
-        logger.info("[broadcast] $message")
+        val text = message.trim()
+        if (text.isEmpty()) return
+        val players = hostState.players()
+        logger.info("[broadcast] $text")
+        players.forEach { player ->
+            logger.info("[message:${player.name}] $text")
+        }
     }
 
     override fun findPlayer(name: String): HostPlayerSnapshot? {

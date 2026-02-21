@@ -1,4 +1,4 @@
-﻿package com.gigasoft.api
+package com.gigasoft.api
 
 class DslGigaPlugin(
     private val manifestFactory: () -> PluginManifest,
@@ -27,21 +27,12 @@ class DslGigaPlugin(
 fun gigaPlugin(
     id: String,
     name: String = id,
-    version: String = "1.1.0-SNAPSHOT",
+    version: String = "1.5.0-SNAPSHOT",
     apiVersion: String = "1",
     dependencySpecs: List<DependencySpec> = emptyList(),
-    dependencies: List<String> = emptyList(),
     permissions: List<String> = emptyList(),
     configure: GigaPluginDsl.() -> Unit
 ): DslGigaPlugin {
-    require(dependencySpecs.isEmpty() || dependencies.isEmpty()) {
-        "Use either dependencySpecs or dependencies, not both"
-    }
-    val resolvedDependencySpecs = if (dependencySpecs.isNotEmpty()) {
-        dependencySpecs
-    } else {
-        dependencies.map(::dependencySpec)
-    }
     return DslGigaPlugin(
         manifestFactory = {
             PluginManifest(
@@ -50,7 +41,7 @@ fun gigaPlugin(
                 version = version,
                 main = "dsl:$id",
                 apiVersion = apiVersion,
-                dependencies = resolvedDependencySpecs,
+                dependencies = dependencySpecs,
                 permissions = permissions
             )
         },
@@ -65,16 +56,6 @@ fun dependency(id: String, versionRange: String? = null): DependencySpec {
     return DependencySpec(id = trimmedId, versionRange = range)
 }
 
-fun dependencySpec(raw: String): DependencySpec {
-    val trimmed = raw.trim()
-    require(trimmed.isNotEmpty()) { "Dependency string must not be empty" }
-    val match = Regex("^([A-Za-z0-9_.-]+)\\s*(.*)$").find(trimmed)
-        ?: error("Invalid dependency format: '$raw'")
-    val id = match.groupValues[1]
-    val tail = match.groupValues[2].trim()
-    return dependency(id, tail.ifBlank { null })
-}
-
 class GigaPluginDsl(private val ctx: PluginContext) {
     private val itemDefs = mutableListOf<ItemDefinition>()
     private val blockDefs = mutableListOf<BlockDefinition>()
@@ -82,8 +63,10 @@ class GigaPluginDsl(private val ctx: PluginContext) {
     private val machineDefs = mutableListOf<MachineDefinition>()
     private val textureDefs = mutableListOf<TextureDefinition>()
     private val modelDefs = mutableListOf<ModelDefinition>()
+    private val animationDefs = mutableListOf<AnimationDefinition>()
+    private val soundDefs = mutableListOf<SoundDefinition>()
     private val systems = linkedMapOf<String, TickSystem>()
-    private val commandDefs = mutableListOf<CommandDsl.CommandDefinition>()
+    private val commandDefs = mutableListOf<CommandDsl.Definition>()
     private val adapterDefs = mutableListOf<ModAdapter>()
 
     fun items(block: ItemDsl.() -> Unit) {
@@ -108,6 +91,14 @@ class GigaPluginDsl(private val ctx: PluginContext) {
 
     fun models(block: ModelDsl.() -> Unit) {
         modelDefs += ModelDsl().apply(block).models
+    }
+
+    fun animations(block: AnimationDsl.() -> Unit) {
+        animationDefs += AnimationDsl().apply(block).animations
+    }
+
+    fun sounds(block: SoundDsl.() -> Unit) {
+        soundDefs += SoundDsl().apply(block).sounds
     }
 
     fun systems(block: SystemDsl.() -> Unit) {
@@ -135,12 +126,23 @@ class GigaPluginDsl(private val ctx: PluginContext) {
             ctx.registry.registerModel(it)
             ctx.events.publish(GigaModelRegisteredEvent(it))
         }
+        animationDefs.forEach {
+            ctx.registry.registerAnimation(it)
+            ctx.events.publish(GigaAnimationRegisteredEvent(it))
+        }
+        soundDefs.forEach {
+            ctx.registry.registerSound(it)
+            ctx.events.publish(GigaSoundRegisteredEvent(it))
+        }
+        val validation = ctx.registry.validateAssets()
+        val bundle = ctx.registry.buildResourcePackBundle()
+        ctx.events.publish(GigaResourcePackBundleEvent(bundle, validation))
         systems.forEach(ctx.registry::registerSystem)
         commandDefs.forEach { command ->
-            ctx.commands.registerOrReplaceWithAliases(
-                command = command.name,
-                description = command.description,
-                aliases = command.aliases,
+            ctx.commands.registerSpec(
+                spec = command.spec,
+                middleware = command.middleware,
+                completion = command.completion,
                 action = command.action
             )
         }
@@ -228,6 +230,46 @@ class ModelDsl {
     }
 }
 
+class AnimationDsl {
+    internal val animations = mutableListOf<AnimationDefinition>()
+
+    fun animation(
+        id: String,
+        path: String,
+        targetModelId: String? = null,
+        loop: Boolean = false
+    ) {
+        animations += AnimationDefinition(
+            id = id,
+            path = path,
+            targetModelId = targetModelId,
+            loop = loop
+        )
+    }
+}
+
+class SoundDsl {
+    internal val sounds = mutableListOf<SoundDefinition>()
+
+    fun sound(
+        id: String,
+        path: String,
+        category: String = "master",
+        stream: Boolean = false,
+        volume: Double = 1.0,
+        pitch: Double = 1.0
+    ) {
+        sounds += SoundDefinition(
+            id = id,
+            path = path,
+            category = category,
+            stream = stream,
+            volume = volume,
+            pitch = pitch
+        )
+    }
+}
+
 class SystemDsl {
     internal val systems = linkedMapOf<String, TickSystem>()
     fun system(id: String, block: (PluginContext) -> Unit) {
@@ -236,38 +278,72 @@ class SystemDsl {
 }
 
 class CommandDsl {
-    internal data class CommandDefinition(
-        val name: String,
-        val description: String,
-        val aliases: List<String>,
-        val action: (PluginContext, String, List<String>) -> String
+    internal data class Definition(
+        val spec: CommandSpec,
+        val middleware: List<CommandMiddlewareBinding>,
+        val completion: CommandCompletionContract?,
+        val action: (CommandInvocationContext) -> CommandResult
     )
 
-    internal val commands = mutableListOf<CommandDefinition>()
+    internal val commands = mutableListOf<Definition>()
 
     fun command(
-        name: String,
-        description: String = "",
-        action: (ctx: PluginContext, sender: String, args: List<String>) -> String
+        spec: CommandSpec,
+        middleware: List<CommandMiddlewareBinding> = emptyList(),
+        completion: CommandCompletionContract? = null,
+        action: (CommandInvocationContext) -> CommandResult
     ) {
-        commands += CommandDefinition(
-            name = name,
-            description = description,
-            aliases = emptyList(),
+        commands += Definition(
+            spec = spec,
+            middleware = middleware,
+            completion = completion,
             action = action
         )
     }
 
     fun command(
-        name: String,
+        spec: CommandSpec,
+        middleware: List<CommandMiddlewareBinding> = emptyList(),
+        completion: CommandCompletionContract? = null,
+        action: (sender: CommandSender, args: CommandParsedArgs) -> CommandResult
+    ) {
+        command(
+            spec = spec,
+            middleware = middleware,
+            completion = completion
+        ) { invocation ->
+            action(invocation.sender, invocation.parsedArgs)
+        }
+    }
+
+    fun spec(
+        command: String,
         description: String = "",
         aliases: List<String> = emptyList(),
-        action: (ctx: PluginContext, sender: String, args: List<String>) -> String
+        permission: String? = null,
+        argsSchema: List<CommandArgSpec> = emptyList(),
+        cooldownMillis: Long = 0L,
+        rateLimitPerMinute: Int = 0,
+        usage: String = "",
+        help: String = "",
+        middleware: List<CommandMiddlewareBinding> = emptyList(),
+        completion: CommandCompletionContract? = null,
+        action: (CommandInvocationContext) -> CommandResult
     ) {
-        commands += CommandDefinition(
-            name = name,
-            description = description,
-            aliases = aliases,
+        command(
+            spec = CommandSpec(
+                command = command,
+                description = description,
+                aliases = aliases,
+                permission = permission,
+                argsSchema = argsSchema,
+                cooldownMillis = cooldownMillis,
+                rateLimitPerMinute = rateLimitPerMinute,
+                usage = usage,
+                help = help
+            ),
+            middleware = middleware,
+            completion = completion,
             action = action
         )
     }
@@ -283,7 +359,7 @@ class AdapterDsl {
     fun adapter(
         id: String,
         name: String,
-        version: String = "1.1.0-SNAPSHOT",
+        version: String = "1.5.0-SNAPSHOT",
         capabilities: Set<String> = emptySet(),
         handler: (AdapterInvocation) -> AdapterResponse
     ) {
@@ -297,3 +373,5 @@ class AdapterDsl {
         }
     }
 }
+
+

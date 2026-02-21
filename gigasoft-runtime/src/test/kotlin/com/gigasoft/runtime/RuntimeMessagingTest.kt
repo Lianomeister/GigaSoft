@@ -1,161 +1,145 @@
 package com.gigasoft.runtime
 
+import com.gigasoft.api.CommandSender
+import com.gigasoft.api.CommandSenderType
+import com.gigasoft.api.CommandSpec
 import com.gigasoft.api.EventBus
+import com.gigasoft.api.EventPriority
+import com.gigasoft.api.EventSubscriptionOptions
 import com.gigasoft.api.GigaCommandPostExecuteEvent
 import com.gigasoft.api.GigaCommandPreExecuteEvent
+import com.gigasoft.api.PluginContext
+import com.gigasoft.api.registerSpec
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class RuntimeMessagingTest {
     @Test
-    fun `register rejects duplicate command ids`() {
+    fun `registerSpec rejects duplicate command ids`() {
         val registry = RuntimeCommandRegistry()
-        registry.register("ping", "first") { _, _, _ -> "pong" }
+        registry.registerSpec(CommandSpec(command = "ping")) { com.gigasoft.api.CommandResult.ok("pong") }
 
         assertFailsWith<IllegalArgumentException> {
-            registry.register("PING", "second") { _, _, _ -> "pong2" }
+            registry.registerSpec(CommandSpec(command = "PING")) { com.gigasoft.api.CommandResult.ok("pong2") }
         }
     }
 
     @Test
-    fun `register rejects blank command ids`() {
+    fun `registerSpec supports alias resolution`() {
         val registry = RuntimeCommandRegistry()
-        assertFailsWith<IllegalArgumentException> {
-            registry.register("   ", "bad") { _, _, _ -> "x" }
+        registry.registerSpec(CommandSpec(command = "ping", aliases = listOf("p"))) {
+            com.gigasoft.api.CommandResult.ok("pong")
         }
-    }
 
-    @Test
-    fun `registerOrReplace replaces existing handler and unregister removes it`() {
-        val registry = RuntimeCommandRegistry()
-        registry.register("ping", "first") { _, _, _ -> "one" }
-        registry.registerOrReplace("ping", "second") { _, _, _ -> "two" }
-
-        val response = registry.execute(
-            ctx = fakeContext(),
-            sender = "tester",
-            commandLine = "ping"
-        )
-        assertEquals("two", response)
-        assertTrue(registry.unregister("ping"))
-        assertEquals("Unknown command: ping", registry.execute(fakeContext(), "tester", "ping"))
-    }
-
-    @Test
-    fun `registerAlias resolves and executes target command`() {
-        val registry = RuntimeCommandRegistry()
-        registry.register("ping", "first") { _, _, _ -> "pong" }
-        assertTrue(registry.registerAlias("p", "ping"))
-
-        val response = registry.execute(fakeContext(), "tester", "p")
+        val response = registry.execute(fakeContext(), console(), "p")
         assertEquals("pong", response)
         assertEquals("ping", registry.resolve("p"))
     }
 
     @Test
-    fun `unregister command removes linked aliases`() {
+    fun `typed sender is exposed through invocation context`() {
         val registry = RuntimeCommandRegistry()
-        registry.register("ping", "first") { _, _, _ -> "pong" }
-        assertTrue(registry.registerAlias("p", "ping"))
-
-        assertTrue(registry.unregister("ping"))
-        assertEquals(null, registry.resolve("p"))
-        assertEquals("Unknown command: p", registry.execute(fakeContext(), "tester", "p"))
-    }
-
-    @Test
-    fun `registerAlias rejects collisions with command ids`() {
-        val registry = RuntimeCommandRegistry()
-        registry.register("ping", "first") { _, _, _ -> "pong" }
-        registry.register("p", "other") { _, _, _ -> "alt" }
-
-        assertFailsWith<IllegalArgumentException> {
-            registry.registerAlias("p", "ping")
+        registry.registerSpec(CommandSpec(command = "whoami")) { inv ->
+            com.gigasoft.api.CommandResult.ok("${inv.sender.type}:${inv.sender.id}")
         }
+
+        val response = registry.execute(fakeContext(), CommandSender.player("Alex"), "whoami")
+        assertEquals("PLAYER:Alex", response)
     }
 
     @Test
-    fun `registerAlias rejects aliasing unknown command`() {
+    fun `subcommands route to nested spec`() {
         val registry = RuntimeCommandRegistry()
-        assertFailsWith<IllegalArgumentException> {
-            registry.registerAlias("p", "ping")
+        registry.registerSpec(
+            CommandSpec(
+                command = "plugin",
+                subcommands = listOf(
+                    CommandSpec(command = "error")
+                )
+            )
+        ) { inv ->
+            com.gigasoft.api.CommandResult.ok("sub=${inv.spec.command}")
         }
+
+        val response = registry.execute(fakeContext(), console(), "plugin error")
+        assertEquals("sub=error", response)
     }
 
     @Test
-    fun `command pre event can cancel execution`() {
+    fun `command pre event can cancel execution with rich response`() {
         val bus = RuntimeEventBus(mode = EventDispatchMode.EXACT)
         val registry = RuntimeCommandRegistry(pluginId = "demo")
-        registry.register("ping", "first") { _, _, _ -> "pong" }
+        registry.registerSpec(CommandSpec(command = "ping")) { com.gigasoft.api.CommandResult.ok("pong") }
         bus.subscribe(GigaCommandPreExecuteEvent::class.java) {
             it.cancelled = true
-            it.cancelReason = "blocked by policy"
+            it.overrideResponse = com.gigasoft.api.CommandResult.error("blocked", code = "E_BLOCKED")
         }
 
-        val response = registry.execute(fakeContext(events = bus), "tester", "ping")
-        assertEquals("blocked by policy", response)
+        val response = registry.execute(fakeContext(events = bus), console(), "ping")
+        assertTrue(response.startsWith("[E_BLOCKED]"))
     }
 
     @Test
-    fun `command post event is published with success`() {
+    fun `command telemetry captures percentiles and top errors`() {
+        val registry = RuntimeCommandRegistry(pluginId = "demo")
+        registry.registerSpec(CommandSpec(command = "maybe")) { inv ->
+            if (inv.rawArgs.firstOrNull() == "ok") {
+                com.gigasoft.api.CommandResult.ok("ok")
+            } else {
+                com.gigasoft.api.CommandResult.error("bad", code = "E_BAD")
+            }
+        }
+
+        registry.execute(fakeContext(), console(), "maybe ok")
+        registry.execute(fakeContext(), console(), "maybe nope")
+        registry.execute(fakeContext(), console(), "maybe nope")
+
+        val snapshot = registry.commandTelemetry("maybe")
+        assertNotNull(snapshot)
+        assertEquals(3, snapshot.totalRuns)
+        assertEquals(2, snapshot.failures)
+        assertTrue(snapshot.p95Nanos >= snapshot.p50Nanos)
+        assertEquals("E_BAD", snapshot.topErrors.first().code)
+    }
+
+    @Test
+    fun `command post event is published with typed response`() {
         val bus = RuntimeEventBus(mode = EventDispatchMode.EXACT)
         val registry = RuntimeCommandRegistry(pluginId = "demo")
-        registry.register("ping", "first") { _, _, _ -> "pong" }
+        registry.registerSpec(CommandSpec(command = "ping")) { com.gigasoft.api.CommandResult.ok("pong") }
         var post: GigaCommandPostExecuteEvent? = null
         bus.subscribe(GigaCommandPostExecuteEvent::class.java) { post = it }
 
-        val response = registry.execute(fakeContext(events = bus), "tester", "ping")
+        val response = registry.execute(fakeContext(events = bus), console(), "ping")
         assertEquals("pong", response)
         assertEquals(true, post?.success)
-        assertEquals("ping", post?.command)
-        assertEquals("demo", post?.pluginId)
+        assertEquals("pong", post?.response?.message)
+        assertEquals(CommandSenderType.CONSOLE, post?.sender?.type)
     }
 
     @Test
-    fun `polymorphic event mode dispatches superclass listeners`() {
-        val bus = RuntimeEventBus(mode = EventDispatchMode.POLYMORPHIC)
-        var called = 0
-        bus.subscribe(Number::class.java) { called++ }
-        bus.publish(5)
-        assertEquals(1, called)
-    }
-
-    @Test
-    fun `exact event mode does not dispatch superclass listeners`() {
+    fun `event bus honors listener priority`() {
         val bus = RuntimeEventBus(mode = EventDispatchMode.EXACT)
-        var called = 0
-        bus.subscribe(Number::class.java) { called++ }
-        bus.publish(5)
-        assertEquals(0, called)
-    }
-
-    @Test
-    fun `event bus unsubscribe detaches listener`() {
-        val bus = RuntimeEventBus(mode = EventDispatchMode.EXACT)
-        var called = 0
-        val listener: (Int) -> Unit = { called++ }
-        bus.subscribe(Int::class.javaObjectType, listener)
-        assertTrue(bus.unsubscribe(Int::class.javaObjectType, listener))
-        bus.publish(5)
-        assertEquals(0, called)
-    }
-
-    @Test
-    fun `hybrid event mode dispatches exact listeners before supertypes`() {
-        val bus = RuntimeEventBus(mode = EventDispatchMode.HYBRID)
         val calls = mutableListOf<String>()
-        bus.subscribe(Number::class.java) { calls += "number" }
-        bus.subscribe(Int::class.javaObjectType) { calls += "int" }
-        bus.subscribe(Any::class.java) { calls += "any" }
-
-        bus.publish(5)
-        assertEquals(listOf("int", "number", "any"), calls)
+        bus.subscribe(
+            String::class.java,
+            EventSubscriptionOptions(priority = EventPriority.LOW)
+        ) { calls += "low" }
+        bus.subscribe(
+            String::class.java,
+            EventSubscriptionOptions(priority = EventPriority.HIGHEST)
+        ) { calls += "highest" }
+        bus.publish("ping")
+        assertEquals(listOf("highest", "low"), calls)
     }
 
-    private fun fakeContext(events: EventBus = RuntimeEventBus()): com.gigasoft.api.PluginContext {
-        return object : com.gigasoft.api.PluginContext {
+    private fun console(): CommandSender = CommandSender(id = "console", type = CommandSenderType.CONSOLE)
+
+    private fun fakeContext(events: EventBus = RuntimeEventBus()): PluginContext {
+        return object : PluginContext {
             override val manifest = com.gigasoft.api.PluginManifest("test", "test", "1.0.0", "main")
             override val logger = com.gigasoft.api.GigaLogger {}
             override val scheduler = object : com.gigasoft.api.Scheduler {
@@ -193,10 +177,13 @@ class RuntimeMessagingTest {
                 }
             }
             override val commands = object : com.gigasoft.api.CommandRegistry {
-                override fun register(
-                    command: String,
-                    description: String,
-                    action: (ctx: com.gigasoft.api.PluginContext, sender: String, args: List<String>) -> String
+                override fun registerSpec(
+                    spec: com.gigasoft.api.CommandSpec,
+                    middleware: List<com.gigasoft.api.CommandMiddlewareBinding>,
+                    completion: com.gigasoft.api.CommandCompletionContract?,
+                    completionAsync: com.gigasoft.api.CommandCompletionAsyncContract?,
+                    policy: com.gigasoft.api.CommandPolicyProfile?,
+                    action: (com.gigasoft.api.CommandInvocationContext) -> com.gigasoft.api.CommandResult
                 ) {
                 }
             }

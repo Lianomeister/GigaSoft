@@ -12,12 +12,15 @@
       "    private val plugin = gigaPlugin(",
       "        id = \"${3:my-plugin}\",",
       "        name = \"${4:My Plugin}\",",
-      "        version = \"${5:1.1.0-SNAPSHOT}\",",
+      "        version = \"${5:1.5.0-SNAPSHOT}\",",
       "        apiVersion = \"1\"",
       "    ) {",
       "        commands {",
-      "            command(\"ping\", \"Health check\") { sender, _ ->",
-      "                \"pong from $sender\"",
+      "            spec(",
+      "                command = \"ping\",",
+      "                description = \"Health check\"",
+      "            ) { invocation ->",
+      "                com.gigasoft.api.CommandResult.ok(\"pong from ${'$'}{invocation.sender.id}\")",
       "            }",
       "        }",
       "    }",
@@ -31,15 +34,17 @@
   "Giga CommandResult": {
     "prefix": "gigacmdresult",
     "body": [
-      "ctx.commands.registerResult(\"${1:command}\", \"${2:description}\") { sender, args ->",
-      "    if (${3:true}) {",
-      "        com.gigasoft.api.CommandResult.ok(\"${4:done}\", code = \"OK\")",
-      "    } else {",
-      "        com.gigasoft.api.CommandResult.error(\"${5:failed}\", code = \"E_FAIL\")",
+      "commands {",
+      "    spec(command = \"${1:command}\", description = \"${2:description}\") { invocation ->",
+      "        if (${3:true}) {",
+      "            com.gigasoft.api.CommandResult.ok(\"${4:done}\", code = \"OK\")",
+      "        } else {",
+      "            com.gigasoft.api.CommandResult.error(\"${5:failed}\", code = \"E_FAIL\", hint = \"check args\")",
+      "        }",
       "    }",
       "}"
     ],
-    "description": "Register a command with typed CommandResult."
+    "description": "Create a CommandSpec-first command with typed CommandResult."
   },
   "Giga Adapter Handler": {
     "prefix": "gigaadapter",
@@ -48,7 +53,7 @@
       "    adapter(",
       "        id = \"${1:my.adapter}\",",
       "        name = \"${2:My Adapter}\",",
-      "        version = \"1.1.0-SNAPSHOT\",",
+      "        version = \"1.5.0-SNAPSHOT\",",
       "        capabilities = setOf(${3:\"capability\"})",
       "    ) { invocation ->",
       "        val action = invocation.action",
@@ -133,5 +138,72 @@
       "}"
     ],
     "description": "Cancelable gameplay policy with PlayerMove pre/post events."
+  },
+  "Giga CommandSpec First": {
+    "prefix": "gigacmdspec",
+    "body": [
+      "commands {",
+      "    spec(",
+      "        command = \"${1:hello}\",",
+      "        description = \"${2:Command description}\",",
+      "        permission = \"${3:host.server.read}\",",
+      "        argsSchema = listOf(",
+      "            com.gigasoft.api.CommandArgSpec(\"target\", com.gigasoft.api.CommandArgType.STRING)",
+      "        ),",
+      "        cooldownMillis = ${4:250},",
+      "        rateLimitPerMinute = ${5:120},",
+      "        middleware = listOf(",
+      "            com.gigasoft.api.authMiddleware { null },",
+      "            com.gigasoft.api.validationMiddleware { _, _ -> null },",
+      "            com.gigasoft.api.auditMiddleware { _, _ -> }",
+      "        )",
+      "    ) { sender, args ->",
+      "        com.gigasoft.api.CommandResult.ok(\"Hello ${'$'}{args.string(\\\"target\\\") ?: sender}\")",
+      "    }",
+      "}"
+    ],
+    "description": "CommandSpec-first command template with schema and middleware."
+  },
+  "Giga Event 2.0": {
+    "prefix": "gigaevent2",
+    "body": [
+      "ctx.events.subscribe<com.gigasoft.api.GigaTickEvent>(",
+      "    com.gigasoft.api.EventSubscriptionOptions(",
+      "        priority = com.gigasoft.api.EventPriority.HIGH,",
+      "        ignoreCancelled = false,",
+      "        mainThreadOnly = true",
+      "    )",
+      ") { event ->",
+      "    ctx.logger.info(\"tick=${'$'}{event.tick}\")",
+      "}",
+      "",
+      "ctx.events.setTracingEnabled(true)",
+      "val trace = ctx.events.eventTraceSnapshot()"
+    ],
+    "description": "Event 2.0 subscription with options and tracing."
+  },
+  "Giga Plugin Network Channel": {
+    "prefix": "giganetwork",
+    "body": [
+      "ctx.registerNetworkChannel(",
+      "    com.gigasoft.api.PluginChannelSpec(",
+      "        id = \"${1:demo:channel}\",",
+      "        schemaVersion = ${2:1},",
+      "        maxInFlight = ${3:32},",
+      "        maxMessagesPerMinute = ${4:300}",
+      "    )",
+      ")",
+      "",
+      "ctx.network.subscribe(\"${1:demo:channel}\") { msg ->",
+      "    ctx.logger.info(\"channel=${'$'}{msg.channel} payload=${'$'}{msg.payload}\")",
+      "}",
+      "",
+      "val result = ctx.sendPluginMessage(\"${1:demo:channel}\", mapOf(\"${5:key}\" to \"${6:value}\"))",
+      "if (result.status != com.gigasoft.api.PluginMessageStatus.ACCEPTED) {",
+      "    ctx.logger.info(\"network send failed: ${'$'}{result.status} ${'$'}{result.reason.orEmpty()}\")",
+      "}"
+    ],
+    "description": "Plugin network channel registration, subscribe, and send."
   }
 }
+

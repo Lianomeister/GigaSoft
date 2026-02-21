@@ -21,6 +21,7 @@ class RuntimeModAdapterRegistry(
     private val pluginId: String,
     private val logger: GigaLogger,
     private val securityConfig: AdapterSecurityConfig = AdapterSecurityConfig(),
+    rawPermissions: Collection<String> = emptyList(),
     private val eventBus: EventBus? = null,
     private val invocationObserver: (adapterId: String, outcome: AdapterInvocationOutcome) -> Unit = { _, _ -> }
 ) : ModAdapterRegistry {
@@ -53,6 +54,7 @@ class RuntimeModAdapterRegistry(
     @Volatile
     private var listDirty = true
     private val validActionCache = ConcurrentHashMap.newKeySet<String>()
+    private val permissions = rawPermissions.map { it.trim().lowercase() }.filter { it.isNotEmpty() }.toSet()
     private val pluginWindow = RateWindow()
     private val concurrentInvocations = ConcurrentHashMap<String, AtomicInteger>()
 
@@ -191,6 +193,9 @@ class RuntimeModAdapterRegistry(
     }
 
     private fun validateInvocation(adapter: ModAdapter, invocation: AdapterInvocation): String? {
+        if (!isAdapterAllowed(adapter.id)) {
+            return "Plugin '$pluginId' is not allowed to invoke adapter '${adapter.id}'"
+        }
         val action = invocation.action
         if (!isValidAction(action)) {
             return "Invalid adapter action '${invocation.action}'"
@@ -218,6 +223,9 @@ class RuntimeModAdapterRegistry(
         val requiredCapability = payload["required_capability"]?.trim().orEmpty()
         if (requiredCapability.isNotEmpty() && requiredCapability !in adapter.capabilities) {
             return "Adapter '${adapter.id}' does not provide capability '$requiredCapability'"
+        }
+        if (requiredCapability.isNotEmpty() && !isCapabilityAllowed(requiredCapability)) {
+            return "Plugin '$pluginId' is not allowed to request capability '$requiredCapability'"
         }
         return null
     }
@@ -358,5 +366,21 @@ class RuntimeModAdapterRegistry(
             if (!ok) return false
         }
         return true
+    }
+
+    private fun isAdapterAllowed(adapterId: String): Boolean {
+        val declared = permissions.any { it.startsWith("adapter.invoke.") }
+        if (!declared) return true
+        val specific = "adapter.invoke.${adapterId.lowercase()}"
+        return specific in permissions || "adapter.invoke.*" in permissions
+    }
+
+    private fun isCapabilityAllowed(capability: String): Boolean {
+        val normalized = capability.trim().lowercase()
+        if (normalized.isEmpty()) return false
+        val declared = permissions.any { it.startsWith("adapter.capability.") }
+        if (!declared) return true
+        val specific = "adapter.capability.$normalized"
+        return specific in permissions || "adapter.capability.*" in permissions
     }
 }

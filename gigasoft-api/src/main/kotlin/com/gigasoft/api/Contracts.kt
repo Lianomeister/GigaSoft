@@ -15,8 +15,141 @@ interface PluginContext {
     val storage: StorageProvider
     val commands: CommandRegistry
     val events: EventBus
+    val network: PluginNetwork
+        get() = PluginNetwork.unavailable()
+    val ui: PluginUi
+        get() = PluginUi.unavailable()
     val host: HostAccess
         get() = HostAccess.unavailable()
+}
+
+data class PluginChannelSpec(
+    val id: String,
+    val schemaVersion: Int = 1,
+    val maxInFlight: Int = 64,
+    val maxMessagesPerMinute: Int = 600,
+    val maxPayloadEntries: Int = 64,
+    val maxPayloadTotalChars: Int = 8192
+)
+
+data class PluginMessage(
+    val channel: String,
+    val schemaVersion: Int = 1,
+    val payload: Map<String, String> = emptyMap(),
+    val traceId: String? = null,
+    val sourcePluginId: String? = null
+)
+
+enum class PluginMessageStatus {
+    ACCEPTED,
+    CHANNEL_NOT_FOUND,
+    SCHEMA_MISMATCH,
+    PAYLOAD_INVALID,
+    BACKPRESSURE,
+    QUOTA_EXCEEDED,
+    DENIED
+}
+
+data class PluginMessageResult(
+    val status: PluginMessageStatus,
+    val deliveredSubscribers: Int = 0,
+    val reason: String? = null
+)
+
+data class PluginChannelStats(
+    val channelId: String,
+    val schemaVersion: Int,
+    val inFlight: Int,
+    val accepted: Long,
+    val rejected: Long,
+    val droppedBackpressure: Long,
+    val droppedQuota: Long
+)
+
+interface PluginNetwork {
+    fun registerChannel(spec: PluginChannelSpec): Boolean
+    fun listChannels(): List<PluginChannelSpec>
+    fun subscribe(channel: String, listener: (PluginMessage) -> Unit)
+    fun unsubscribe(channel: String, listener: (PluginMessage) -> Unit): Boolean = false
+    fun send(channel: String, message: PluginMessage): PluginMessageResult
+    fun channelStats(channel: String): PluginChannelStats? = null
+
+    companion object {
+        fun unavailable(): PluginNetwork = object : PluginNetwork {
+            override fun registerChannel(spec: PluginChannelSpec): Boolean = false
+            override fun listChannels(): List<PluginChannelSpec> = emptyList()
+            override fun subscribe(channel: String, listener: (PluginMessage) -> Unit) {}
+            override fun send(channel: String, message: PluginMessage): PluginMessageResult {
+                return PluginMessageResult(
+                    status = PluginMessageStatus.DENIED,
+                    reason = "Plugin network is unavailable"
+                )
+            }
+        }
+    }
+}
+
+enum class UiLevel {
+    INFO,
+    SUCCESS,
+    WARNING,
+    ERROR
+}
+
+data class UiNotice(
+    val title: String = "",
+    val message: String,
+    val level: UiLevel = UiLevel.INFO,
+    val durationMillis: Long = 3_000L
+)
+
+data class UiMenuItem(
+    val id: String,
+    val label: String,
+    val description: String = "",
+    val enabled: Boolean = true
+)
+
+data class UiMenu(
+    val id: String,
+    val title: String,
+    val items: List<UiMenuItem>
+)
+
+enum class UiDialogFieldType {
+    TEXT,
+    NUMBER,
+    TOGGLE,
+    SELECT
+}
+
+data class UiDialogField(
+    val id: String,
+    val label: String,
+    val type: UiDialogFieldType = UiDialogFieldType.TEXT,
+    val required: Boolean = true,
+    val options: List<String> = emptyList(),
+    val placeholder: String = ""
+)
+
+data class UiDialog(
+    val id: String,
+    val title: String,
+    val fields: List<UiDialogField>
+)
+
+interface PluginUi {
+    fun notify(player: String, notice: UiNotice): Boolean
+    fun actionBar(player: String, message: String, durationTicks: Int = 40): Boolean = false
+    fun openMenu(player: String, menu: UiMenu): Boolean = false
+    fun openDialog(player: String, dialog: UiDialog): Boolean = false
+    fun close(player: String): Boolean = false
+
+    companion object {
+        fun unavailable(): PluginUi = object : PluginUi {
+            override fun notify(player: String, notice: UiNotice): Boolean = false
+        }
+    }
 }
 
 interface HostAccess {
@@ -61,6 +194,15 @@ interface HostAccess {
     fun breakBlock(world: String, x: Int, y: Int, z: Int, dropLoot: Boolean = true): Boolean = false
     fun blockData(world: String, x: Int, y: Int, z: Int): Map<String, String>? = null
     fun setBlockData(world: String, x: Int, y: Int, z: Int, data: Map<String, String>): Map<String, String>? = null
+    fun applyMutationBatch(batch: HostMutationBatch): HostMutationBatchResult {
+        return HostMutationBatchResult(
+            batchId = batch.id,
+            success = false,
+            appliedOperations = 0,
+            rolledBack = false,
+            error = "Host mutation batch is not supported"
+        )
+    }
 
     companion object {
         fun unavailable(): HostAccess = object : HostAccess {
@@ -109,7 +251,54 @@ object HostPermissions {
     const val BLOCK_WRITE = "host.block.write"
     const val BLOCK_DATA_READ = "host.block.data.read"
     const val BLOCK_DATA_WRITE = "host.block.data.write"
+    const val MUTATION_BATCH = "host.mutation.batch"
 }
+
+enum class HostMutationType {
+    CREATE_WORLD,
+    SET_WORLD_TIME,
+    SET_WORLD_DATA,
+    SET_WORLD_WEATHER,
+    SPAWN_ENTITY,
+    REMOVE_ENTITY,
+    SET_PLAYER_INVENTORY_ITEM,
+    GIVE_PLAYER_ITEM,
+    MOVE_PLAYER,
+    SET_PLAYER_GAMEMODE,
+    ADD_PLAYER_EFFECT,
+    REMOVE_PLAYER_EFFECT,
+    SET_BLOCK,
+    BREAK_BLOCK,
+    SET_BLOCK_DATA
+}
+
+data class HostMutationOp(
+    val type: HostMutationType,
+    val target: String = "",
+    val world: String? = null,
+    val x: Double? = null,
+    val y: Double? = null,
+    val z: Double? = null,
+    val intValue: Int? = null,
+    val longValue: Long? = null,
+    val boolValue: Boolean? = null,
+    val stringValue: String? = null,
+    val data: Map<String, String> = emptyMap()
+)
+
+data class HostMutationBatch(
+    val id: String,
+    val operations: List<HostMutationOp>,
+    val rollbackReason: String = "rollback"
+)
+
+data class HostMutationBatchResult(
+    val batchId: String,
+    val success: Boolean,
+    val appliedOperations: Int,
+    val rolledBack: Boolean,
+    val error: String? = null
+)
 
 data class HostLocationRef(
     val world: String,
@@ -276,6 +465,34 @@ data class GigaPlayerMessageEvent(
     val cause: String = "plugin"
 )
 
+data class GigaUiNoticeEvent(
+    val player: HostPlayerSnapshot?,
+    val title: String,
+    val message: String,
+    val level: UiLevel,
+    val durationMillis: Long
+)
+
+data class GigaUiActionBarEvent(
+    val player: HostPlayerSnapshot?,
+    val message: String,
+    val durationTicks: Int
+)
+
+data class GigaUiMenuOpenEvent(
+    val player: HostPlayerSnapshot?,
+    val menuId: String,
+    val title: String,
+    val itemCount: Int
+)
+
+data class GigaUiDialogOpenEvent(
+    val player: HostPlayerSnapshot?,
+    val dialogId: String,
+    val title: String,
+    val fieldCount: Int
+)
+
 data class GigaPlayerKickEvent(
     val player: HostPlayerSnapshot,
     val reason: String,
@@ -392,28 +609,41 @@ data class GigaModelRegisteredEvent(
     val model: ModelDefinition
 )
 
+data class GigaAnimationRegisteredEvent(
+    val animation: AnimationDefinition
+)
+
+data class GigaSoundRegisteredEvent(
+    val sound: SoundDefinition
+)
+
+data class GigaResourcePackBundleEvent(
+    val bundle: ResourcePackBundle,
+    val validation: AssetValidationResult
+)
+
 class GigaCommandPreExecuteEvent(
     val pluginId: String,
     val command: String,
-    val sender: String,
+    val sender: CommandSender,
     val args: List<String>,
     val rawCommandLine: String
 ) {
     var cancelled: Boolean = false
     var cancelReason: String? = null
-    var overrideResponse: String? = null
+    var overrideResponse: CommandResult? = null
 }
 
 data class GigaCommandPostExecuteEvent(
     val pluginId: String,
     val command: String,
-    val sender: String,
+    val sender: CommandSender,
     val args: List<String>,
     val rawCommandLine: String,
-    val response: String,
+    val response: CommandResult,
     val success: Boolean,
     val durationNanos: Long,
-    val error: String? = null
+    val error: CommandError? = null
 )
 
 class GigaAdapterPreInvokeEvent(
@@ -455,6 +685,12 @@ interface RegistryFacade {
     fun registerMachine(definition: MachineDefinition)
     fun registerTexture(definition: TextureDefinition)
     fun registerModel(definition: ModelDefinition)
+    fun registerAnimation(definition: AnimationDefinition) {
+        throw UnsupportedOperationException("Animations are not supported by this runtime")
+    }
+    fun registerSound(definition: SoundDefinition) {
+        throw UnsupportedOperationException("Sounds are not supported by this runtime")
+    }
     fun registerSystem(id: String, system: TickSystem)
 
     fun items(): List<ItemDefinition>
@@ -463,6 +699,20 @@ interface RegistryFacade {
     fun machines(): List<MachineDefinition>
     fun textures(): List<TextureDefinition>
     fun models(): List<ModelDefinition>
+    fun animations(): List<AnimationDefinition> = emptyList()
+    fun sounds(): List<SoundDefinition> = emptyList()
+    fun validateAssets(options: ResourcePackBundleOptions = ResourcePackBundleOptions()): AssetValidationResult {
+        return AssetValidationResult(valid = true)
+    }
+    fun buildResourcePackBundle(options: ResourcePackBundleOptions = ResourcePackBundleOptions()): ResourcePackBundle {
+        return ResourcePackBundle(
+            pluginId = "unknown",
+            textures = textures(),
+            models = models(),
+            animations = animations(),
+            sounds = sounds()
+        )
+    }
     fun systems(): Map<String, TickSystem>
 }
 
@@ -487,48 +737,119 @@ interface PersistentStore<T : Any> {
 }
 
 interface CommandRegistry {
-    fun register(
-        command: String,
-        description: String = "",
-        action: (ctx: PluginContext, sender: String, args: List<String>) -> String
+    fun registerSpec(
+        spec: CommandSpec,
+        middleware: List<CommandMiddlewareBinding> = emptyList(),
+        completion: CommandCompletionContract? = null,
+        completionAsync: CommandCompletionAsyncContract? = null,
+        policy: CommandPolicyProfile? = null,
+        action: (CommandInvocationContext) -> CommandResult
     )
 
-    fun registerOrReplace(
-        command: String,
-        description: String = "",
-        action: (ctx: PluginContext, sender: String, args: List<String>) -> String
+    fun registerOrReplaceSpec(
+        spec: CommandSpec,
+        middleware: List<CommandMiddlewareBinding> = emptyList(),
+        completion: CommandCompletionContract? = null,
+        completionAsync: CommandCompletionAsyncContract? = null,
+        policy: CommandPolicyProfile? = null,
+        action: (CommandInvocationContext) -> CommandResult
     ) {
-        register(command, description, action)
+        registerSpec(spec, middleware, completion, completionAsync, policy, action)
     }
 
     fun unregister(command: String): Boolean = false
     fun registerAlias(alias: String, command: String): Boolean = false
     fun unregisterAlias(alias: String): Boolean = false
     fun resolve(commandOrAlias: String): String? = null
-    fun registeredCommands(): Map<String, String> = emptyMap()
+    fun registeredCommands(): Map<String, CommandSpec> = emptyMap()
+    fun commandTelemetry(commandOrAlias: String): CommandTelemetrySnapshot? = null
+    fun commandTelemetry(): Map<String, CommandTelemetrySnapshot> = emptyMap()
 }
 
 data class CommandResult(
     val success: Boolean,
     val message: String,
-    val code: String? = null
+    val code: String? = null,
+    val error: CommandError? = null
 ) {
     companion object {
         fun ok(message: String, code: String? = null): CommandResult {
-            return CommandResult(success = true, message = message, code = code)
+            return CommandResult(success = true, message = message, code = code, error = null)
         }
 
-        fun error(message: String, code: String? = null): CommandResult {
-            return CommandResult(success = false, message = message, code = code)
+        fun error(
+            message: String,
+            code: String? = null,
+            field: String? = null,
+            hint: String? = null
+        ): CommandResult {
+            val normalizedCode = code?.trim()?.takeIf { it.isNotEmpty() } ?: "E_COMMAND"
+            return CommandResult(
+                success = false,
+                message = message,
+                code = normalizedCode,
+                error = CommandError(
+                    code = normalizedCode,
+                    field = field?.trim()?.takeIf { it.isNotEmpty() },
+                    hint = hint?.trim()?.takeIf { it.isNotEmpty() }
+                )
+            )
         }
     }
 }
 
 interface EventBus {
     fun <T : Any> subscribe(eventType: Class<T>, listener: (T) -> Unit)
+    fun <T : Any> subscribe(
+        eventType: Class<T>,
+        options: EventSubscriptionOptions,
+        listener: (T) -> Unit
+    ) {
+        subscribe(eventType, listener)
+    }
     fun <T : Any> unsubscribe(eventType: Class<T>, listener: (T) -> Unit): Boolean = false
     fun publish(event: Any)
+    fun publishAsync(event: Any): java.util.concurrent.CompletableFuture<Unit> {
+        publish(event)
+        return java.util.concurrent.CompletableFuture.completedFuture(Unit)
+    }
+    fun setTracingEnabled(enabled: Boolean): Boolean = false
+    fun eventTraceSnapshot(): EventTraceSnapshot = EventTraceSnapshot()
+    fun resetEventTrace() {}
 }
+
+enum class EventPriority {
+    HIGHEST,
+    HIGH,
+    NORMAL,
+    LOW,
+    LOWEST
+}
+
+data class EventSubscriptionOptions(
+    val priority: EventPriority = EventPriority.NORMAL,
+    val ignoreCancelled: Boolean = false,
+    val mainThreadOnly: Boolean = false
+)
+
+data class EventTypeTraceSnapshot(
+    val eventType: String,
+    val events: Long,
+    val listenerCalls: Long,
+    val errors: Long,
+    val averageNanos: Long,
+    val maxNanos: Long,
+    val lastDurationNanos: Long,
+    val lastThread: String? = null
+)
+
+data class EventTraceSnapshot(
+    val enabled: Boolean = false,
+    val totalEvents: Long = 0L,
+    val totalListenerCalls: Long = 0L,
+    val totalErrors: Long = 0L,
+    val eventTypes: List<EventTypeTraceSnapshot> = emptyList()
+)
 
 data class AdapterInvocation(
     val action: String,

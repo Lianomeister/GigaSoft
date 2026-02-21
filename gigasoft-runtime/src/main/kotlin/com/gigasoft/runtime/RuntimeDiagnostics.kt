@@ -16,5 +16,6 @@ data class RuntimeDiagnostics(
 data class PluginPerformanceDiagnostics(
     val slowSystems: List<SlowSystemSnapshot>,
     val adapterHotspots: List<AdapterHotspotSnapshot>,
-    val isolatedSystems: List<SystemIsolationSnapshot>
+    val isolatedSystems: List<SystemIsolationSnapshot>,
+    val faultBudget: PluginFaultBudgetSnapshot
 )

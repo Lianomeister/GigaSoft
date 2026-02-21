@@ -2,6 +2,9 @@ package com.gigasoft.core
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
+import com.gigasoft.api.HostMutationBatch
+import com.gigasoft.api.HostMutationOp
+import com.gigasoft.api.HostMutationType
 import java.nio.file.Files
 import kotlin.test.assertFalse
 import kotlin.test.Test
@@ -311,6 +314,101 @@ class GigaStandaloneCoreTest {
             assertEquals(null, core.blockData("adventure", 1, 64, 1))
             assertNotNull(core.kickPlayer("Alex", "bye", cause = "test"))
             assertEquals(null, core.players().find { it.name == "Alex" })
+        } finally {
+            core.stop()
+        }
+    }
+
+    @Test
+    fun `mutation batch applies atomically on success`() {
+        val root = Files.createTempDirectory("gigasoft-core-test-batch-success")
+        val core = GigaStandaloneCore(
+            config = StandaloneCoreConfig(
+                pluginsDirectory = root.resolve("plugins"),
+                dataDirectory = root.resolve("data"),
+                tickPeriodMillis = 1000L,
+                autoSaveEveryTicks = 0L
+            ),
+            logger = {}
+        )
+        core.start()
+        try {
+            core.joinPlayer("Alex", "world", 0.0, 64.0, 0.0)
+            val result = core.applyMutationBatch(
+                HostMutationBatch(
+                    id = "batch-success",
+                    operations = listOf(
+                        HostMutationOp(
+                            type = HostMutationType.SET_WORLD_TIME,
+                            target = "world",
+                            longValue = 1234L
+                        ),
+                        HostMutationOp(
+                            type = HostMutationType.SET_PLAYER_INVENTORY_ITEM,
+                            target = "Alex",
+                            intValue = 0,
+                            stringValue = "diamond"
+                        )
+                    )
+                )
+            )
+            assertTrue(result.success)
+            assertEquals(2, result.appliedOperations)
+            assertFalse(result.rolledBack)
+            assertTrue((core.worldTime("world") ?: 0L) >= 1234L)
+            assertEquals("diamond", core.inventoryItem("Alex", 0))
+        } finally {
+            core.stop()
+        }
+    }
+
+    @Test
+    fun `mutation batch rolls back all changes on failure`() {
+        val root = Files.createTempDirectory("gigasoft-core-test-batch-rollback")
+        val core = GigaStandaloneCore(
+            config = StandaloneCoreConfig(
+                pluginsDirectory = root.resolve("plugins"),
+                dataDirectory = root.resolve("data"),
+                tickPeriodMillis = 1000L,
+                autoSaveEveryTicks = 0L
+            ),
+            logger = {}
+        )
+        core.start()
+        try {
+            core.joinPlayer("Alex", "world", 0.0, 64.0, 0.0)
+            core.setInventoryItem("Alex", 0, "stick")
+            val baselineTime = core.worldTime("world")
+            val result = core.applyMutationBatch(
+                HostMutationBatch(
+                    id = "batch-rollback",
+                    operations = listOf(
+                        HostMutationOp(
+                            type = HostMutationType.SET_WORLD_TIME,
+                            target = "world",
+                            longValue = 9000L
+                        ),
+                        HostMutationOp(
+                            type = HostMutationType.SET_PLAYER_INVENTORY_ITEM,
+                            target = "Alex",
+                            intValue = 0,
+                            stringValue = "gold_ingot"
+                        ),
+                        HostMutationOp(
+                            type = HostMutationType.SET_WORLD_TIME,
+                            target = "missing-world",
+                            longValue = 1L
+                        )
+                    )
+                )
+            )
+            assertFalse(result.success)
+            assertTrue(result.rolledBack)
+            assertEquals(2, result.appliedOperations)
+            val restoredTime = core.worldTime("world")
+            assertTrue(restoredTime != null && restoredTime < 9000L)
+            assertTrue((restoredTime ?: 0L) >= (baselineTime ?: 0L))
+            assertEquals("stick", core.inventoryItem("Alex", 0))
         } finally {
             core.stop()
         }

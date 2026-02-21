@@ -11,7 +11,7 @@ plugins {
 
 allprojects {
     group = "com.gigasoft"
-    version = "1.1.0-SNAPSHOT"
+    version = "1.5.0-rc.1"
 
     repositories {
         mavenCentral()
@@ -115,3 +115,4 @@ tasks.register("soakTest") {
         ":gigasoft-standalone:soakTest"
     )
 }
+

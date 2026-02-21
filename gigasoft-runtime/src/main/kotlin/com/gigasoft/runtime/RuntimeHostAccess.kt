@@ -5,6 +5,10 @@ import com.gigasoft.api.HostAccess
 import com.gigasoft.api.HostEntitySnapshot
 import com.gigasoft.api.HostInventorySnapshot
 import com.gigasoft.api.HostLocationRef
+import com.gigasoft.api.HostMutationBatch
+import com.gigasoft.api.HostMutationBatchResult
+import com.gigasoft.api.HostMutationType
+import com.gigasoft.api.HostMutationOp
 import com.gigasoft.api.HostPermissions
 import com.gigasoft.api.HostPlayerSnapshot
 import com.gigasoft.api.HostPlayerStatusSnapshot
@@ -222,6 +226,53 @@ internal class RuntimeHostAccess(
     override fun setBlockData(world: String, x: Int, y: Int, z: Int, data: Map<String, String>): Map<String, String>? {
         if (!allowed(HostPermissions.BLOCK_DATA_WRITE)) return null
         return delegate.setBlockData(world, x, y, z, data)
+    }
+
+    override fun applyMutationBatch(batch: HostMutationBatch): HostMutationBatchResult {
+        if (!allowed(HostPermissions.MUTATION_BATCH)) {
+            return HostMutationBatchResult(
+                batchId = batch.id,
+                success = false,
+                appliedOperations = 0,
+                rolledBack = false,
+                error = "Missing permission '${HostPermissions.MUTATION_BATCH}'"
+            )
+        }
+        val missingPermission = batch.operations
+            .asSequence()
+            .mapNotNull(::requiredPermissionFor)
+            .firstOrNull { permission -> permission !in permissions }
+        if (missingPermission != null) {
+            logger.info("Denied host mutation batch for plugin '$pluginId': missing permission '$missingPermission'")
+            return HostMutationBatchResult(
+                batchId = batch.id,
+                success = false,
+                appliedOperations = 0,
+                rolledBack = false,
+                error = "Missing permission '$missingPermission'"
+            )
+        }
+        return delegate.applyMutationBatch(batch)
+    }
+
+    private fun requiredPermissionFor(op: HostMutationOp): String? {
+        return when (op.type) {
+            HostMutationType.CREATE_WORLD -> HostPermissions.WORLD_WRITE
+            HostMutationType.SET_WORLD_TIME -> HostPermissions.WORLD_WRITE
+            HostMutationType.SET_WORLD_DATA -> HostPermissions.WORLD_DATA_WRITE
+            HostMutationType.SET_WORLD_WEATHER -> HostPermissions.WORLD_WEATHER_WRITE
+            HostMutationType.SPAWN_ENTITY -> HostPermissions.ENTITY_SPAWN
+            HostMutationType.REMOVE_ENTITY -> HostPermissions.ENTITY_REMOVE
+            HostMutationType.SET_PLAYER_INVENTORY_ITEM -> HostPermissions.INVENTORY_WRITE
+            HostMutationType.GIVE_PLAYER_ITEM -> HostPermissions.INVENTORY_WRITE
+            HostMutationType.MOVE_PLAYER -> HostPermissions.PLAYER_MOVE
+            HostMutationType.SET_PLAYER_GAMEMODE -> HostPermissions.PLAYER_GAMEMODE_WRITE
+            HostMutationType.ADD_PLAYER_EFFECT -> HostPermissions.PLAYER_EFFECT_WRITE
+            HostMutationType.REMOVE_PLAYER_EFFECT -> HostPermissions.PLAYER_EFFECT_WRITE
+            HostMutationType.SET_BLOCK -> HostPermissions.BLOCK_WRITE
+            HostMutationType.BREAK_BLOCK -> HostPermissions.BLOCK_WRITE
+            HostMutationType.SET_BLOCK_DATA -> HostPermissions.BLOCK_DATA_WRITE
+        }
     }
 
     private fun allowed(permission: String): Boolean {

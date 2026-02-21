@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.5.0
+
+- Updated extension defaults/templates to `1.5.0-SNAPSHOT`.
+- Updated manifest diagnostics and quick-fixes to suggest `1.5.0-SNAPSHOT`.
+- Updated snippets and docs wording to match the 1.5 API surface.
+- Kept CommandSpec/Event/Network guidance as first-class snippets for Plugin API UX 2.0.
+
+## 0.4.0
+
+- Added Kotlin diagnostics for plugin code quality:
+  - CommandSpec-first command registration recommendation.
+  - Event 2.0 subscription options recommendation.
+  - adapter capability guard recommendation for adapter invocations.
+- Added new code actions / quick fixes:
+  - Kotlin template inserts for CommandSpec and EventSubscriptionOptions.
+  - manifest API-version fix.
+  - manifest source fix-all for common best-practice updates.
+- Extended manifest permission validation for 1.2:
+  - `host.mutation.batch`
+  - `adapter.invoke.*`
+  - `adapter.capability.*`
+- Expanded snippets:
+  - CommandSpec-first command snippet
+  - Event 2.0 tracing/options snippet
+  - Plugin network channel snippet
+  - Updated YAML permissions snippet for 1.2 security scopes.
+
 ## 0.3.0
 
 - Updated plugin template to use modern adapter payload helpers (`payloadRequired`, `payloadIntRequired`).

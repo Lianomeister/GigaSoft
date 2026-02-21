@@ -20,7 +20,8 @@ Use standalone console:
 What to check:
 
 - plugin id appears in `plugins`
-- `doctor.currentDependencyIssues` is empty for your plugin
+- `doctor.diagnostics.currentDependencyIssues` is empty for your plugin
+- inspect `doctor.recommendations.<pluginId>` for targeted fixes
 - `status.core.loadedPlugins` increments after load
 
 ## 3. Reload Safety Checks
@@ -28,9 +29,10 @@ What to check:
 - run `reload <your-plugin-id>`
 - inspect `profile <your-plugin-id> --json`
 - verify no duplicate scheduled tasks after repeated reload
-- inspect `profile.<id>.slowSystems` for hot system loops
-- inspect `profile.<id>.adapterHotspots` for denial/timeout/failure pressure
-- inspect `profile.<id>.isolatedSystems` for fault-isolated systems in cooldown windows
+- inspect `profile.profile.slowSystems` for hot system loops
+- inspect `profile.profile.adapterHotspots` for denial/timeout/failure pressure
+- inspect `profile.profile.isolatedSystems` for fault-isolated systems in cooldown windows
+- inspect `profile.profile.faultBudget` and `profile.recommendations` for fault-budget guidance
 
 If duplicates exist:
 

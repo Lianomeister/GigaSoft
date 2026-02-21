@@ -1,6 +1,7 @@
 ﻿package com.gigasoft.runtime
 
 import com.gigasoft.api.GigaPlugin
+import com.gigasoft.api.ModelDefinition
 import com.gigasoft.api.PluginContext
 import java.nio.file.Files
 import java.nio.file.Path
@@ -51,6 +52,42 @@ class GigaRuntimeReloadRollbackTest {
         runtime.unload("demo")
     }
 
+    @Test
+    fun `reload rolls back when updated jar fails asset validation`() {
+        val root = Files.createTempDirectory("giga-runtime-asset-rollback")
+        val pluginsDir = root.resolve("plugins")
+        val dataDir = root.resolve("data")
+        Files.createDirectories(pluginsDir)
+        Files.createDirectories(dataDir)
+
+        val sourceJar = pluginsDir.resolve("demo.jar")
+        createPluginJar(
+            targetJar = sourceJar,
+            pluginId = "demo",
+            mainClass = "com.gigasoft.runtime.TestGoodPlugin",
+            version = "1.0.0"
+        )
+
+        val runtime = GigaRuntime(pluginsDir, dataDir)
+        runtime.scanAndLoad()
+
+        createPluginJar(
+            targetJar = sourceJar,
+            pluginId = "demo",
+            mainClass = "com.gigasoft.runtime.TestInvalidAssetPlugin",
+            version = "2.0.0"
+        )
+
+        val report = runtime.reloadWithReport("demo")
+        assertEquals(ReloadStatus.ROLLED_BACK, report.status)
+        assertTrue(report.reason?.contains("Asset validation failed") == true)
+
+        val after = runtime.loadedPlugins()
+        assertEquals(1, after.size)
+        assertEquals("1.0.0", after.first().manifest.version)
+        runtime.unload("demo")
+    }
+
     private fun createPluginJar(
         targetJar: Path,
         pluginId: String,
@@ -79,6 +116,20 @@ class GigaRuntimeReloadRollbackTest {
 class TestGoodPlugin : GigaPlugin {
     override fun onEnable(ctx: PluginContext) {
         ctx.logger.info("enabled")
+    }
+
+    override fun onDisable(ctx: PluginContext) {}
+}
+
+class TestInvalidAssetPlugin : GigaPlugin {
+    override fun onEnable(ctx: PluginContext) {
+        ctx.registry.registerModel(
+            ModelDefinition(
+                id = "bad_model",
+                geometryPath = "assets/demo/models/item/bad_model.json",
+                textures = mapOf("layer0" to "missing_texture")
+            )
+        )
     }
 
     override fun onDisable(ctx: PluginContext) {}

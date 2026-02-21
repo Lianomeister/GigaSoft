@@ -1,11 +1,11 @@
 # Changelog
 
-## Unreleased (1.1.0)
+## Unreleased (1.5.0)
 
 ### Changed
-- Project version moved to `1.1.0-SNAPSHOT` after the `1.0.0` release.
-- Default standalone server version moved to `1.1.0-SNAPSHOT`.
-- DSL default plugin version moved to `1.1.0-SNAPSHOT` for active development.
+- Project version moved to `1.5.0-SNAPSHOT` for the expanded post-1.1 scope.
+- Default standalone server version moved to `1.5.0-SNAPSHOT`.
+- DSL default plugin version moved to `1.5.0-SNAPSHOT` for active development.
 
 ### Added
 - Plugin API ergonomic helpers:
@@ -62,6 +62,50 @@
     - `CommandRegistry.registerAlias` / `unregisterAlias` / `resolve` / `registeredCommands`,
     - high-level helpers `registerWithAliases`, `registerOrReplaceWithAliases`,
     - validation-aware helpers `registerValidated`, `registerOrReplaceValidated`.
+  - command API UX 2.0 baseline:
+    - `CommandSpec` with permission/args-schema/cooldown/rate-limit/usage/help contracts,
+    - typed args parser (`CommandParsedArgs`) and built-in auto-help flow,
+    - deterministic command middleware chain (`AUTH`/`VALIDATION`/`AUDIT`),
+    - completion contracts via `CommandCompletionContract` and `CommandCompletionCatalog`.
+    - `CommandDsl` is now spec-first capable (`command(spec=...)` / `spec(...)`) with middleware and completion wiring.
+  - Events 2.0 baseline:
+    - listener priorities (`EventPriority`) and per-listener `ignoreCancelled` / `mainThreadOnly`,
+    - async event publish API (`publishAsync`) and helper (`publishAsyncUnit`),
+    - strict main-thread guard support in runtime event bus,
+    - plugin-facing event tracing/profiling snapshots (`EventTraceSnapshot`, `EventTypeTraceSnapshot`).
+  - Data/State API baseline:
+    - transactional host mutation batches (`HostMutationBatch`, `HostMutationOp`, `HostMutationType`),
+    - atomic apply+rollback result contract (`HostMutationBatchResult`),
+    - host API entrypoint `HostAccess.applyMutationBatch(...)`,
+    - plugin helper `PluginContext.applyHostMutationBatch(...)` with rollback callback hook.
+    - stronger standalone persistence snapshots:
+      - schema v2 envelope metadata (`savedAtEpochMillis`, `snapshotSha256`, migration history),
+      - deterministic migration pipeline/reporting (`v0 -> v1 -> v2`) via `loadWithReport`/`inspectMigrationReport`/`migrateInPlace`,
+      - checksum warning diagnostics on corrupted/tampered snapshots,
+      - automatic rewritten save after successful migration during core load.
+  - Assets/Content pipeline baseline:
+    - new asset contracts for `AnimationDefinition` and `SoundDefinition`,
+    - resource pack bundling/validation contracts (`validateAssets`, `buildResourcePackBundle`),
+    - runtime validation checks for missing refs, format mismatch, and namespace/path policy,
+    - deterministic reload fallback on invalid assets via rollback transaction.
+  - Network API baseline for plugins:
+    - stable plugin messaging channels (`PluginNetwork`) with registration/subscription/send contracts,
+    - schema-versioned payload envelope and typed delivery status,
+    - runtime backpressure + per-plugin throughput quotas + payload size limits.
+  - Security and isolation hardening:
+    - finer-grained host permission gate for mutation batches (`host.mutation.batch`),
+    - capability-scoped adapter invocation policies (`adapter.invoke.*`, `adapter.capability.*`),
+    - plugin fault-budget telemetry added to runtime `profile`/`doctor` diagnostics.
+  - hot-reload developer workflow improvements:
+    - changed-jar detection with `reloadChangedWithReport()` in runtime,
+    - standalone `sync` command path for load-new + reload-changed in one step,
+    - `reload changed` command path in standalone CLI,
+    - longer mutation timeout for heavy reload transactions.
+  - plugin UI API expansion:
+    - new `PluginUi` surface on `PluginContext` (`ctx.ui`),
+    - UI contracts for notice/actionbar/menu/dialog payloads,
+    - convenience UI helpers (`notifyInfo/Success/Warning/Error`, `showMenu`, `showDialog`),
+    - runtime UI bridge publishing UI lifecycle events (`GigaUi*`).
   - new gameplay events: `GigaEntityRemoveEvent`, `GigaEntityDataChangeEvent`, `GigaPlayerTeleportEvent`, `GigaPlayerGameModeChangeEvent`, `GigaPlayerMessageEvent`, `GigaPlayerKickEvent`, `GigaPlayerOpChangeEvent`, `GigaPlayerPermissionChangeEvent`, `GigaWorldTimeChangeEvent`, `GigaWorldDataChangeEvent`, `GigaWorldWeatherChangeEvent`, `GigaPlayerStatusChangeEvent`, `GigaPlayerEffectChangeEvent`, `GigaBlockChangeEvent`, `GigaBlockDataChangeEvent`, plus asset events `GigaTextureRegisteredEvent` and `GigaModelRegisteredEvent`.
 
 ### Planned
@@ -142,5 +186,6 @@
 
 ### Build
 - New `releaseCandidate` task to run verification and collect RC artifacts.
+
 
 

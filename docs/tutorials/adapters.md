@@ -7,6 +7,8 @@ Host bridge actions are permission-gated. Add required permissions in `gigaplugi
 ```yaml
 permissions:
   - host.server.read
+  - adapter.invoke.*
+  - adapter.capability.echo
 ```
 
 ## Register Custom Adapter
@@ -39,6 +41,11 @@ if (!result.success) {
     ctx.logger.info("adapter failed: ${result.message}")
 }
 ```
+
+If your runtime enables adapter permission scopes, plugin permissions can restrict:
+
+- adapter IDs: `adapter.invoke.<id>` or `adapter.invoke.*`
+- adapter capabilities: `adapter.capability.<capability>` or `adapter.capability.*`
 
 ## SAFE vs FAST
 

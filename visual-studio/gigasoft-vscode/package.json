@@ -2,7 +2,7 @@
   "name": "gigasoft-vscode",
   "displayName": "GigaSoft Plugin Tools",
   "description": "VS Code support for GigaSoft plugin development.",
-  "version": "0.3.0",
+  "version": "0.5.0",
   "publisher": "lianomeister",
   "engines": {
     "vscode": "^1.95.0"
@@ -14,6 +14,7 @@
   ],
   "activationEvents": [
     "onLanguage:yaml",
+    "onLanguage:kotlin",
     "onCommand:gigasoft.createPluginTemplate",
     "onCommand:gigasoft.createAssetTemplate",
     "onCommand:gigasoft.validateManifest",
@@ -55,7 +56,7 @@
         },
         "gigasoft.plugin.defaultVersion": {
           "type": "string",
-          "default": "1.1.0-SNAPSHOT",
+          "default": "1.5.0-SNAPSHOT",
           "description": "Default plugin version used in templates."
         },
         "gigasoft.update.checkOwner": {
@@ -97,3 +98,4 @@
   },
   "license": "SEE LICENSE IN ../../LICENSE"
 }
+
