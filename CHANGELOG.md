@@ -1,11 +1,11 @@
 # Changelog
 
-## Unreleased (1.5.0)
+## 1.5.0 - 2026-02-21
 
 ### Changed
-- Project version moved to `1.5.0-SNAPSHOT` for the expanded post-1.1 scope.
-- Default standalone server version moved to `1.5.0-SNAPSHOT`.
-- DSL default plugin version moved to `1.5.0-SNAPSHOT` for active development.
+- Project version moved to `1.5.0`.
+- Default standalone server version moved to `1.5.0`.
+- DSL default plugin version moved to `1.5.0`.
 
 ### Added
 - Plugin API ergonomic helpers:

@@ -1,4 +1,4 @@
-package com.clockwork.standalone
+﻿package com.clockwork.standalone
 
 import com.clockwork.runtime.RuntimeSecurityThresholdsConfig
 import com.clockwork.runtime.RuntimeSecurityThresholdsValidator
@@ -11,9 +11,16 @@ data class StandaloneLaunchConfig(
     val dataDir: String,
     val serverName: String,
     val serverVersion: String,
+    val defaultWorld: String,
     val maxPlayers: Int,
+    val maxWorlds: Int,
+    val maxEntities: Int,
     val tickPeriodMillis: Long,
     val autoSaveEveryTicks: Long,
+    val chunkViewDistance: Int,
+    val maxChunkLoadsPerTick: Int,
+    val maxLoadedChunksPerWorld: Int,
+    val runtimeSchedulerWorkerThreads: Int,
     val netPort: Int,
     val netSharedSecret: String?,
     val netAdminSecret: String?,
@@ -29,6 +36,8 @@ data class StandaloneLaunchConfig(
     val netMaxJsonPayloadKeyChars: Int,
     val netMaxJsonPayloadValueChars: Int,
     val netMaxJsonPayloadTotalChars: Int,
+    val netWorkerThreads: Int,
+    val netWorkerQueueCapacity: Int,
     val netAuditLogEnabled: Boolean,
     val netTextFlushEveryResponses: Int,
     val netFrameFlushEveryResponses: Int,
@@ -42,6 +51,8 @@ data class StandaloneLaunchConfig(
     val adapterAuditRetentionMaxEntriesPerPlugin: Int,
     val adapterAuditRetentionMaxEntriesPerAdapter: Int,
     val adapterAuditRetentionMaxAgeMillis: Long,
+    val adapterAuditRetentionMaxMemoryBytes: Long,
+    val adapterPayloadPolicyProfile: String,
     val adapterMaxPayloadEntries: Int,
     val adapterMaxPayloadTotalChars: Int,
     val adapterMaxPayloadKeyChars: Int,
@@ -49,6 +60,10 @@ data class StandaloneLaunchConfig(
     val securityConfigSchemaVersion: Int,
     val faultBudgetMaxFaultsPerWindow: Int,
     val faultBudgetWindowMillis: Long,
+    val faultBudgetWarnUsageRatio: Double,
+    val faultBudgetThrottleUsageRatio: Double,
+    val faultBudgetIsolateUsageRatio: Double,
+    val faultBudgetThrottleBudgetMultiplier: Double,
     val eventDispatchMode: String,
     val securityConfigWarnings: List<String>
 )
@@ -58,10 +73,18 @@ fun parseLaunchConfig(args: Array<String>): StandaloneLaunchConfig {
     val pluginsDir = stringOption(args, fileConfig, "--plugins", "plugins", "dev-runtime/giga-plugins")
     val dataDir = stringOption(args, fileConfig, "--data", "data", "dev-runtime/giga-data")
     val serverName = stringOption(args, fileConfig, "--name", "name", "Clockwork Standalone")
-    val serverVersion = stringOption(args, fileConfig, "--version", "version", "1.5.0-rc.2")
-    val maxPlayers = intOption(args, fileConfig, "--max-players", "maxPlayers", 0)
+    val serverVersion = stringOption(args, fileConfig, "--version", "version", "1.5.0")
+    val defaultWorld = stringOption(args, fileConfig, "--default-world", "defaultWorld", "world")
+    val maxPlayers = intOption(args, fileConfig, "--max-players", "maxPlayers", 0).coerceAtLeast(0)
+    val maxWorlds = intOption(args, fileConfig, "--max-worlds", "maxWorlds", 0).coerceAtLeast(0)
+    val maxEntities = intOption(args, fileConfig, "--max-entities", "maxEntities", 0).coerceAtLeast(0)
     val tickPeriodMillis = longOption(args, fileConfig, "--tick-ms", "tickPeriodMillis", 50L)
     val autoSaveEveryTicks = longOption(args, fileConfig, "--autosave-ticks", "autoSaveEveryTicks", 200L)
+    val chunkViewDistance = intOption(args, fileConfig, "--chunk-view-distance", "chunkViewDistance", 4)
+    val maxChunkLoadsPerTick = intOption(args, fileConfig, "--max-chunk-loads-per-tick", "maxChunkLoadsPerTick", 128)
+    val maxLoadedChunksPerWorld = intOption(args, fileConfig, "--max-loaded-chunks-per-world", "maxLoadedChunksPerWorld", 4096)
+    val runtimeSchedulerWorkerThreads = intOption(args, fileConfig, "--runtime-scheduler-threads", "runtimeSchedulerWorkerThreads", 2)
+        .coerceAtLeast(1)
     val netPort = intOption(args, fileConfig, "--net-port", "netPort", 25570)
     val netSharedSecret = stringOption(args, fileConfig, "--net-shared-secret", "netSharedSecret", "").ifBlank { null }
     val netAdminSecret = stringOption(args, fileConfig, "--net-admin-secret", "netAdminSecret", "").ifBlank { null }
@@ -83,6 +106,10 @@ fun parseLaunchConfig(args: Array<String>): StandaloneLaunchConfig {
     val netMaxJsonPayloadKeyChars = intOption(args, fileConfig, "--net-max-json-payload-key-chars", "netMaxJsonPayloadKeyChars", 64)
     val netMaxJsonPayloadValueChars = intOption(args, fileConfig, "--net-max-json-payload-value-chars", "netMaxJsonPayloadValueChars", 1024)
     val netMaxJsonPayloadTotalChars = intOption(args, fileConfig, "--net-max-json-payload-total-chars", "netMaxJsonPayloadTotalChars", 8192)
+    val netWorkerThreads = intOption(args, fileConfig, "--net-worker-threads", "netWorkerThreads", Runtime.getRuntime().availableProcessors().coerceAtLeast(4))
+        .coerceAtLeast(1)
+    val netWorkerQueueCapacity = intOption(args, fileConfig, "--net-worker-queue-capacity", "netWorkerQueueCapacity", 2048)
+        .coerceAtLeast(1)
     val netAuditLogEnabled = boolOption(args, fileConfig, "--net-audit-log-enabled", "netAuditLogEnabled", true)
     val netTextFlushEveryResponses = intOption(args, fileConfig, "--net-text-flush-every", "netTextFlushEveryResponses", 1)
     val netFrameFlushEveryResponses = intOption(args, fileConfig, "--net-frame-flush-every", "netFrameFlushEveryResponses", 1)
@@ -114,10 +141,24 @@ fun parseLaunchConfig(args: Array<String>): StandaloneLaunchConfig {
         "adapterAuditRetentionMaxAgeMillis",
         300_000L
     )
-    val adapterMaxPayloadEntries = intOption(args, fileConfig, "--adapter-max-payload-entries", "adapterMaxPayloadEntries", 32)
-    val adapterMaxPayloadTotalChars = intOption(args, fileConfig, "--adapter-max-payload-total-chars", "adapterMaxPayloadTotalChars", 4096)
-    val adapterMaxPayloadKeyChars = intOption(args, fileConfig, "--adapter-max-payload-key-chars", "adapterMaxPayloadKeyChars", 64)
-    val adapterMaxPayloadValueChars = intOption(args, fileConfig, "--adapter-max-payload-value-chars", "adapterMaxPayloadValueChars", 512)
+    val adapterAuditRetentionMaxMemoryBytes = longOption(
+        args,
+        fileConfig,
+        "--adapter-audit-retention-max-memory-bytes",
+        "adapterAuditRetentionMaxMemoryBytes",
+        512L * 1024L
+    )
+    val adapterPayloadPolicyProfile = stringOption(
+        args,
+        fileConfig,
+        "--adapter-payload-policy-profile",
+        "adapterPayloadPolicyProfile",
+        "balanced"
+    )
+    val adapterMaxPayloadEntries = intOption(args, fileConfig, "--adapter-max-payload-entries", "adapterMaxPayloadEntries", -1)
+    val adapterMaxPayloadTotalChars = intOption(args, fileConfig, "--adapter-max-payload-total-chars", "adapterMaxPayloadTotalChars", -1)
+    val adapterMaxPayloadKeyChars = intOption(args, fileConfig, "--adapter-max-payload-key-chars", "adapterMaxPayloadKeyChars", -1)
+    val adapterMaxPayloadValueChars = intOption(args, fileConfig, "--adapter-max-payload-value-chars", "adapterMaxPayloadValueChars", -1)
     val securityConfigSchemaVersion = intOption(
         args,
         fileConfig,
@@ -139,6 +180,34 @@ fun parseLaunchConfig(args: Array<String>): StandaloneLaunchConfig {
         "faultBudgetWindowMillis",
         60_000L
     )
+    val faultBudgetWarnUsageRatio = doubleOption(
+        args,
+        fileConfig,
+        "--fault-budget-warn-ratio",
+        "faultBudgetWarnUsageRatio",
+        0.60
+    )
+    val faultBudgetThrottleUsageRatio = doubleOption(
+        args,
+        fileConfig,
+        "--fault-budget-throttle-ratio",
+        "faultBudgetThrottleUsageRatio",
+        0.80
+    )
+    val faultBudgetIsolateUsageRatio = doubleOption(
+        args,
+        fileConfig,
+        "--fault-budget-isolate-ratio",
+        "faultBudgetIsolateUsageRatio",
+        1.00
+    )
+    val faultBudgetThrottleBudgetMultiplier = doubleOption(
+        args,
+        fileConfig,
+        "--fault-budget-throttle-budget-multiplier",
+        "faultBudgetThrottleBudgetMultiplier",
+        0.50
+    )
     val eventDispatchMode = stringOption(args, fileConfig, "--event-dispatch-mode", "eventDispatchMode", "exact")
 
     val securityValidation = RuntimeSecurityThresholdsValidator.normalize(
@@ -156,9 +225,15 @@ fun parseLaunchConfig(args: Array<String>): StandaloneLaunchConfig {
         adapterAuditRetentionMaxEntriesPerPlugin = adapterAuditRetentionMaxEntriesPerPlugin,
         adapterAuditRetentionMaxEntriesPerAdapter = adapterAuditRetentionMaxEntriesPerAdapter,
         adapterAuditRetentionMaxAgeMillis = adapterAuditRetentionMaxAgeMillis,
+        adapterAuditRetentionMaxMemoryBytes = adapterAuditRetentionMaxMemoryBytes,
+        adapterPayloadPolicyProfile = adapterPayloadPolicyProfile,
         adapterExecutionMode = adapterExecutionMode,
         faultBudgetMaxFaultsPerWindow = faultBudgetMaxFaultsPerWindow,
-        faultBudgetWindowMillis = faultBudgetWindowMillis
+        faultBudgetWindowMillis = faultBudgetWindowMillis,
+        faultBudgetWarnUsageRatio = faultBudgetWarnUsageRatio,
+        faultBudgetThrottleUsageRatio = faultBudgetThrottleUsageRatio,
+        faultBudgetIsolateUsageRatio = faultBudgetIsolateUsageRatio,
+        faultBudgetThrottleBudgetMultiplier = faultBudgetThrottleBudgetMultiplier
     )
     val normalizedSecurity = securityValidation.config
 
@@ -167,9 +242,16 @@ fun parseLaunchConfig(args: Array<String>): StandaloneLaunchConfig {
         dataDir = dataDir,
         serverName = serverName,
         serverVersion = serverVersion,
+        defaultWorld = defaultWorld.ifBlank { "world" },
         maxPlayers = maxPlayers,
+        maxWorlds = maxWorlds,
+        maxEntities = maxEntities,
         tickPeriodMillis = tickPeriodMillis,
         autoSaveEveryTicks = autoSaveEveryTicks,
+        chunkViewDistance = chunkViewDistance,
+        maxChunkLoadsPerTick = maxChunkLoadsPerTick,
+        maxLoadedChunksPerWorld = maxLoadedChunksPerWorld,
+        runtimeSchedulerWorkerThreads = runtimeSchedulerWorkerThreads,
         netPort = netPort,
         netSharedSecret = netSharedSecret,
         netAdminSecret = netAdminSecret,
@@ -185,6 +267,8 @@ fun parseLaunchConfig(args: Array<String>): StandaloneLaunchConfig {
         netMaxJsonPayloadKeyChars = netMaxJsonPayloadKeyChars,
         netMaxJsonPayloadValueChars = netMaxJsonPayloadValueChars,
         netMaxJsonPayloadTotalChars = netMaxJsonPayloadTotalChars,
+        netWorkerThreads = netWorkerThreads,
+        netWorkerQueueCapacity = netWorkerQueueCapacity,
         netAuditLogEnabled = netAuditLogEnabled,
         netTextFlushEveryResponses = netTextFlushEveryResponses,
         netFrameFlushEveryResponses = netFrameFlushEveryResponses,
@@ -198,6 +282,8 @@ fun parseLaunchConfig(args: Array<String>): StandaloneLaunchConfig {
         adapterAuditRetentionMaxEntriesPerPlugin = normalizedSecurity.adapter.auditRetentionMaxEntriesPerPlugin,
         adapterAuditRetentionMaxEntriesPerAdapter = normalizedSecurity.adapter.auditRetentionMaxEntriesPerAdapter,
         adapterAuditRetentionMaxAgeMillis = normalizedSecurity.adapter.auditRetentionMaxAgeMillis,
+        adapterAuditRetentionMaxMemoryBytes = normalizedSecurity.adapter.auditRetentionMaxMemoryBytes,
+        adapterPayloadPolicyProfile = normalizedSecurity.adapter.payloadPolicyProfile.name.lowercase(),
         adapterMaxPayloadEntries = normalizedSecurity.adapter.maxPayloadEntries,
         adapterMaxPayloadTotalChars = normalizedSecurity.adapter.maxPayloadTotalChars,
         adapterMaxPayloadKeyChars = normalizedSecurity.adapter.maxPayloadKeyChars,
@@ -205,6 +291,10 @@ fun parseLaunchConfig(args: Array<String>): StandaloneLaunchConfig {
         securityConfigSchemaVersion = normalizedSecurity.schemaVersion,
         faultBudgetMaxFaultsPerWindow = normalizedSecurity.faultBudget.maxFaultsPerWindow,
         faultBudgetWindowMillis = normalizedSecurity.faultBudget.windowMillis,
+        faultBudgetWarnUsageRatio = normalizedSecurity.faultBudgetEscalation.warnUsageRatio,
+        faultBudgetThrottleUsageRatio = normalizedSecurity.faultBudgetEscalation.throttleUsageRatio,
+        faultBudgetIsolateUsageRatio = normalizedSecurity.faultBudgetEscalation.isolateUsageRatio,
+        faultBudgetThrottleBudgetMultiplier = normalizedSecurity.faultBudgetEscalation.throttleBudgetMultiplier,
         eventDispatchMode = eventDispatchMode,
         securityConfigWarnings = securityValidation.warnings
     )
@@ -269,6 +359,20 @@ private fun longOption(
     return fromFile?.toLongOrNull() ?: defaultValue
 }
 
+private fun doubleOption(
+    args: Array<String>,
+    fileConfig: Map<String, String>,
+    argKey: String,
+    configKey: String,
+    defaultValue: Double
+): Double {
+    val fromArg = argValue(args, argKey)?.toDoubleOrNull()
+    if (fromArg != null) return fromArg
+    val fromFile = fileConfig[configKey]
+        ?: fileConfig["standalone.$configKey"]
+    return fromFile?.toDoubleOrNull() ?: defaultValue
+}
+
 private fun boolOption(
     args: Array<String>,
     fileConfig: Map<String, String>,
@@ -288,5 +392,6 @@ private fun boolOption(
         else -> defaultValue
     }
 }
+
 
 

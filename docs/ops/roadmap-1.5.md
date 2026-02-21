@@ -1,287 +1,206 @@
-# Clockwork 1.5 Roadmap
+﻿# Clockwork v1.5 Fullversion Roadmap
 
-## Scope
+## Zielbild
+Clockwork `v1.5.0` wird der erste stabile Standalone-Release mit mod-like Plugin-Power, sauberer Operator-UX und produktionsreifen Sicherheits-/Stabilitaetsgrenzen.
 
-- Focus 1.5 on Plugin API evolution into a real modding framework.
-- Keep API compatibility within 1.x wherever possible, with additive-first design.
-- Prioritize production-ready contracts over one-off features.
+## Produktziele
+- Standalone ist der primäre, offiziell supportete Laufzeitpfad.
+- Plugin-Entwickler koennen komplexe Gameplay-Systeme in Kotlin schnell bauen und sicher reloaden.
+- Operatoren erhalten deterministische Diagnose, reproduzierbare Releases und sichere Defaults.
+- API bleibt in `1.x` moeglichst kompatibel und erweiterbar.
 
-## Workstreams
+## Release-Prinzipien
+- Stabilitaet vor Feature-Menge.
+- Additive API zuerst, Breaking Changes nur mit Migration-Plan.
+- Jede neue Funktion braucht Tests, Doku, CLI/JSON-Operator-Sicht.
 
-### 1) Command/API UX 2.0
-- Introduce `CommandSpec` with:
-  - permission
-  - args schema
-  - cooldown
-  - rate-limit
-  - usage/help
-- Add typed args parser plus auto-help and auto-completion contracts.
-- Add deterministic command middleware chain (auth, validation, audit).
+## Scope fuer v1.5.0 GA
 
-### 2) Events 2.0
-- Add priorities and `ignoreCancelled`.
-- Add async-safe event channel and strict main-thread guards.
-- Add event tracing/profiling API for plugin authors.
-Status:
-- Implemented in API/runtime (`EventSubscriptionOptions`, priority ordering, `publishAsync`, strict main-thread guard mode, trace snapshot/reset API).
-- Covered by runtime tests (`RuntimeMessagingTest`) including deterministic priority order, cancellation filtering, off-thread guard behavior, and trace metrics.
+### Muss (GA-Blocker)
+- [x] Vollstaendige Stabilisierung von `scan/reload/doctor/profile` im Standalone-Core.
+- [x] Harte Sicherheitsgrenzen komplett konfigurierbar, validiert und dokumentiert.
+- [x] Deterministische Tick-/Reload-Pipeline unter Last.
+- [x] Release-Artefakte + Checksums reproduzierbar in CI.
+- [x] Migrations-Guide `v1.5.0-rc.1 -> v1.5.0` und `v1.1 -> v1.5.0`.
 
-### 3) Data/State API
-- Add transactional world/entity/inventory mutation API.
-- Add atomic batch updates and rollback hooks.
-- Improve persistence snapshots and migration tooling.
-Status:
-- Implemented baseline transactional mutation batches via `HostAccess.applyMutationBatch(...)` with atomic rollback semantics in core.
-- Added plugin helper `ctx.applyHostMutationBatch(...)` with rollback callback hook.
-- Covered by runtime/core/api tests for permission gating, atomic success/rollback behavior, and rollback callback flow.
-- Persistence upgraded to schema `v2` envelope metadata (checksum + migration history) with deterministic migration reports (`v0 -> v1 -> v2`) and in-place rewrite on load.
+### Sollte
+- [x] Starke DX-Verbesserungen im VS-Code Addon.
+- [x] Bessere Plugin-Diagnostik inkl. Empfehlungen und Fehlerklassen.
+- [x] Mehr Host-API Kontrakte fuer world/player/entity/inventory use-cases.
 
-### 4) Assets/Content Pipeline
-- Add resource pack bundling API (textures/models/animations/sounds).
-- Add validation and build-time checks (missing refs, format mismatch).
-- Add runtime hot-reload with deterministic fallback behavior.
-Status:
-- Implemented `RegistryFacade` asset expansion (`registerAnimation`, `registerSound`) and bundle/validation APIs (`validateAssets`, `buildResourcePackBundle`).
-- Runtime registry now validates namespace, extension/format compatibility, and missing references before producing bundle artifacts.
-- Runtime load/reload now hard-fails invalid asset packs and relies on existing reload rollback transaction for deterministic fallback to last-good plugin build.
+### Kann
+- [x] Erste Preview fuer visuelle Debug-Ansichten und Profil-Exports.
+- [x] Erweiterte Beispiel-Plugins fuer Maschinen-/Netzwerk-/UI-Patterns.
 
-### 5) Network API for Plugins
-- Add stable plugin messaging channels.
-- Add payload schema/versioning and backpressure contracts.
-- Add quotas and per-plugin throughput controls.
-Status:
-- Implemented plugin messaging channels via `PluginNetwork` (`registerChannel`, `send`, `subscribe`, `channelStats`).
-- Added schema-versioned payload contracts (`PluginChannelSpec`, `PluginMessage`, `PluginMessageResult`, `PluginMessageStatus`).
-- Runtime enforces per-channel payload limits, in-flight backpressure, and per-plugin throughput quotas.
+## Workstreams (GA)
 
-### 6) Security and Isolation
-- Add finer-grained host permissions.
-- Add capability-based adapter execution.
-- Add fault-budget policy per plugin and isolation telemetry.
-Status:
-- Added explicit host mutation batch gate permission: `host.mutation.batch` (in addition to per-operation permissions).
-- Adapter execution now supports permission-scoped controls:
-  - adapter allow-list (`adapter.invoke.<id>` / `adapter.invoke.*`)
-  - capability allow-list (`adapter.capability.<name>` / `adapter.capability.*`).
-- Added plugin fault-budget telemetry in runtime profiles/doctor diagnostics (`faultBudget` snapshot with used/remaining/tripped and source breakdown).
+### 1. Core Stabilitaet und Determinismus
+- [x] Tick-loop Jitter-Messung + harte Budgets pro Plugin.
+- [x] Reload-Transaction weiter haerten (state checkpoint diff + rollback quality metrics).
+- [x] Deterministische Reihenfolge fuer systems/tasks/events dokumentieren und testen.
+- [x] Verbesserte Fehlerisolation: plugin-local crash containment ohne Core-Absturz.
 
-### 7) DX and Tooling
-- Improve VS Code extension:
-  - diagnostics
-  - quick-fixes
-  - code actions
-  - command/event snippets
-- Expand doc site with full 1.5 reference and migration guide 1.1 -> 1.5.
-- Add plugin-focused recommendations in `doctor` and `profile`.
-Status:
-- VS Code extension expanded with manifest + Kotlin diagnostics, quick fixes/code actions, and new snippets for CommandSpec/Event 2.0/Plugin Network.
-- Added versioned docs page `docs/api/v1.5.0.md` and migration guide `docs/migrations/v1.5.md`.
-- `doctor`/`profile` now surface plugin-focused recommendations (human + JSON output) based on slow systems, adapter hotspots, isolation state, and fault budget pressure.
+### 2. Security Hardening 2.0
+- [x] Alle Runtime- und Adapter-Schwellenwerte nur aus Config/CLI + Validator.
+- [x] Fault-budget Eskalationsstufen (warn -> throttle -> isolate) mit Telemetrie.
+- [x] Payload-Policy Profile (`strict`, `balanced`, `perf`) fuer Operatoren.
+- [x] Audit Retention fest begrenzen (entry count, age, memory budget).
 
-### 8) Release Gates 1.5
-- API compatibility gate.
-- Security matrix and abuse tests.
-- Performance baseline thresholds.
-- Smoke + soak + deterministic integration suite.
+### 3. API/SDK Reifegrad
+- [x] API-Review fuer `clockwork-api` und `clockwork-host-api` (naming, nullability, contracts).
+- [x] Additive DSL-Verbesserungen fuer commands/events/host mutations.
+- [x] Contract-Tests fuer alle Public Interfaces.
+- [x] API-Kompatibilitaetsbericht als Pflicht in CI.
 
-## Definition of Done for 1.5
+### 4. Host API Ausbau
+- Konsolidierte Ports fuer:
+  - player lifecycle + permissions + status
+  - world data/time/weather/block access
+  - entity query/mutate/remove
+  - inventory read/write primitives
+- HostAccess Mutation-Batches mit besseren Fehlercodes.
+- Dokumentierte Permission-Matrix je Host-Aktion.
 
-- 1.5 plugin API features are documented with reference + examples.
-- Migration guide from 1.1 to 1.5 is published and validated.
-- Release gates are green from clean checkout.
-- API compatibility report is clean (or documented intentional exceptions).
-- Security/performance baselines are reproducible and attached to release notes.
+### 5. Plugin Runtime und Lifecycle
+- Lifecycle Hooks erweitern (`beforeEnable`, `afterDisable`, `beforeReload`).
+- Hot-reload Leckschutz (classloader reference tracking + leak report).
+- Plugin dependency graph diagnostics (`missing`, `incompatible`, `cycle`).
+- Slow-system quarantining mit automatischer Rejoin-Strategie.
 
-## 1.5.0-rc.2 Proposed Additions
+### 6. Commands, Diagnostics und Operator UX
+- `doctor/profile` Recommendation-Codes finalisieren und versionieren.
+- Output-Profile: `--pretty`, `--compact`, `--json` in allen relevanten Ops-Kommandos.
+- Neue Diagnosekommandos:
+  - `diag export`
+  - `diag tail`
+  - `diag budget`
+- Einheitliches Fehlerformat fuer CLI + JSON.
 
-### Priority A (must-have for rc.2)
+### 7. Performance und Soak
+- Baselines fuer:
+  - tick time (p50/p95/p99)
+  - reload latency
+  - adapter invoke latency
+  - memory growth nach N reloads
+- 6h Soak als Pflicht vor GA.
+- Regression-Alarmgrenzen in CI.
 
-1. Standalone Core Maturity Pass
-- Promote standalone path from preview to officially supported rc path.
-- Add parity checks for `scan/reload/doctor/profile` between Paper bridge and standalone.
-- Acceptance:
-  - Standalone boot + demo plugin flow documented and tested in CI.
-  - Deterministic tick-loop and reload behavior confirmed in integration smoke.
-Status:
-- Standalone RC support is now explicitly documented in `README.md`.
-- Added smoke-tagged parity test (`StandaloneParitySmokeTest`) covering scan/reload/doctor/profile and demo flow boot checks.
-- Added root `integrationSmoke` pipeline task and wired CI smoke stage to run it.
-
-2. Configurable Security Thresholds
-- Move hardcoded adapter/runtime thresholds to config:
-  - timeout
-  - per-window rate limits
-  - payload limits
-  - fault budget thresholds
-- Acceptance:
-  - Config schema versioned.
-  - Runtime validates config and falls back to safe defaults.
-  - Test matrix covers valid/invalid/edge configs.
-Status:
-- Added schema-versioned security thresholds (`securityConfigSchemaVersion=1`) in standalone config flow.
-- Added runtime-backed normalization/validation with safe fallback defaults (`RuntimeSecurityThresholdsValidator`).
-- Adapter thresholds + fault budget thresholds are now configurable and injected into runtime.
-- Added test coverage for valid, invalid, and unsupported schema edge cases.
-
-3. Command Integration Test Expansion
-- Add command-level integration tests for:
-  - `/giga adapters <plugin> [--json]`
-  - `/giga adapter invoke ... [--json]`
-  - permission gates (`clockwork.admin.*`)
-- Acceptance:
-  - Positive + negative authorization cases.
-  - JSON output schema assertions.
-Status:
-- Added standalone command-parity integration coverage for adapter command flows:
-  - `adapters <plugin> [--json]` JSON schema assertions
-  - `adapter invoke <plugin> <adapterId> <action> [--json]` JSON schema assertions
-- Added positive + negative authorization tests via adapter permission scopes (`adapter.invoke.*`) in standalone runtime.
-
-4. Metrics + Audit Stability
-- Add adapter audit retention policy and bounded memory model.
-- Expose adapter counters in both `profile --json` and diagnostics snapshots.
-- Acceptance:
-  - No unbounded metric growth under sustained invoke load.
-  - Soak test includes repeated invoke/reload cycles.
-Status:
-- Added bounded in-memory adapter audit retention policy with configurable limits:
-  - max entries per plugin
-  - max entries per adapter
-  - max entry age (ms)
-- Adapter counters are now explicit snapshots in both:
-  - `profile --json` (`profile.adapterCounters`)
-  - `doctor --json` diagnostics (`diagnostics.pluginPerformance.<plugin>.adapterCounters`)
-- Added retained audit snapshot surfaces in both profile and diagnostics (`adapterAudit`) with retention metadata.
-- Added runtime stability tests for sustained adapter invoke pressure to confirm bounded retained audit memory.
-- Added standalone soak coverage that exercises repeated invoke/reload cycles and asserts bounded audit retention post-cycle.
-
-### Priority B (should-have in rc.2 if time allows)
-
-5. Host API Extraction (first cut)
-- Start explicit `host-api` contracts to reduce Paper coupling in shared runtime paths.
-- Acceptance:
-  - New interfaces for world/player/entity access introduced.
-  - Core/runtime compile path stays host-agnostic.
-Status:
-- Introduced explicit host domain ports in `clockwork-host-api`:
-  - `HostPlayerPort`
-  - `HostWorldPort`
-  - `HostEntityPort`
-- `HostBridgePort` now composes these domain ports instead of carrying all contracts monolithically.
-- Added host-api adapter coverage test to validate world/player/entity mapping through `asHostAccess()`.
-- Runtime/core compile path remains host-agnostic (`clockwork-runtime` has no dependency on Paper bridge artifacts).
-
-6. Release Artifact Hardening
-- Ensure release bundle always includes:
-  - standalone jar
-  - cli jar
-  - demo jar
-- Add checksum manifest (`sha256`) in release output.
-- Acceptance:
-  - Artifact list and checksums auto-generated in CI.
-Status:
-- `standaloneReleaseCandidateArtifacts` now enforces exactly 3 jars in bundle:
-  - `clockwork-standalone-*`
-  - `clockwork-cli-*`
-  - `clockwork-demo-standalone-*`
-- Gradle release output now includes:
+### 8. Packaging, Release, Supply Chain
+- Release-Bundle immer mit:
+  - `clockwork-standalone`
+  - `clockwork-cli`
+  - `clockwork-demo-standalone`
   - `ARTIFACTS.txt`
   - `ARTIFACTS.json`
   - `SHA256SUMS.txt`
-- CI release workflow (`release-assets.yml`) now auto-generates and uploads artifact list + checksums for the final release asset filenames.
+- Reproduzierbarer Build-Report pro Release.
+- Release Notes Template mit Migration, Breaking Notices, Known Limits.
 
-### Priority C (nice-to-have)
+### 9. Documentation und Website
+- Docs-Index komplett auf Stand `v1.5.0`.
+- Operator Playbook fuer incident handling + rollback.
+- 5 neue Tutorials:
+  - advanced reload-safe patterns
+  - machine pipeline design
+  - adapter security best practices
+  - network channel design
+  - performance tuning cookbook
 
-7. Operator UX Improvements
-- Add `--pretty` and `--compact` output modes for `doctor/profile`.
-- Add recommendation codes in diagnostics for easier automation.
-Status:
-- Added operator output modes to standalone commands:
-  - `doctor [--json] [--pretty|--compact]`
-  - `profile <id> [--json] [--pretty|--compact]`
-- Added structured recommendation objects for diagnostics/profile outputs:
-  - `code`
-  - `severity`
-  - `message`
-- Introduced stable recommendation codes for automation:
-  - `SYS_SLOW`
-  - `ADAPTER_HOTSPOT`
-  - `SYSTEM_ISOLATED`
-  - `FAULT_BUDGET_PRESSURE`
+### 10. Tooling und VS Code Addon
+- Manifest Lint-Regeln erweitern (dependency ranges, permissions, IDs).
+- Mehr Code Actions fuer CommandSpec/EventSubscriptionOptions.
+- Snippet-Sets fuer Maschinen, Adapter und Host-Mutationen.
+- Release-Check im Addon gegen GitHub Tags.
 
-## rc.2 Exit Criteria (recommended)
+## Feature-Ideen Backlog (nach Prioritaet)
 
-- `test`, `integrationSmoke`, and standalone smoke all green from clean checkout.
-- Security thresholds fully config-driven and documented.
-- Admin command permissions + JSON output tested end-to-end.
-- Release notes include migration deltas from `v1.5.0-rc.1` to rc.2.
-Status:
-- Verified on 2026-02-21 via:
-  - `./gradlew --no-daemon clean test integrationSmoke :clockwork-standalone:smokeTest`
-- Security thresholds are config-driven and documented in:
-  - `clockwork-standalone/standalone.example.properties`
-  - `README.md`
-  - `docs/ops/release-readiness.md`
-- Admin permission + JSON output flows are covered in integration tests:
-  - `StandaloneLifecycleIntegrationTest` (adapter invoke/list + allow/deny authorization + JSON assertions)
-- Release notes now include explicit migration deltas:
-  - `CHANGELOG.md` (`1.5.0-rc.2` section)
+### A. High Impact (post-GA 1.5.x)
+- Plugin sandbox profiles (trusted/untrusted).
+- Deterministic simulation mode fuer integration tests.
+- Built-in plugin benchmark harness.
+- Persistent recipe graph inspector.
+- State diff visualizer fuer reload debugging.
+- Command permission simulator fuer admins.
+- Host event replay aus audit logs.
+- Plugin dependency lock file.
+- Runtime memory pressure advisor.
+- Canary plugin rollout mode.
 
-## 1.5.0 Full Release Roadmap (post-rc.2)
+### B. Medium Impact
+- Namespaced scheduler pools.
+- Plugin-owned metrics dashboards export (Prometheus-like text output).
+- World partition update queues.
+- Async snapshot compaction worker.
+- Structured plugin health score.
+- Policy packs fuer adapter security presets.
+- Lightweight data schema registry.
+- Deterministic random source per plugin/system.
+- Queue backpressure hints in profile output.
+- CLI session recording and replay.
 
-### Objective
-- Promote `1.5.0-rc.2` to stable `1.5.0` with production-focused hardening, docs completion, and zero known release blockers.
+### C. Creator Experience
+- DSL module templates fuer common gameplay archetypes.
+- Recipe DSL mit graph validation.
+- Machine statechart helper API.
+- UI flow DSL fuer menu/dialog flows.
+- Plugin scaffolding presets (`basic`, `machine`, `network`, `ops-heavy`).
+- Test fixtures fuer fake player/world/entity contexts.
+- Golden snapshot testing helpers.
+- Plugin contract docs auto-generation from code.
+- Curated examples repository sync.
+- Error message catalog mit recommended fixes.
 
-### Milestone 1: Stabilization and Regression Sweep
-- Run clean-checkout gate on CI and at least one fresh local clone:
-  - `./gradlew --no-daemon clean :clockwork-api:apiCheck test performanceBaseline standaloneReleaseCandidate integrationSmoke :clockwork-standalone:smokeTest`
-- Run soak validation with repeated invoke/reload cycles:
-  - `./gradlew --no-daemon soakTest`
-- Triage and fix any flaky tests until two consecutive green runs.
+### D. Ops and Platform
+- Signed release metadata.
+- Crash dump minimizer with sensitive field redaction.
+- Live config reload fuer security thresholds.
+- Health endpoint fuer headless deployments.
+- Docker hardening profile (read-only rootfs option).
+- Rolling world backup policy presets.
+- Release channel management (`stable`, `rc`, `nightly`).
+- Compatibility matrix exporter (plugins x runtime).
+- Long-run memory leak detector task.
+- Disaster recovery runbook automation.
+
+## Milestones bis GA
+
+### Milestone M1: Stabilize (Woche 1)
+- Core determinism fixes + flaky test elimination.
+- Security config validator finalisieren.
 - Acceptance:
-  - No flaky failures in two consecutive full gate runs.
-  - No known crash-level runtime defects.
+  - Zwei aufeinanderfolgende grüne full-gate runs.
+  - Keine offenen P0 Bugs.
 
-### Milestone 2: Docs and Operator Readiness
-- Finalize operator docs for:
-  - security threshold schema + fallback behavior
-  - `doctor/profile` JSON modes and recommendation codes
-  - release artifact manifests and checksum verification workflow
-- Refresh website/docs index and ensure command examples match rc.2/final binaries.
+### Milestone M2: Harden (Woche 2)
+- Soak/perf baselines final.
+- Diagnostics und recommendation codes final.
 - Acceptance:
-  - `README.md`, `docs/ops/release-readiness.md`, and migration docs are internally consistent.
-  - All documented commands verified against current standalone runtime.
+  - `soakTest` gruen.
+  - Baseline-Schwellen dokumentiert.
 
-### Milestone 3: API and Compatibility Lock
-- Freeze `clockwork-api` surface for `1.5.0`.
-- Re-run API compatibility gate and document any intentional exceptions.
-- Validate plugin migration path from `v1.1` and `v1.5.0-rc.1`.
+### Milestone M3: Polish (Woche 3)
+- Docs, tutorials, website, addon finishing.
+- Migration + release notes finalisieren.
 - Acceptance:
-  - `:clockwork-api:apiCheck` green with no undocumented breaks.
-  - Migration guide examples compile and run.
+  - Alle GA-Dokumente veroeffentlichbar.
+  - CLI/JSON examples verifiziert.
 
-### Milestone 4: Release Packaging and Provenance
-- Build final release bundle with:
-  - standalone jar
-  - cli jar
-  - demo jar
-  - `ARTIFACTS.txt`
-  - `ARTIFACTS.json`
-  - `SHA256SUMS.txt`
-- Verify CI release asset workflow output matches local bundle checksums.
+### Milestone M4: Release (Woche 4)
+- Final candidate build.
+- Tag + GitHub release + checksums.
 - Acceptance:
-  - Artifact list complete and checksum-verifiable.
-  - Release notes contain upgrade/migration deltas and known limitations.
+  - Vollstaendiges Artefakt-Set publiziert.
+  - Keine offenen P0/P1 Bugs.
 
-### Final 1.5.0 Exit Criteria
-- All gates green from clean checkout:
-  - `test`
-  - `integrationSmoke`
-  - `:clockwork-standalone:smokeTest`
-  - `soakTest`
-  - `performanceBaseline`
-  - `standaloneReleaseCandidate`
-- Security thresholds fully config-driven, validated, and documented.
-- Admin command permission + JSON output paths verified end-to-end.
-- No open P0/P1 issues in release tracker.
+## GA Exit-Kriterien (hart)
+- `./gradlew --no-daemon clean :clockwork-api:apiCheck test performanceBaseline standaloneReleaseCandidate integrationSmoke :clockwork-standalone:smokeTest` ist gruen.
+- `./gradlew --no-daemon soakTest` ist gruen.
+- Sicherheitsgrenzen voll konfigurierbar + validiert + dokumentiert.
+- Admin Permission Gates und JSON Outputs end-to-end getestet.
+- Release Notes + Migration Deltas final.
+- Alle Release-Artefakte inkl. Checksums auf GitHub vorhanden.
 
+## Was explizit aus alter Roadmap entfernt wurde
+- RC-spezifische Zwischenpunkte und bereits abgeschlossene rc.2 Tracking-Abschnitte.
+- Doppelte Statuslisten, die den GA-Fokus verwischen.
+- Historische Zwischen-Checklisten ohne aktuellen Delivery-Wert.

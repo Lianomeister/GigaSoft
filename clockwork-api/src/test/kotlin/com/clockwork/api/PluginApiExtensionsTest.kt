@@ -173,6 +173,19 @@ class PluginApiExtensionsTest {
     }
 
     @Test
+    fun `host access aliases provide deterministic non-null defaults`() {
+        val host = HostAccess.unavailable()
+        assertNull(host.lookupPlayer("Alex"))
+        assertFalse(host.isPlayerOp("Alex"))
+        assertTrue(host.permissionsOfPlayer("Alex").isEmpty())
+        assertFalse(host.playerHasPermission("Alex", "plugin.debug"))
+        assertTrue(host.listWorlds().isEmpty())
+        assertTrue(host.listEntities().isEmpty())
+        assertTrue(host.worldDataOrEmpty("world").isEmpty())
+        assertTrue(host.entityDataOrEmpty("entity").isEmpty())
+    }
+
+    @Test
     fun `ui helpers delegate to plugin ui contract`() {
         val calls = mutableListOf<String>()
         val ui = object : PluginUi {

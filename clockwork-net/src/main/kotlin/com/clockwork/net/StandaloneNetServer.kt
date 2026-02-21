@@ -14,6 +14,10 @@ import java.util.HashMap
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
+import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.RejectedExecutionException
+import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
@@ -36,6 +40,8 @@ data class StandaloneNetConfig(
     val maxJsonPayloadKeyChars: Int = 64,
     val maxJsonPayloadValueChars: Int = 1_024,
     val maxJsonPayloadTotalChars: Int = 8_192,
+    val workerThreads: Int = maxOf(4, Runtime.getRuntime().availableProcessors()),
+    val workerQueueCapacity: Int = 2_048,
     val auditLogEnabled: Boolean = true,
     val textFlushEveryResponses: Int = 1,
     val frameFlushEveryResponses: Int = 1
@@ -51,6 +57,8 @@ data class StandaloneNetConfig(
         require(maxJsonPayloadKeyChars > 0) { "maxJsonPayloadKeyChars must be > 0" }
         require(maxJsonPayloadValueChars > 0) { "maxJsonPayloadValueChars must be > 0" }
         require(maxJsonPayloadTotalChars > 0) { "maxJsonPayloadTotalChars must be > 0" }
+        require(workerThreads > 0) { "workerThreads must be > 0" }
+        require(workerQueueCapacity > 0) { "workerQueueCapacity must be > 0" }
         require(textFlushEveryResponses > 0) { "textFlushEveryResponses must be > 0" }
         require(frameFlushEveryResponses > 0) { "frameFlushEveryResponses must be > 0" }
     }
@@ -111,9 +119,20 @@ class StandaloneNetServer(
     private val totalRequestNanos = AtomicLong(0)
     private val actionMetrics = ConcurrentHashMap<String, MutableActionMetric>()
     private val sessions = ConcurrentHashMap.newKeySet<Socket>()
+    private val activeSessions = AtomicInteger(0)
     private val sessionsPerIp = ConcurrentHashMap<String, AtomicInteger>()
     private val requestsPerIp = ConcurrentHashMap<String, RateWindow>()
-    private val pool = Executors.newCachedThreadPool()
+    private val acceptor = Executors.newSingleThreadExecutor { r ->
+        Thread(r, "clockwork-net-accept").apply { isDaemon = true }
+    }
+    private val workers = ThreadPoolExecutor(
+        config.workerThreads,
+        config.workerThreads,
+        30L,
+        TimeUnit.SECONDS,
+        LinkedBlockingQueue(config.workerQueueCapacity),
+        { r -> Thread(r, "clockwork-net-worker").apply { isDaemon = true } }
+    )
     @Volatile
     private var boundPortValue: Int = -1
     private var serverSocket: ServerSocket? = null
@@ -130,15 +149,23 @@ class StandaloneNetServer(
         serverSocket = socket
         boundPortValue = socket.localPort
         logger.info("Standalone net listening on ${config.host}:$boundPortValue")
-        pool.submit {
+        acceptor.submit {
             while (running.get()) {
                 val client = runCatching { socket.accept() }.getOrNull() ?: continue
                 val remoteIp = client.inetAddress?.hostAddress ?: "unknown"
                 if (!allowConnection(client, remoteIp)) {
                     continue
                 }
-                sessions += client
-                pool.submit { handleClient(client, remoteIp) }
+                try {
+                    sessions += client
+                    workers.execute { handleClient(client, remoteIp) }
+                } catch (_: RejectedExecutionException) {
+                    sessions.remove(client)
+                    releaseConnection(remoteIp)
+                    recordActionMetric("transport.worker_saturated", 0L, false)
+                    audit("worker_saturated", remoteIp, null, "worker queue saturated")
+                    runCatching { client.close() }
+                }
             }
         }
     }
@@ -148,8 +175,10 @@ class StandaloneNetServer(
         runCatching { serverSocket?.close() }
         sessions.forEach { runCatching { it.close() } }
         sessions.clear()
+        activeSessions.set(0)
         boundPortValue = -1
-        pool.shutdownNow()
+        acceptor.shutdownNow()
+        workers.shutdownNow()
         logger.info("Standalone net stopped")
     }
 
@@ -915,16 +944,21 @@ class StandaloneNetServer(
     }
 
     private fun allowConnection(socket: Socket, remoteIp: String): Boolean {
-        if (sessions.size >= config.maxConcurrentSessions) {
-            recordActionMetric("transport.connection_limit", 0L, false)
-            audit("connection_limit", remoteIp, null, "maxConcurrentSessions reached")
-            runCatching { socket.close() }
-            return false
+        while (true) {
+            val current = activeSessions.get()
+            if (current >= config.maxConcurrentSessions) {
+                recordActionMetric("transport.connection_limit", 0L, false)
+                audit("connection_limit", remoteIp, null, "maxConcurrentSessions reached")
+                runCatching { socket.close() }
+                return false
+            }
+            if (activeSessions.compareAndSet(current, current + 1)) break
         }
         val counter = sessionsPerIp.computeIfAbsent(remoteIp) { AtomicInteger(0) }
         val next = counter.incrementAndGet()
         if (next > config.maxSessionsPerIp) {
             counter.decrementAndGet()
+            activeSessions.decrementAndGet()
             recordActionMetric("transport.per_ip_connection_limit", 0L, false)
             audit("per_ip_connection_limit", remoteIp, null, "maxSessionsPerIp reached")
             runCatching { socket.close() }
@@ -934,6 +968,7 @@ class StandaloneNetServer(
     }
 
     private fun releaseConnection(remoteIp: String) {
+        activeSessions.updateAndGet { current -> (current - 1).coerceAtLeast(0) }
         val counter = sessionsPerIp[remoteIp] ?: return
         val remaining = counter.decrementAndGet()
         if (remaining <= 0) {

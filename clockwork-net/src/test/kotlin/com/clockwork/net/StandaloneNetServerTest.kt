@@ -380,6 +380,50 @@ class StandaloneNetServerTest {
         }
     }
 
+    @Test
+    fun `global concurrent session limit rejects excess clients`() {
+        val server = StandaloneNetServer(
+            config = StandaloneNetConfig(
+                host = "127.0.0.1",
+                port = 0,
+                authRequired = false,
+                maxConcurrentSessions = 1,
+                maxSessionsPerIp = 8
+            ),
+            logger = {},
+            handler = TestHandler()
+        )
+        server.start()
+        try {
+            val port = waitForPort(server)
+            Socket("127.0.0.1", port).use { socket1 ->
+                val reader1 = socket1.getInputStream().bufferedReader()
+                val writer1 = socket1.getOutputStream().bufferedWriter()
+                val ping1 = sendJson(reader1, writer1, "ping", "hold-global")
+                assertTrue(ping1.success)
+
+                Socket("127.0.0.1", port).use { socket2 ->
+                    socket2.soTimeout = 1_000
+                    val reader2 = socket2.getInputStream().bufferedReader()
+                    val writer2 = socket2.getOutputStream().bufferedWriter()
+                    val result = runCatching {
+                        writer2.write("""{"protocol":"clockwork-standalone-net","version":1,"requestId":"x2","action":"ping","payload":{}}""")
+                        writer2.newLine()
+                        writer2.flush()
+                        reader2.readLine()
+                    }
+                    if (result.isSuccess) {
+                        assertNull(result.getOrNull())
+                    } else {
+                        assertTrue(result.exceptionOrNull() is SocketException)
+                    }
+                }
+            }
+        } finally {
+            server.stop()
+        }
+    }
+
     private fun waitForPort(server: StandaloneNetServer): Int {
         repeat(100) {
             val port = server.boundPort()

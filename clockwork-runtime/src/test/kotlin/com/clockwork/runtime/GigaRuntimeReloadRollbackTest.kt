@@ -43,6 +43,9 @@ class GigaRuntimeReloadRollbackTest {
         val report = runtime.reloadWithReport("demo")
         assertEquals(ReloadStatus.ROLLED_BACK, report.status)
         assertTrue(report.reason?.contains("com.example.MissingPlugin") == true)
+        assertTrue(report.rollbackDataRestored)
+        assertTrue("demo" in report.rollbackRecoveredPlugins)
+        assertTrue(report.rollbackFailedPlugins.isEmpty())
 
         val after = runtime.loadedPlugins()
         assertEquals(1, after.size)
@@ -81,6 +84,9 @@ class GigaRuntimeReloadRollbackTest {
         val report = runtime.reloadWithReport("demo")
         assertEquals(ReloadStatus.ROLLED_BACK, report.status)
         assertTrue(report.reason?.contains("Asset validation failed") == true)
+        assertTrue(report.rollbackDataRestored)
+        assertTrue("demo" in report.rollbackRecoveredPlugins)
+        assertTrue(report.rollbackFailedPlugins.isEmpty())
 
         val after = runtime.loadedPlugins()
         assertEquals(1, after.size)

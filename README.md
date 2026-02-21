@@ -1,4 +1,5 @@
-# Clockwork V1
+﻿# Clockwork V1
+![Clockwork Banner](logos/banner.png)
 
 Standalone-first Minecraft server runtime focused on easy, powerful plugins with a Kotlin DSL.
 
@@ -23,7 +24,8 @@ Standalone-first Minecraft server runtime focused on easy, powerful plugins with
 - Frozen baseline API contract: `docs/api/v1.0.0.md`
 - Current versioned API contract: `docs/api/v1.5.0.md`
 - Full API reference: `docs/api/reference-v1.md`
-- Migration guide (1.1 -> 1.5): `docs/migrations/v1.5.md`
+- Migration guide (v1.1 -> v1.5.0): `docs/migrations/v1.1-to-v1.5.0.md`
+- Migration guide (v1.5.0-rc.1 -> v1.5.0): `docs/migrations/v1.5.0-rc.1-to-v1.5.0.md`
 - Changelog: `CHANGELOG.md`
 - Performance targets + gate: `docs/performance/targets-v1.md`
 
@@ -43,6 +45,8 @@ Standalone-first Minecraft server runtime focused on easy, powerful plugins with
 ## Build
 ```bash
 ./gradlew --no-daemon :clockwork-api:apiCheck
+./gradlew --no-daemon :clockwork-host-api:apiCheck
+./gradlew --no-daemon apiCompatibilityReport
 ./gradlew --no-daemon test
 ./gradlew --no-daemon performanceBaseline
 ./gradlew --no-daemon standaloneReleaseCandidate
@@ -50,12 +54,12 @@ Standalone-first Minecraft server runtime focused on easy, powerful plugins with
 
 ## Standalone Run
 ```bash
-java -jar clockwork-standalone/build/libs/clockwork-standalone-1.5.0-rc.2.jar
+java -jar clockwork-standalone/build/libs/clockwork-standalone-1.5.0.jar
 ```
 
 Optional config file (`.properties`):
 ```bash
-java -jar clockwork-standalone/build/libs/clockwork-standalone-1.5.0-rc.2.jar --config clockwork-standalone/standalone.example.properties
+java -jar clockwork-standalone/build/libs/clockwork-standalone-1.5.0.jar --config clockwork-standalone/standalone.example.properties
 ```
 
 ## Standalone Commands
@@ -82,6 +86,8 @@ java -jar clockwork-standalone/build/libs/clockwork-standalone-1.5.0-rc.2.jar --
 - `reload <id|all>`
 - `doctor [--json] [--pretty|--compact]`
 - `profile <id> [--json] [--pretty|--compact]`
+- `diag export [--compact] [path]`
+- `profile export <id> [--compact] [path]`
 - `run <plugin> <command...>`
 - `adapters <plugin> [--json]`
 - `adapter invoke <plugin> <adapterId> <action> [k=v ...] [--json]`
@@ -90,6 +96,9 @@ java -jar clockwork-standalone/build/libs/clockwork-standalone-1.5.0-rc.2.jar --
 ## Built-in Bridge Adapters
 - `bridge.host.server`
 - `bridge.host.player`
+- `bridge.host.world`
+- `bridge.host.entity`
+- `bridge.host.inventory`
 
 ## Adapter Security Guardrails
 - Action/ID validation
@@ -102,7 +111,7 @@ java -jar clockwork-standalone/build/libs/clockwork-standalone-1.5.0-rc.2.jar --
 - Invocation timeout
 - Audit logs (`[adapter-audit]`)
 - Outcome counters in `profile --json` and `doctor --json` diagnostics snapshots
-- Bounded in-memory adapter audit retention (per-plugin, per-adapter, max-age)
+- Bounded in-memory adapter audit retention (per-plugin, per-adapter, max-age, max-memory)
 - Configurable via standalone CLI flags or `standalone.example.properties`
 - Security thresholds config is schema-versioned (`securityConfigSchemaVersion=1`)
 - Invalid/unsupported threshold values are validated and auto-fallback to safe defaults with startup warnings
@@ -117,12 +126,20 @@ java -jar clockwork-standalone/build/libs/clockwork-standalone-1.5.0-rc.2.jar --
   - `adapterAuditRetentionMaxEntriesPerPlugin`
   - `adapterAuditRetentionMaxEntriesPerAdapter`
   - `adapterAuditRetentionMaxAgeMillis`
+  - `adapterAuditRetentionMaxMemoryBytes`
+  - `adapterPayloadPolicyProfile` (`strict|balanced|perf`)
   - `faultBudgetMaxFaultsPerWindow`
   - `faultBudgetWindowMillis`
 - CLI overrides:
   - `--security-config-schema-version`
+  - `--adapter-payload-policy-profile`
+  - `--adapter-audit-retention-max-memory-bytes`
   - `--fault-budget-max-faults`
   - `--fault-budget-window-ms`
+  - `--fault-budget-warn-ratio`
+  - `--fault-budget-throttle-ratio`
+  - `--fault-budget-isolate-ratio`
+  - `--fault-budget-throttle-budget-multiplier`
 - Security matrix + abuse tests: `docs/security/hardening-matrix.md`
 
 ## Host Access In PluginContext
@@ -136,12 +153,39 @@ if (info != null) {
 ## CLI Server Control
 - `giga server start`
 - `giga server stop`
+- `giga server restart`
 - `giga server status`
+- `giga server status --json`
 - `giga server logs`
 - `giga server logs --follow`
+- `giga server logs --tail 500`
+- `giga server <cmd> --service <name>`
+- `giga server <cmd> --dry-run`
+
+## CLI Dev Helpers
+- `giga scaffold --id my-plugin --template dsl --package com.example`
+- `giga scaffold --id my-plugin --template basic --overwrite`
+- `giga doctor --runtime dev-runtime`
+- `giga doctor --runtime dev-runtime --json --strict`
+
+## Chunk Loading Tuning (Standalone)
+- `chunkViewDistance` (`--chunk-view-distance`)
+- `maxChunkLoadsPerTick` (`--max-chunk-loads-per-tick`)
+- `maxLoadedChunksPerWorld` (`--max-loaded-chunks-per-world`)
+
+## Multithreading Tuning (Standalone)
+- `runtimeSchedulerWorkerThreads` (`--runtime-scheduler-threads`)
+- `netWorkerThreads` (`--net-worker-threads`)
+- `netWorkerQueueCapacity` (`--net-worker-queue-capacity`)
+
+## Core Capacity + World Defaults (Standalone)
+- `defaultWorld` (`--default-world`)
+- `maxPlayers` (`--max-players`, `0` = unlimited)
+- `maxWorlds` (`--max-worlds`, `0` = unlimited)
+- `maxEntities` (`--max-entities`, `0` = unlimited)
 
 ## Ops Pipelines
-- Release gate: `./gradlew --no-daemon clean :clockwork-api:apiCheck test performanceBaseline standaloneReleaseCandidate`
+- Release gate: `./gradlew --no-daemon clean :clockwork-api:apiCheck :clockwork-host-api:apiCheck apiCompatibilityReport test performanceBaseline standaloneReleaseCandidate`
 - Smoke: `./gradlew --no-daemon smokeTest`
 - Soak: `./gradlew --no-daemon soakTest`
 
@@ -171,4 +215,10 @@ Event dispatch mode:
 
 - default: `exact`
 - optional: `polymorphic` via config `eventDispatchMode=polymorphic` or CLI `--event-dispatch-mode polymorphic`
+
+Demo pattern commands (plugin `clockwork-demo`):
+- `demo-machine <status|tick|reset> [count]`
+- `demo-network-burst [count] [chat|metrics]`
+- `demo-ui-tour <player>`
+
 

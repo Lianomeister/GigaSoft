@@ -320,6 +320,126 @@ fun PluginContext.applyHostMutationBatch(
     return result
 }
 
+class HostMutationBatchDsl internal constructor() {
+    private val operations = mutableListOf<HostMutationOp>()
+
+    fun createWorld(name: String, seed: Long = 0L) {
+        operations += HostMutationOp(type = HostMutationType.CREATE_WORLD, target = name, longValue = seed)
+    }
+
+    fun setWorldTime(name: String, time: Long) {
+        operations += HostMutationOp(type = HostMutationType.SET_WORLD_TIME, target = name, longValue = time)
+    }
+
+    fun setWorldData(name: String, data: Map<String, String>) {
+        operations += HostMutationOp(type = HostMutationType.SET_WORLD_DATA, target = name, data = data)
+    }
+
+    fun spawnEntity(type: String, world: String, x: Double, y: Double, z: Double) {
+        operations += HostMutationOp(
+            type = HostMutationType.SPAWN_ENTITY,
+            target = type,
+            world = world,
+            x = x,
+            y = y,
+            z = z
+        )
+    }
+
+    fun setPlayerInventoryItem(player: String, slot: Int, itemId: String) {
+        operations += HostMutationOp(
+            type = HostMutationType.SET_PLAYER_INVENTORY_ITEM,
+            target = player,
+            intValue = slot,
+            stringValue = itemId
+        )
+    }
+
+    fun movePlayer(name: String, world: String, x: Double, y: Double, z: Double) {
+        operations += HostMutationOp(
+            type = HostMutationType.MOVE_PLAYER,
+            target = name,
+            world = world,
+            x = x,
+            y = y,
+            z = z
+        )
+    }
+
+    fun setBlock(world: String, x: Int, y: Int, z: Int, blockId: String) {
+        operations += HostMutationOp(
+            type = HostMutationType.SET_BLOCK,
+            world = world,
+            x = x.toDouble(),
+            y = y.toDouble(),
+            z = z.toDouble(),
+            stringValue = blockId
+        )
+    }
+
+    fun breakBlock(world: String, x: Int, y: Int, z: Int, dropLoot: Boolean = true) {
+        operations += HostMutationOp(
+            type = HostMutationType.BREAK_BLOCK,
+            world = world,
+            x = x.toDouble(),
+            y = y.toDouble(),
+            z = z.toDouble(),
+            boolValue = dropLoot
+        )
+    }
+
+    internal fun build(): List<HostMutationOp> = operations.toList()
+}
+
+fun PluginContext.hostMutationBatch(
+    id: String,
+    rollbackReason: String = "rollback",
+    block: HostMutationBatchDsl.() -> Unit
+): HostMutationBatch {
+    val normalizedId = id.trim().ifEmpty { "batch-${manifest.id}" }
+    val dsl = HostMutationBatchDsl().apply(block)
+    return HostMutationBatch(
+        id = normalizedId,
+        operations = dsl.build(),
+        rollbackReason = rollbackReason
+    )
+}
+
+fun PluginContext.mutateHost(
+    id: String,
+    rollbackReason: String = "rollback",
+    onRollback: ((HostMutationBatchResult) -> Unit)? = null,
+    block: HostMutationBatchDsl.() -> Unit
+): HostMutationBatchResult {
+    return applyHostMutationBatch(
+        batch = hostMutationBatch(
+            id = id,
+            rollbackReason = rollbackReason,
+            block = block
+        ),
+        onRollback = onRollback
+    )
+}
+
+inline fun <reified T : Any> PluginContext.onEvent(
+    noinline listener: (T) -> Unit
+) {
+    events.subscribe(T::class.java, listener)
+}
+
+inline fun <reified T : Any> PluginContext.onEvent(
+    options: EventSubscriptionOptions,
+    noinline listener: (T) -> Unit
+) {
+    events.subscribe(T::class.java, options, listener)
+}
+
+inline fun <reified T : Any> PluginContext.onEventOnce(
+    noinline listener: (T) -> Unit
+) {
+    events.subscribeOnce(listener)
+}
+
 fun CommandResult.render(): String {
     val normalizedCode = code?.trim()?.takeIf { it.isNotEmpty() }
     val hint = error?.hint?.trim()?.takeIf { it.isNotEmpty() }

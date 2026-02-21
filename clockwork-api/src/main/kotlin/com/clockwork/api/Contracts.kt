@@ -156,16 +156,22 @@ interface HostAccess {
     fun serverInfo(): HostServerSnapshot?
     fun broadcast(message: String): Boolean
     fun findPlayer(name: String): HostPlayerSnapshot?
+    fun lookupPlayer(name: String): HostPlayerSnapshot? = findPlayer(name)
     fun sendPlayerMessage(name: String, message: String): Boolean = false
     fun kickPlayer(name: String, reason: String = "Kicked by host"): Boolean = false
     fun playerIsOp(name: String): Boolean? = null
+    fun isPlayerOp(name: String): Boolean = playerIsOp(name) == true
     fun setPlayerOp(name: String, op: Boolean): Boolean = false
     fun playerPermissions(name: String): Set<String>? = null
+    fun permissionsOfPlayer(name: String): Set<String> = playerPermissions(name).orEmpty()
     fun hasPlayerPermission(name: String, permission: String): Boolean? = null
+    fun playerHasPermission(name: String, permission: String): Boolean = hasPlayerPermission(name, permission) == true
     fun grantPlayerPermission(name: String, permission: String): Boolean = false
     fun revokePlayerPermission(name: String, permission: String): Boolean = false
     fun worlds(): List<HostWorldSnapshot>
+    fun listWorlds(): List<HostWorldSnapshot> = worlds()
     fun entities(world: String? = null): List<HostEntitySnapshot>
+    fun listEntities(world: String? = null): List<HostEntitySnapshot> = entities(world)
     fun spawnEntity(type: String, location: HostLocationRef): HostEntitySnapshot?
     fun playerInventory(name: String): HostInventorySnapshot?
     fun setPlayerInventoryItem(name: String, slot: Int, itemId: String): Boolean
@@ -173,12 +179,14 @@ interface HostAccess {
     fun worldTime(name: String): Long? = null
     fun setWorldTime(name: String, time: Long): Boolean = false
     fun worldData(name: String): Map<String, String>? = null
+    fun worldDataOrEmpty(name: String): Map<String, String> = worldData(name).orEmpty()
     fun setWorldData(name: String, data: Map<String, String>): Map<String, String>? = null
     fun worldWeather(name: String): String? = null
     fun setWorldWeather(name: String, weather: String): Boolean = false
     fun findEntity(uuid: String): HostEntitySnapshot? = null
     fun removeEntity(uuid: String): Boolean = false
     fun entityData(uuid: String): Map<String, String>? = null
+    fun entityDataOrEmpty(uuid: String): Map<String, String> = entityData(uuid).orEmpty()
     fun setEntityData(uuid: String, data: Map<String, String>): Map<String, String>? = null
     fun movePlayer(name: String, location: HostLocationRef): HostPlayerSnapshot? = null
     fun playerGameMode(name: String): String? = null

@@ -57,11 +57,11 @@ class HostAccessAdapterPortContractsTest {
         }
 
         val host = bridge.asHostAccess()
-        val worlds = host.worlds()
+        val worlds = host.listWorlds()
         assertEquals(1, worlds.size)
         assertEquals("world", worlds.first().name)
 
-        val player = host.findPlayer("alex")
+        val player = host.lookupPlayer("alex")
         assertNotNull(player)
         assertEquals("Alex", player.name)
 
@@ -72,7 +72,7 @@ class HostAccessAdapterPortContractsTest {
         assertNotNull(spawned)
         assertEquals("pig", spawned.type)
 
-        val listed = host.entities("world")
+        val listed = host.listEntities("world")
         assertTrue(listed.isNotEmpty())
         assertEquals("zombie", listed.first().type)
     }

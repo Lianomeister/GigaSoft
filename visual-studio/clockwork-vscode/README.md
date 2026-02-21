@@ -22,6 +22,10 @@ VS Code extension for Clockwork plugin development.
     - `host.mutation.batch`
     - `adapter.invoke.*`
     - `adapter.capability.*`
+  - Kotlin diagnostics recommend dedicated host bridge adapters:
+    - `bridge.host.world` for `world.*`
+    - `bridge.host.entity` for `entity.*`
+    - `bridge.host.inventory` for `inventory.*`
   - provides Quick Fixes for:
     - removing duplicate permission entries
     - normalizing plugin id

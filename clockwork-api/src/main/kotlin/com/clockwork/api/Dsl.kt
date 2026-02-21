@@ -1,4 +1,4 @@
-package com.clockwork.api
+﻿package com.clockwork.api
 
 class DslGigaPlugin(
     private val manifestFactory: () -> PluginManifest,
@@ -27,7 +27,7 @@ class DslGigaPlugin(
 fun gigaPlugin(
     id: String,
     name: String = id,
-    version: String = "1.5.0-rc.2",
+    version: String = "1.5.0",
     apiVersion: String = "1",
     dependencySpecs: List<DependencySpec> = emptyList(),
     permissions: List<String> = emptyList(),
@@ -67,6 +67,7 @@ class GigaPluginDsl(private val ctx: PluginContext) {
     private val soundDefs = mutableListOf<SoundDefinition>()
     private val systems = linkedMapOf<String, TickSystem>()
     private val commandDefs = mutableListOf<CommandDsl.Definition>()
+    private val eventBindings = mutableListOf<(EventBus) -> Unit>()
     private val adapterDefs = mutableListOf<ModAdapter>()
 
     fun items(block: ItemDsl.() -> Unit) {
@@ -109,8 +110,26 @@ class GigaPluginDsl(private val ctx: PluginContext) {
         commandDefs += CommandDsl().apply(block).commands
     }
 
+    fun events(block: EventDsl.() -> Unit) {
+        eventBindings += EventDsl().apply(block).bindings
+    }
+
     fun adapters(block: AdapterDsl.() -> Unit) {
         adapterDefs += AdapterDsl().apply(block).adapters
+    }
+
+    fun hostMutations(
+        id: String = "startup-${ctx.manifest.id}",
+        rollbackReason: String = "rollback",
+        onRollback: ((HostMutationBatchResult) -> Unit)? = null,
+        block: HostMutationBatchDsl.() -> Unit
+    ): HostMutationBatchResult {
+        return ctx.mutateHost(
+            id = id,
+            rollbackReason = rollbackReason,
+            onRollback = onRollback,
+            block = block
+        )
     }
 
     fun install() {
@@ -138,11 +157,14 @@ class GigaPluginDsl(private val ctx: PluginContext) {
         val bundle = ctx.registry.buildResourcePackBundle()
         ctx.events.publish(GigaResourcePackBundleEvent(bundle, validation))
         systems.forEach(ctx.registry::registerSystem)
+        eventBindings.forEach { it(ctx.events) }
         commandDefs.forEach { command ->
             ctx.commands.registerSpec(
                 spec = command.spec,
                 middleware = command.middleware,
                 completion = command.completion,
+                completionAsync = command.completionAsync,
+                policy = command.policy,
                 action = command.action
             )
         }
@@ -282,6 +304,8 @@ class CommandDsl {
         val spec: CommandSpec,
         val middleware: List<CommandMiddlewareBinding>,
         val completion: CommandCompletionContract?,
+        val completionAsync: CommandCompletionAsyncContract?,
+        val policy: CommandPolicyProfile?,
         val action: (CommandInvocationContext) -> CommandResult
     )
 
@@ -291,12 +315,16 @@ class CommandDsl {
         spec: CommandSpec,
         middleware: List<CommandMiddlewareBinding> = emptyList(),
         completion: CommandCompletionContract? = null,
+        completionAsync: CommandCompletionAsyncContract? = null,
+        policy: CommandPolicyProfile? = null,
         action: (CommandInvocationContext) -> CommandResult
     ) {
         commands += Definition(
             spec = spec,
             middleware = middleware,
             completion = completion,
+            completionAsync = completionAsync,
+            policy = policy,
             action = action
         )
     }
@@ -305,12 +333,16 @@ class CommandDsl {
         spec: CommandSpec,
         middleware: List<CommandMiddlewareBinding> = emptyList(),
         completion: CommandCompletionContract? = null,
+        completionAsync: CommandCompletionAsyncContract? = null,
+        policy: CommandPolicyProfile? = null,
         action: (sender: CommandSender, args: CommandParsedArgs) -> CommandResult
     ) {
         command(
             spec = spec,
             middleware = middleware,
-            completion = completion
+            completion = completion,
+            completionAsync = completionAsync,
+            policy = policy
         ) { invocation ->
             action(invocation.sender, invocation.parsedArgs)
         }
@@ -328,6 +360,8 @@ class CommandDsl {
         help: String = "",
         middleware: List<CommandMiddlewareBinding> = emptyList(),
         completion: CommandCompletionContract? = null,
+        completionAsync: CommandCompletionAsyncContract? = null,
+        policy: CommandPolicyProfile? = null,
         action: (CommandInvocationContext) -> CommandResult
     ) {
         command(
@@ -344,6 +378,44 @@ class CommandDsl {
             ),
             middleware = middleware,
             completion = completion,
+            completionAsync = completionAsync,
+            policy = policy,
+            action = action
+        )
+    }
+
+    fun command(
+        id: String,
+        description: String = "",
+        aliases: List<String> = emptyList(),
+        permission: String? = null,
+        argsSchema: List<CommandArgSpec> = emptyList(),
+        cooldownMillis: Long = 0L,
+        rateLimitPerMinute: Int = 0,
+        usage: String = "",
+        help: String = "",
+        middleware: List<CommandMiddlewareBinding> = emptyList(),
+        completion: CommandCompletionContract? = null,
+        completionAsync: CommandCompletionAsyncContract? = null,
+        policy: CommandPolicyProfile? = null,
+        action: (sender: CommandSender, args: CommandParsedArgs) -> CommandResult
+    ) {
+        command(
+            spec = CommandSpec(
+                command = id,
+                description = description,
+                aliases = aliases,
+                permission = permission,
+                argsSchema = argsSchema,
+                cooldownMillis = cooldownMillis,
+                rateLimitPerMinute = rateLimitPerMinute,
+                usage = usage,
+                help = help
+            ),
+            middleware = middleware,
+            completion = completion,
+            completionAsync = completionAsync,
+            policy = policy,
             action = action
         )
     }
@@ -359,7 +431,7 @@ class AdapterDsl {
     fun adapter(
         id: String,
         name: String,
-        version: String = "1.5.0-rc.2",
+        version: String = "1.5.0",
         capabilities: Set<String> = emptySet(),
         handler: (AdapterInvocation) -> AdapterResponse
     ) {
@@ -373,6 +445,59 @@ class AdapterDsl {
         }
     }
 }
+
+class EventDsl {
+    internal val bindings = mutableListOf<(EventBus) -> Unit>()
+
+    fun <T : Any> on(
+        eventType: Class<T>,
+        listener: (T) -> Unit
+    ) {
+        bindings += { bus -> bus.subscribe(eventType, listener) }
+    }
+
+    inline fun <reified T : Any> on(
+        noinline listener: (T) -> Unit
+    ) {
+        on(T::class.java, listener)
+    }
+
+    fun <T : Any> on(
+        eventType: Class<T>,
+        options: EventSubscriptionOptions,
+        listener: (T) -> Unit
+    ) {
+        bindings += { bus -> bus.subscribe(eventType, options, listener) }
+    }
+
+    inline fun <reified T : Any> on(
+        options: EventSubscriptionOptions,
+        noinline listener: (T) -> Unit
+    ) {
+        on(T::class.java, options, listener)
+    }
+
+    fun <T : Any> once(
+        eventType: Class<T>,
+        listener: (T) -> Unit
+    ) {
+        bindings += { bus ->
+            lateinit var wrapper: (T) -> Unit
+            wrapper = { event ->
+                listener(event)
+                bus.unsubscribe(eventType, wrapper)
+            }
+            bus.subscribe(eventType, wrapper)
+        }
+    }
+
+    inline fun <reified T : Any> once(
+        noinline listener: (T) -> Unit
+    ) {
+        once(T::class.java, listener)
+    }
+}
+
 
 
 

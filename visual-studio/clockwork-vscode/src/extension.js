@@ -1,4 +1,4 @@
-const vscode = require("vscode");
+﻿const vscode = require("vscode");
 const fs = require("fs");
 const path = require("path");
 const https = require("https");
@@ -144,7 +144,7 @@ async function createPluginTemplate() {
   const config = vscode.workspace.getConfiguration("clockwork.plugin");
   const pluginId = config.get("defaultId", "my-plugin");
   const mainClass = config.get("defaultMainClass", "plugin.MainPlugin");
-  const pluginVersion = config.get("defaultVersion", "1.5.0-rc.2");
+  const pluginVersion = config.get("defaultVersion", "1.5.0");
   const packageName = mainClass.includes(".")
     ? mainClass.substring(0, mainClass.lastIndexOf("."))
     : "plugin";
@@ -370,7 +370,7 @@ function buildManifestDiagnostics(text, document) {
 
   const version = String(parsed.map.get("version") || "").trim();
   if (version && !SEMVER_LIKE_PATTERN.test(version)) {
-    diagnostics.push(createDiagnostic(0, document, "Version should be semver-like (e.g. 1.0.0 or 1.5.0-rc.2).", vscode.DiagnosticSeverity.Warning, "clockwork.manifest.invalidVersionFormat"));
+    diagnostics.push(createDiagnostic(0, document, "Version should be semver-like (e.g. 1.0.0 or 1.5.0).", vscode.DiagnosticSeverity.Warning, "clockwork.manifest.invalidVersionFormat"));
   }
 
   const dependencies = extractInlineYamlArray(String(parsed.map.get("dependencies") || ""));
@@ -461,10 +461,10 @@ function buildManifestCodeActions(document, diagnostics) {
     } else if (code === "clockwork.manifest.invalidVersionFormat") {
       const line = findLineNumberForKey(document, "version");
       if (line >= 0) {
-        const fixVersion = new vscode.CodeAction("Set version to 1.5.0-rc.2", vscode.CodeActionKind.QuickFix);
+        const fixVersion = new vscode.CodeAction("Set version to 1.5.0", vscode.CodeActionKind.QuickFix);
         fixVersion.diagnostics = [diagnostic];
         const edit = new vscode.WorkspaceEdit();
-        edit.replace(document.uri, document.lineAt(line).range, "version: 1.5.0-rc.2");
+        edit.replace(document.uri, document.lineAt(line).range, "version: 1.5.0");
         fixVersion.edit = edit;
         actions.push(fixVersion);
       }
@@ -524,7 +524,7 @@ function defaultManifestValueForKey(key) {
   switch (key) {
     case "id": return "my-plugin";
     case "name": return "My Plugin";
-    case "version": return "1.5.0-rc.2";
+    case "version": return "1.5.0";
     case "main": return "plugin.MainPlugin";
     case "apiVersion": return "1";
     default: return "";
@@ -574,7 +574,7 @@ function buildManifestBestPracticeEdit(document) {
   if (versionLine >= 0) {
     const value = String(parsed.map.get("version") || "").trim();
     if (!SEMVER_LIKE_PATTERN.test(value)) {
-      edit.replace(document.uri, document.lineAt(versionLine).range, "version: 1.5.0-rc.2");
+      edit.replace(document.uri, document.lineAt(versionLine).range, "version: 1.5.0");
       changed = true;
     }
   }
@@ -696,6 +696,29 @@ function buildKotlinDiagnostics(text, document) {
       );
     }
   }
+
+  const bridgeSplitChecks = [
+    { actionPrefix: "world.", adapterId: "bridge.host.world" },
+    { actionPrefix: "entity.", adapterId: "bridge.host.entity" },
+    { actionPrefix: "inventory.", adapterId: "bridge.host.inventory" }
+  ];
+  for (const check of bridgeSplitChecks) {
+    const marker = `AdapterInvocation(\"${check.actionPrefix}`;
+    const legacyAdapterMarker = "\"bridge.host.server\"";
+    if (text.includes(marker) && text.includes(legacyAdapterMarker)) {
+      const offset = text.indexOf(marker);
+      diagnostics.push(
+        createDiagnostic(
+          lineNumberFromOffset(text, offset),
+          document,
+          `Use dedicated host adapter '${check.adapterId}' for '${check.actionPrefix}*' actions instead of legacy server bridge.`,
+          vscode.DiagnosticSeverity.Information,
+          "clockwork.kotlin.bridgeAdapterSplitRecommended",
+          check.adapterId
+        )
+      );
+    }
+  }
   return diagnostics;
 }
 
@@ -754,9 +777,31 @@ function buildKotlinCodeActions(document, diagnostics) {
         action.edit = edit;
         actions.push(action);
       }
+    } else if (code === "clockwork.kotlin.bridgeAdapterSplitRecommended") {
+      const targetAdapter = String(diagnostic.data || "");
+      if (targetAdapter.length > 0) {
+        const action = new vscode.CodeAction(`Switch to ${targetAdapter}`, vscode.CodeActionKind.QuickFix);
+        action.diagnostics = [diagnostic];
+        const edit = new vscode.WorkspaceEdit();
+        const lineText = document.lineAt(diagnostic.range.start.line).text;
+        if (lineText.includes("\"bridge.host.server\"")) {
+          edit.replace(
+            document.uri,
+            document.lineAt(diagnostic.range.start.line).range,
+            lineText.replace("\"bridge.host.server\"", `"${targetAdapter}"`)
+          );
+          action.edit = edit;
+          actions.push(action);
+        }
+      }
     }
   }
   return actions;
+}
+
+function lineNumberFromOffset(text, offset) {
+  if (offset <= 0) return 0;
+  return text.slice(0, offset).split(/\r?\n/).length - 1;
 }
 
 async function checkForUpdates() {
@@ -845,5 +890,6 @@ module.exports = {
   activate,
   deactivate
 };
+
 
 

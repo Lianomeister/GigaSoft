@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "clockwork-vscode",
   "displayName": "Clockwork Plugin Tools",
   "description": "VS Code support for Clockwork plugin development.",
@@ -56,7 +56,7 @@
         },
         "clockwork.plugin.defaultVersion": {
           "type": "string",
-          "default": "1.5.0-rc.2",
+          "default": "1.5.0",
           "description": "Default plugin version used in templates."
         },
         "clockwork.update.checkOwner": {
@@ -98,5 +98,6 @@
   },
   "license": "SEE LICENSE IN ../../LICENSE"
 }
+
 
 

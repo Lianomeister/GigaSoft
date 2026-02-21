@@ -34,13 +34,20 @@ adapters {
 
 ```kotlin
 val result = ctx.adapters.invoke(
-    "bridge.host.server",
-    AdapterInvocation("server.info", emptyMap())
+    "bridge.host.world",
+    AdapterInvocation("world.list", emptyMap())
 )
 if (!result.success) {
     ctx.logger.info("adapter failed: ${result.message}")
 }
 ```
+
+Common built-ins:
+- `bridge.host.server` for `server.*`
+- `bridge.host.player` for `player.*`
+- `bridge.host.world` for `world.*` and `block.*`
+- `bridge.host.entity` for `entity.*`
+- `bridge.host.inventory` for `inventory.*`
 
 If your runtime enables adapter permission scopes, plugin permissions can restrict:
 

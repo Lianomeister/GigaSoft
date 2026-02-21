@@ -63,7 +63,7 @@ class StandaloneHostBridge(
 
     override fun kickPlayer(name: String, reason: String): Boolean {
         val player = hostState.leavePlayer(name) ?: return false
-        val text = reason.trim().ifBlank { "Kicked by host" }
+        val text = KickMessageFormatter.format(reason = reason, cause = "host")
         logger.info("[kick:${player.name}] $text")
         return true
     }

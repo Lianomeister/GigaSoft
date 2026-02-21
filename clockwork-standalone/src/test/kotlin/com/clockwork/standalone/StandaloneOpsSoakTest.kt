@@ -151,6 +151,65 @@ class StandaloneOpsSoakTest {
         }
     }
 
+    @Test
+    fun `tick and reload pipeline remains deterministic under sustained load`() {
+        val root = Files.createTempDirectory("clockwork-standalone-ops-soak-deterministic")
+        val pluginsDir = root.resolve("plugins")
+        val dataDir = root.resolve("data")
+        Files.createDirectories(pluginsDir)
+        Files.createDirectories(dataDir)
+
+        val core = GigaStandaloneCore(
+            config = StandaloneCoreConfig(
+                pluginsDirectory = pluginsDir,
+                dataDirectory = dataDir,
+                tickPeriodMillis = 1L,
+                autoSaveEveryTicks = 0L
+            ),
+            logger = {}
+        )
+        core.start()
+        try {
+            writeDemoManifestJar(pluginsDir.resolve("clockwork-demo-deterministic.jar"), pluginId = "clockwork-demo")
+            assertEquals(1, core.loadNewPlugins())
+
+            val baselineDoctor = core.doctor()
+            assertTrue(baselineDoctor.loadedPlugins.contains("clockwork-demo"))
+            val baselineLoadOrder = baselineDoctor.currentLoadOrder
+            val statusBefore = core.status()
+
+            repeat(30) { cycle ->
+                repeat(80) {
+                    val response = core.invokeAdapter(
+                        pluginId = "clockwork-demo",
+                        adapterId = "bridge.host.server",
+                        action = "server.info",
+                        payload = emptyMap()
+                    )
+                    assertTrue(response.success)
+                }
+
+                val reload = if (cycle % 2 == 0) core.reload("clockwork-demo") else core.reloadAll()
+                assertEquals(ReloadStatus.SUCCESS, reload.status)
+
+                val doctor = core.doctor()
+                assertTrue(doctor.loadedPlugins.contains("clockwork-demo"))
+                assertEquals(baselineLoadOrder, doctor.currentLoadOrder)
+
+                val profile = core.profile("clockwork-demo")
+                assertTrue(profile != null)
+                assertTrue(profile!!.systems.containsKey("crusher_tick"))
+            }
+
+            val statusAfter = core.status()
+            assertTrue(statusAfter.tickCount > statusBefore.tickCount)
+            assertEquals(0L, statusAfter.tickFailures)
+            assertEquals(baselineLoadOrder, core.doctor().currentLoadOrder)
+        } finally {
+            core.stop()
+        }
+    }
+
     private fun writeDemoManifestJar(
         jarPath: Path,
         pluginId: String,

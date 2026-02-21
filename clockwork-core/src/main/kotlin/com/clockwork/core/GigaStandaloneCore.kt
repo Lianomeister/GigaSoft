@@ -1,4 +1,4 @@
-package com.clockwork.core
+﻿package com.clockwork.core
 
 import com.clockwork.api.AdapterInvocation
 import com.clockwork.api.AdapterResponse
@@ -49,6 +49,8 @@ import com.clockwork.api.TickSystem
 import com.clockwork.host.api.HostBridgeAdapters
 import com.clockwork.runtime.AdapterSecurityConfig
 import com.clockwork.runtime.EventDispatchMode
+import com.clockwork.runtime.FaultBudgetEscalationPolicy
+import com.clockwork.runtime.FaultBudgetStage
 import com.clockwork.runtime.FaultBudgetPolicy
 import com.clockwork.runtime.GigaRuntime
 import com.clockwork.runtime.PluginRuntimeProfile
@@ -63,6 +65,7 @@ import java.nio.file.Path
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.Executors
+import java.util.concurrent.ExecutionException
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
@@ -74,16 +77,33 @@ data class StandaloneCoreConfig(
     val dataDirectory: Path,
     val tickPeriodMillis: Long = 50L,
     val serverName: String = "Clockwork Standalone",
-    val serverVersion: String = "1.5.0-rc.2",
+    val serverVersion: String = "1.5.0",
+    val defaultWorld: String = "world",
     val maxPlayers: Int = 0,
+    val maxWorlds: Int = 0,
+    val maxEntities: Int = 0,
     val autoSaveEveryTicks: Long = 200L,
     val systemIsolationFailureThreshold: Int = 5,
     val systemIsolationBaseCooldownTicks: Long = 40L,
     val systemIsolationMaxCooldownTicks: Long = 800L,
+    val perPluginTickBudgetNanos: Long = 5_000_000L,
+    val chunkViewDistance: Int = 4,
+    val maxChunkLoadsPerTick: Int = 128,
+    val maxLoadedChunksPerWorld: Int = 4096,
+    val runtimeSchedulerWorkerThreads: Int = 1,
     val adapterSecurity: AdapterSecurityConfig = AdapterSecurityConfig(),
     val faultBudgetPolicy: FaultBudgetPolicy = FaultBudgetPolicy(),
+    val faultBudgetEscalationPolicy: FaultBudgetEscalationPolicy = FaultBudgetEscalationPolicy(),
     val eventDispatchMode: EventDispatchMode = EventDispatchMode.EXACT
-)
+) {
+    init {
+        require(defaultWorld.trim().isNotBlank()) { "defaultWorld must not be blank" }
+        require(maxPlayers >= 0) { "maxPlayers must be >= 0" }
+        require(maxWorlds >= 0) { "maxWorlds must be >= 0" }
+        require(maxEntities >= 0) { "maxEntities must be >= 0" }
+        require(runtimeSchedulerWorkerThreads > 0) { "runtimeSchedulerWorkerThreads must be > 0" }
+    }
+}
 
 data class AdapterDescriptor(
     val id: String,
@@ -103,6 +123,13 @@ data class StandaloneCoreStatus(
     val averageWorldTickNanos: Long,
     val averageEventPublishNanos: Long,
     val averageSystemsNanos: Long,
+    val averageTickJitterNanos: Long,
+    val maxTickJitterNanos: Long,
+    val tickOverruns: Long,
+    val pluginBudgetExhaustions: Long,
+    val faultBudgetWarnTicks: Long,
+    val faultBudgetThrottleTicks: Long,
+    val faultBudgetIsolateTicks: Long,
     val loadedPlugins: Int,
     val onlinePlayers: Int,
     val worlds: Int,
@@ -133,6 +160,14 @@ class GigaStandaloneCore(
     private val tickWorldNanos = AtomicLong(0)
     private val tickEventNanos = AtomicLong(0)
     private val tickSystemsNanos = AtomicLong(0)
+    private val previousTickStartNanos = AtomicLong(0L)
+    private val tickJitterTotalNanos = AtomicLong(0L)
+    private val tickJitterMaxNanos = AtomicLong(0L)
+    private val tickOverrunCounter = AtomicLong(0L)
+    private val pluginBudgetExhaustionCounter = AtomicLong(0L)
+    private val faultBudgetWarnTickCounter = AtomicLong(0L)
+    private val faultBudgetThrottleTickCounter = AtomicLong(0L)
+    private val faultBudgetIsolateTickCounter = AtomicLong(0L)
     private val commandQueue = ConcurrentLinkedQueue<() -> Unit>()
     private val systemIsolation = SystemFaultIsolationController(
         SystemIsolationPolicy(
@@ -141,7 +176,12 @@ class GigaStandaloneCore(
             maxCooldownTicks = config.systemIsolationMaxCooldownTicks
         )
     )
-    private val hostState = StandaloneHostState()
+    private val hostState = StandaloneHostState(
+        defaultWorld = config.defaultWorld.trim(),
+        chunkViewDistance = config.chunkViewDistance,
+        maxChunkLoadsPerTick = config.maxChunkLoadsPerTick,
+        maxLoadedChunksPerWorld = config.maxLoadedChunksPerWorld
+    )
     private val statePersistence = StandaloneStatePersistence(config.dataDirectory.resolve("standalone-state.json"))
     @Volatile
     private var tickPlugins: List<TickPluginSnapshot> = emptyList()
@@ -174,6 +214,14 @@ class GigaStandaloneCore(
         tickWorldNanos.set(0L)
         tickEventNanos.set(0L)
         tickSystemsNanos.set(0L)
+        previousTickStartNanos.set(0L)
+        tickJitterTotalNanos.set(0L)
+        tickJitterMaxNanos.set(0L)
+        tickOverrunCounter.set(0L)
+        pluginBudgetExhaustionCounter.set(0L)
+        faultBudgetWarnTickCounter.set(0L)
+        faultBudgetThrottleTickCounter.set(0L)
+        faultBudgetIsolateTickCounter.set(0L)
         commandQueue.clear()
         systemIsolation.clear()
 
@@ -184,8 +232,10 @@ class GigaStandaloneCore(
         runtime = GigaRuntime(
             pluginsDirectory = config.pluginsDirectory,
             dataDirectory = config.dataDirectory,
+            schedulerWorkerThreads = config.runtimeSchedulerWorkerThreads,
             adapterSecurity = config.adapterSecurity,
             faultBudgetPolicy = config.faultBudgetPolicy,
+            faultBudgetEscalationPolicy = config.faultBudgetEscalationPolicy,
             eventDispatchMode = config.eventDispatchMode,
             hostAccess = runtimeHostAccess(),
             rootLogger = logger
@@ -247,17 +297,17 @@ class GigaStandaloneCore(
         report
     }
 
-    fun profile(pluginId: String): PluginRuntimeProfile? {
+    fun profile(pluginId: String): PluginRuntimeProfile? = mutate(timeoutMillis = 10_000L) {
         ensureRuntimeInitialized()
-        return runtime.profile(pluginId)
+        runtime.profile(pluginId)
     }
 
-    fun doctor(): RuntimeDiagnostics {
+    fun doctor(): RuntimeDiagnostics = mutate(timeoutMillis = 10_000L) {
         ensureRuntimeInitialized()
-        return runtime.diagnostics()
+        runtime.diagnostics()
     }
 
-    fun loadNewPlugins(): Int = mutate {
+    fun loadNewPlugins(): Int = mutate(timeoutMillis = 30_000L) {
         ensureRuntimeInitialized()
         val loadedPlugins = runtime.scanAndLoad()
         installStandaloneBridgeAdapters(loadedPlugins)
@@ -371,11 +421,26 @@ class GigaStandaloneCore(
 
     fun joinPlayer(
         name: String,
-        world: String = "world",
+        world: String = config.defaultWorld,
         x: Double = 0.0,
         y: Double = 64.0,
         z: Double = 0.0
     ): StandalonePlayer = mutate {
+        val existing = hostState.findPlayer(name)
+        if (existing == null) {
+            if (config.maxPlayers > 0 && hostState.onlinePlayerCount() >= config.maxPlayers) {
+                throw StandaloneCapacityException(
+                    code = "SERVER_FULL",
+                    message = "Server is full (${hostState.onlinePlayerCount()}/${config.maxPlayers} players)"
+                )
+            }
+            if (config.maxEntities > 0 && hostState.entityCount() >= config.maxEntities) {
+                throw StandaloneCapacityException(
+                    code = "ENTITY_LIMIT_REACHED",
+                    message = "Entity limit reached (${hostState.entityCount()}/${config.maxEntities})"
+                )
+            }
+        }
         ensureWorldExistsAndPublish(world, 0L)
         val player = hostState.joinPlayer(name, world, x, y, z)
         publishEvent(StandalonePlayerJoinEvent(player))
@@ -401,7 +466,7 @@ class GigaStandaloneCore(
 
     fun kickPlayer(name: String, reason: String = "Kicked by host", cause: String = "plugin"): StandalonePlayer? = mutate {
         val player = hostState.leavePlayer(name) ?: return@mutate null
-        val text = reason.trim().ifBlank { "Kicked by host" }
+        val text = KickMessageFormatter.format(reason = reason, cause = cause)
         publishEvent(StandalonePlayerLeaveEvent(player))
         publishEvent(GigaPlayerLeaveEvent(player.toHostSnapshot()))
         publishEvent(GigaPlayerKickEvent(player.toHostSnapshot(), text, cause))
@@ -596,6 +661,12 @@ class GigaStandaloneCore(
                 )
             )
             error("Entity spawn cancelled: $reason")
+        }
+        if (config.maxEntities > 0 && hostState.entityCount() >= config.maxEntities) {
+            throw StandaloneCapacityException(
+                code = "ENTITY_LIMIT_REACHED",
+                message = "Entity limit reached (${hostState.entityCount()}/${config.maxEntities})"
+            )
         }
         ensureWorldExistsAndPublish(pre.world, 0L)
         val entity = hostState.spawnEntity(pre.entityType, pre.world, pre.x, pre.y, pre.z)
@@ -967,6 +1038,13 @@ class GigaStandaloneCore(
             averageWorldTickNanos = if (ticks <= 0L) 0L else tickWorldNanos.get() / ticks,
             averageEventPublishNanos = if (ticks <= 0L) 0L else tickEventNanos.get() / ticks,
             averageSystemsNanos = if (ticks <= 0L) 0L else tickSystemsNanos.get() / ticks,
+            averageTickJitterNanos = if (ticks <= 0L) 0L else tickJitterTotalNanos.get() / ticks,
+            maxTickJitterNanos = tickJitterMaxNanos.get(),
+            tickOverruns = tickOverrunCounter.get(),
+            pluginBudgetExhaustions = pluginBudgetExhaustionCounter.get(),
+            faultBudgetWarnTicks = faultBudgetWarnTickCounter.get(),
+            faultBudgetThrottleTicks = faultBudgetThrottleTickCounter.get(),
+            faultBudgetIsolateTicks = faultBudgetIsolateTickCounter.get(),
             loadedPlugins = loadedPlugins,
             onlinePlayers = hostState.onlinePlayerCount(),
             worlds = hostState.worldCount(),
@@ -977,6 +1055,14 @@ class GigaStandaloneCore(
 
     private fun tick() {
         val tickStarted = System.nanoTime()
+        val previousStart = previousTickStartNanos.getAndSet(tickStarted)
+        if (previousStart > 0L) {
+            val expectedInterval = config.tickPeriodMillis.coerceAtLeast(1L) * 1_000_000L
+            val actualInterval = tickStarted - previousStart
+            val jitter = kotlin.math.abs(actualInterval - expectedInterval)
+            tickJitterTotalNanos.addAndGet(jitter)
+            tickJitterMaxNanos.updateAndGet { current -> if (jitter > current) jitter else current }
+        }
         var tickFailure = false
         val beforeQueue1 = System.nanoTime()
         drainCommandQueue()
@@ -991,7 +1077,40 @@ class GigaStandaloneCore(
         tickEventNanos.addAndGet(System.nanoTime() - beforeEvents)
         val beforeSystems = System.nanoTime()
         for (entry in tickPlugins) {
+            val faultBudgetStage = runtime.profile(entry.pluginId)?.faultBudget?.stage ?: FaultBudgetStage.NORMAL
+            when (faultBudgetStage) {
+                FaultBudgetStage.WARN -> faultBudgetWarnTickCounter.incrementAndGet()
+                FaultBudgetStage.THROTTLE -> faultBudgetThrottleTickCounter.incrementAndGet()
+                FaultBudgetStage.ISOLATE -> faultBudgetIsolateTickCounter.incrementAndGet()
+                FaultBudgetStage.NORMAL -> {}
+            }
+            if (faultBudgetStage == FaultBudgetStage.ISOLATE) {
+                runtime.recordPluginFault(entry.pluginId, "fault-budget:isolate")
+                logger.info("Plugin ${entry.pluginId} isolated by fault-budget escalation for this tick")
+                continue
+            }
+            var pluginSpentNanos = 0L
+            var budgetExhausted = false
+            var budgetFaultRecorded = false
+            val effectiveBudget = when (faultBudgetStage) {
+                FaultBudgetStage.THROTTLE -> {
+                    val throttled = (config.perPluginTickBudgetNanos * config.faultBudgetEscalationPolicy.throttleBudgetMultiplier).toLong()
+                    throttled.coerceAtLeast(1L)
+                }
+                else -> config.perPluginTickBudgetNanos.coerceAtLeast(1L)
+            }
             for ((systemId, system) in entry.systems) {
+                if (pluginSpentNanos >= effectiveBudget) {
+                    budgetExhausted = true
+                    if (!budgetFaultRecorded) {
+                        runtime.recordPluginFault(
+                            pluginId = entry.pluginId,
+                            source = "budget:tick"
+                        )
+                        budgetFaultRecorded = true
+                    }
+                    break
+                }
                 if (!systemIsolation.shouldRun(entry.pluginId, systemId, tick)) {
                     runtime.recordSystemIsolation(
                         pluginId = entry.pluginId,
@@ -1026,10 +1145,22 @@ class GigaStandaloneCore(
                         logger.info("System ${entry.pluginId}:$systemId failed: $error")
                     }
                 } finally {
+                    val elapsed = System.nanoTime() - started
+                    pluginSpentNanos += elapsed
+                    if (pluginSpentNanos > effectiveBudget) {
+                        budgetExhausted = true
+                        if (!budgetFaultRecorded) {
+                            runtime.recordPluginFault(
+                                pluginId = entry.pluginId,
+                                source = "budget:tick"
+                            )
+                            budgetFaultRecorded = true
+                        }
+                    }
                     runtime.recordSystemTick(
                         pluginId = entry.pluginId,
                         systemId = systemId,
-                        durationNanos = System.nanoTime() - started,
+                        durationNanos = elapsed,
                         success = success
                     )
                     runtime.recordSystemIsolation(
@@ -1038,6 +1169,10 @@ class GigaStandaloneCore(
                     )
                 }
             }
+            if (budgetExhausted) {
+                pluginBudgetExhaustionCounter.incrementAndGet()
+                logger.info("Plugin ${entry.pluginId} exhausted per-plugin tick budget (${effectiveBudget}ns, stage=$faultBudgetStage); remaining systems skipped for this tick")
+            }
         }
         tickSystemsNanos.addAndGet(System.nanoTime() - beforeSystems)
         val beforeQueue2 = System.nanoTime()
@@ -1045,6 +1180,10 @@ class GigaStandaloneCore(
         tickQueueDrainNanos.addAndGet(System.nanoTime() - beforeQueue2)
 
         val duration = System.nanoTime() - tickStarted
+        val tickBudgetNanos = config.tickPeriodMillis.coerceAtLeast(1L) * 1_000_000L
+        if (duration > tickBudgetNanos) {
+            tickOverrunCounter.incrementAndGet()
+        }
         lastTickDurationNanos.set(duration)
         tickTotalDurationNanos.addAndGet(duration)
         if (tickFailure) {
@@ -1053,6 +1192,15 @@ class GigaStandaloneCore(
         if (config.autoSaveEveryTicks > 0L && tick % config.autoSaveEveryTicks == 0L) {
             saveState()
         }
+    }
+
+    fun deterministicExecutionOrder(): Map<String, List<String>> {
+        return tickPlugins
+            .sortedBy { it.pluginId.lowercase() }
+            .associate { entry ->
+                entry.pluginId to entry.systems.map { it.first }
+            }
+            .toSortedMap()
     }
 
     private fun publishTickEvents(tick: Long) {
@@ -1381,12 +1529,23 @@ class GigaStandaloneCore(
         }
         return try {
             future.get(timeoutMillis, TimeUnit.MILLISECONDS)
+        } catch (e: ExecutionException) {
+            val cause = e.cause
+            if (cause is RuntimeException) throw cause
+            if (cause != null) throw IllegalStateException(cause.message ?: "Mutation failed", cause)
+            throw IllegalStateException(e.message ?: "Mutation failed", e)
         } catch (_: TimeoutException) {
             throw IllegalStateException("Timed out waiting for core mutation execution (${timeoutMillis}ms)")
         }
     }
 
     private fun ensureWorldExistsAndPublish(name: String, seed: Long): StandaloneWorld {
+        if (!hostState.hasWorld(name) && config.maxWorlds > 0 && hostState.worldCount() >= config.maxWorlds) {
+            throw StandaloneCapacityException(
+                code = "WORLD_LIMIT_REACHED",
+                message = "World limit reached (${hostState.worldCount()}/${config.maxWorlds})"
+            )
+        }
         val result = hostState.createWorldWithStatus(name, seed)
         if (result.created) {
             publishEvent(StandaloneWorldCreatedEvent(result.world))
@@ -1493,5 +1652,6 @@ class GigaStandaloneCore(
         return hostState.findPlayer(name)?.toHostSnapshot()
     }
 }
+
 
 

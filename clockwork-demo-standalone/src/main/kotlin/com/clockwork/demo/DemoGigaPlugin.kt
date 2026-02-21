@@ -1,4 +1,4 @@
-package com.clockwork.demo
+﻿package com.clockwork.demo
 
 import com.clockwork.api.*
 
@@ -33,7 +33,7 @@ class DemoGigaPlugin : GigaPlugin {
     private val delegate = gigaPlugin(
         id = "clockwork-demo",
         name = "Clockwork Demo",
-        version = "1.5.0-rc.2"
+        version = "1.5.0"
     ) {
         items {
             item("raw_ore_chunk", "Raw Ore Chunk")
@@ -224,6 +224,110 @@ class DemoGigaPlugin : GigaPlugin {
                     payload = mapOf("type" to type, "sender" to inv.sender.id, "text" to text)
                 )
                 CommandResult.ok("Network status=${result.status} delivered=${result.deliveredSubscribers}")
+            }
+
+            spec(
+                command = "demo-machine",
+                description = "Machine pattern helper commands",
+                argsSchema = listOf(
+                    CommandArgSpec("mode", CommandArgType.ENUM, enumValues = listOf("status", "tick", "reset")),
+                    CommandArgSpec("count", CommandArgType.INT, required = false)
+                ),
+                usage = "demo-machine <status|tick|reset> [count]",
+                help = "Pattern command showing machine state loops and deterministic mutation."
+            ) { inv ->
+                val ctx = inv.pluginContext
+                val mode = (inv.parsedArgs.enum("mode") ?: "status").lowercase()
+                when (mode) {
+                    "status" -> CommandResult.ok(
+                        "Machine=${crusherMachineState.machineId} progressTicks=${crusherMachineState.progressTicks} joins=$joinEvents networkEvents=$networkEvents"
+                    )
+                    "reset" -> {
+                        crusherMachineState.progressTicks = 0
+                        CommandResult.ok("Machine state reset")
+                    }
+                    "tick" -> {
+                        val count = (inv.parsedArgs.int("count") ?: 1).coerceIn(1, 200)
+                        repeat(count) {
+                            ctx.registry.machines().firstOrNull { it.id == crusherMachineState.machineId }?.behavior?.onTick(crusherMachineState, ctx)
+                        }
+                        CommandResult.ok("Machine ticked count=$count progressTicks=${crusherMachineState.progressTicks}")
+                    }
+                    else -> CommandResult.error("Unsupported mode", code = "E_ARGS")
+                }
+            }
+
+            spec(
+                command = "demo-network-burst",
+                description = "Publish a network burst for load-pattern testing",
+                argsSchema = listOf(
+                    CommandArgSpec("count", CommandArgType.INT, required = false),
+                    CommandArgSpec("type", CommandArgType.ENUM, required = false, enumValues = listOf("chat", "metrics"))
+                ),
+                usage = "demo-network-burst [count] [chat|metrics]",
+                help = "Pattern command for network fan-out and channel pressure testing."
+            ) { inv ->
+                val ctx = inv.pluginContext
+                val count = (inv.parsedArgs.int("count") ?: 10).coerceIn(1, 200)
+                val type = (inv.parsedArgs.enum("type") ?: "metrics").lowercase()
+                var deliveredTotal = 0
+                repeat(count) { idx ->
+                    val result = ctx.sendPluginMessage(
+                        channel = DEMO_CHANNEL,
+                        payload = mapOf(
+                            "type" to type,
+                            "sender" to inv.sender.id,
+                            "text" to "burst-$idx"
+                        )
+                    )
+                    deliveredTotal += result.deliveredSubscribers
+                }
+                CommandResult.ok("Burst sent count=$count deliveredTotal=$deliveredTotal channel=$DEMO_CHANNEL")
+            }
+
+            spec(
+                command = "demo-ui-tour",
+                description = "Run a full UI pattern tour for one player",
+                argsSchema = listOf(CommandArgSpec("player", CommandArgType.STRING)),
+                usage = "demo-ui-tour <player>",
+                help = "Pattern command chaining notify, actionbar, menu, and dialog APIs."
+            ) { inv ->
+                val ctx = inv.pluginContext
+                val player = inv.parsedArgs.requiredString("player")
+                val notice = ctx.notify(
+                    player = player,
+                    level = UiLevel.INFO,
+                    title = "UI Tour",
+                    message = "Starting UI pattern tour",
+                    durationMillis = 2_500L
+                )
+                val actionBar = ctx.actionBar(player, "Step 2/4: Actionbar", durationTicks = 40)
+                val menu = ctx.showMenu(
+                    player,
+                    UiMenu(
+                        id = "demo.tour.menu",
+                        title = "Tour Menu",
+                        items = listOf(
+                            UiMenuItem("overview", "Overview", "Pattern overview", true),
+                            UiMenuItem("next", "Next", "Continue tour", true)
+                        )
+                    )
+                )
+                val dialog = ctx.showDialog(
+                    player,
+                    UiDialog(
+                        id = "demo.tour.dialog",
+                        title = "Tour Dialog",
+                        fields = listOf(
+                            UiDialogField("confirm", "Continue?", type = UiDialogFieldType.SELECT, options = listOf("yes", "no"))
+                        )
+                    )
+                )
+                if (notice || actionBar || menu || dialog) {
+                    CommandResult.ok("UI tour delivered player=$player notice=$notice actionBar=$actionBar menu=$menu dialog=$dialog")
+                } else {
+                    CommandResult.error("Player '$player' unavailable", code = "E_UI")
+                }
             }
 
             spec(
@@ -454,5 +558,6 @@ class DemoGigaPlugin : GigaPlugin {
         return tokens.drop(fromIndex).joinToString(" ").trim()
     }
 }
+
 
 

@@ -413,4 +413,61 @@ class GigaStandaloneCoreTest {
             core.stop()
         }
     }
+
+    @Test
+    fun `max players limit is enforced but rejoin is allowed`() {
+        val root = Files.createTempDirectory("clockwork-core-test-max-players")
+        val core = GigaStandaloneCore(
+            config = StandaloneCoreConfig(
+                pluginsDirectory = root.resolve("plugins"),
+                dataDirectory = root.resolve("data"),
+                maxPlayers = 1,
+                tickPeriodMillis = 1000L,
+                autoSaveEveryTicks = 0L
+            ),
+            logger = {}
+        )
+        core.start()
+        try {
+            core.joinPlayer("Alex")
+            val full = kotlin.runCatching { core.joinPlayer("Steve") }.exceptionOrNull()
+            assertTrue(full is StandaloneCapacityException)
+            assertEquals("SERVER_FULL", (full as StandaloneCapacityException).code)
+
+            val rejoined = core.joinPlayer("Alex", x = 10.0, z = 4.0)
+            assertEquals("Alex", rejoined.name)
+            assertEquals(1, core.players().size)
+        } finally {
+            core.stop()
+        }
+    }
+
+    @Test
+    fun `world and entity limits are enforced`() {
+        val root = Files.createTempDirectory("clockwork-core-test-world-entity-limits")
+        val core = GigaStandaloneCore(
+            config = StandaloneCoreConfig(
+                pluginsDirectory = root.resolve("plugins"),
+                dataDirectory = root.resolve("data"),
+                maxWorlds = 1,
+                maxEntities = 1,
+                tickPeriodMillis = 1000L,
+                autoSaveEveryTicks = 0L
+            ),
+            logger = {}
+        )
+        core.start()
+        try {
+            val worldError = kotlin.runCatching { core.createWorld("nether") }.exceptionOrNull()
+            assertTrue(worldError is StandaloneCapacityException)
+            assertEquals("WORLD_LIMIT_REACHED", (worldError as StandaloneCapacityException).code)
+
+            core.spawnEntity("sheep", "world", 0.0, 64.0, 0.0)
+            val entityError = kotlin.runCatching { core.spawnEntity("cow", "world", 1.0, 64.0, 1.0) }.exceptionOrNull()
+            assertTrue(entityError is StandaloneCapacityException)
+            assertEquals("ENTITY_LIMIT_REACHED", (entityError as StandaloneCapacityException).code)
+        } finally {
+            core.stop()
+        }
+    }
 }

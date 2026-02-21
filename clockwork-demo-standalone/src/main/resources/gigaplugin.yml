@@ -1,6 +1,6 @@
-id: clockwork-demo
+﻿id: clockwork-demo
 name: Clockwork Demo
-version: 1.5.0-rc.2
+version: 1.5.0
 main: com.clockwork.demo.DemoGigaPlugin
 apiVersion: 1
 dependencies: []
@@ -12,5 +12,6 @@ permissions:
   - host.mutation.batch
   - adapter.invoke.*
   - adapter.capability.demo.read
+
 
 

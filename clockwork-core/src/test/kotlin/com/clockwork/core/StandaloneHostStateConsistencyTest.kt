@@ -113,4 +113,22 @@ class StandaloneHostStateConsistencyTest {
         assertEquals(null, state.blockAt("mod_world", 1, 64, 1))
         assertEquals(null, state.blockData("mod_world", 1, 64, 1))
     }
+
+    @Test
+    fun `chunk loading warms around players and evicts to budget`() {
+        val state = StandaloneHostState(
+            chunkViewDistance = 3,
+            maxChunkLoadsPerTick = 256,
+            maxLoadedChunksPerWorld = 48
+        )
+        state.joinPlayer("Alex", "world", 0.0, 64.0, 0.0)
+        repeat(12) { idx ->
+            state.movePlayer("Alex", x = (idx * 64).toDouble(), y = 64.0, z = (idx * 64).toDouble(), world = "world")
+            state.tickWorlds()
+        }
+        val metrics = state.chunkLoadingMetrics()
+        assertTrue(metrics.chunkLoads > 0L)
+        assertTrue(metrics.chunkEvictions > 0L)
+        assertTrue(metrics.loadedChunks <= 48)
+    }
 }

@@ -1,4 +1,14 @@
 # Clockwork Docs Index
+![Clockwork Banner](../logos/banner.png)
+
+<p>
+  <a href="/website/index.html">
+    <img alt="Open Clockwork Website" src="https://img.shields.io/badge/Open%20Clockwork%20Website-1f7a54?style=for-the-badge">
+  </a>
+  <a href="../README.md">
+    <img alt="Readme" src="https://img.shields.io/badge/Project%20README-123a5c?style=for-the-badge">
+  </a>
+</p>
 
 ## Start Here
 
@@ -11,14 +21,18 @@
 7. `docs/tutorials/payload-helper-patterns.md`
 8. `docs/tutorials/reload-safe-coding.md`
 9. `docs/tutorials/plugin-network.md`
+10. `docs/tutorials/visual-debug-exports.md`
+11. `docs/tutorials/demo-patterns.md`
 
 ## API
 
 - `docs/api/v1.0.0.md`
 - `docs/api/v1.5.0.md`
 - `docs/api/reference-v1.md`
+- `docs/api/review-v1.5.md`
 - `docs/migrations/v1.0.md`
-- `docs/migrations/v1.5.md`
+- `docs/migrations/v1.1-to-v1.5.0.md`
+- `docs/migrations/v1.5.0-rc.1-to-v1.5.0.md`
 - `docs/migrations/checklist-1.0.md`
 - `RELEASE_NOTES_1.0.md`
 

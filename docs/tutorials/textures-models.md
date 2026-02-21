@@ -7,7 +7,7 @@ Goal: register plugin-owned textures/models/animations/sounds and build a valida
 ```kotlin
 val plugin = gigaPlugin(
     id = "demo-assets",
-    version = "1.5.0-rc.2",
+    version = "1.5.0",
     apiVersion = "1"
 ) {
     textures {

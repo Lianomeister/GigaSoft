@@ -181,12 +181,14 @@ public abstract interface class com/clockwork/api/CommandCompletionContract {
 
 public final class com/clockwork/api/CommandDsl {
 	public fun <init> ()V
-	public final fun command (Lcom/clockwork/api/CommandSpec;Ljava/util/List;Lcom/clockwork/api/CommandCompletionContract;Lkotlin/jvm/functions/Function1;)V
-	public final fun command (Lcom/clockwork/api/CommandSpec;Ljava/util/List;Lcom/clockwork/api/CommandCompletionContract;Lkotlin/jvm/functions/Function2;)V
-	public static synthetic fun command$default (Lcom/clockwork/api/CommandDsl;Lcom/clockwork/api/CommandSpec;Ljava/util/List;Lcom/clockwork/api/CommandCompletionContract;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
-	public static synthetic fun command$default (Lcom/clockwork/api/CommandDsl;Lcom/clockwork/api/CommandSpec;Ljava/util/List;Lcom/clockwork/api/CommandCompletionContract;Lkotlin/jvm/functions/Function2;ILjava/lang/Object;)V
-	public final fun spec (Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/lang/String;Ljava/util/List;JILjava/lang/String;Ljava/lang/String;Ljava/util/List;Lcom/clockwork/api/CommandCompletionContract;Lkotlin/jvm/functions/Function1;)V
-	public static synthetic fun spec$default (Lcom/clockwork/api/CommandDsl;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/lang/String;Ljava/util/List;JILjava/lang/String;Ljava/lang/String;Ljava/util/List;Lcom/clockwork/api/CommandCompletionContract;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
+	public final fun command (Lcom/clockwork/api/CommandSpec;Ljava/util/List;Lcom/clockwork/api/CommandCompletionContract;Lcom/clockwork/api/CommandCompletionAsyncContract;Lcom/clockwork/api/CommandPolicyProfile;Lkotlin/jvm/functions/Function1;)V
+	public final fun command (Lcom/clockwork/api/CommandSpec;Ljava/util/List;Lcom/clockwork/api/CommandCompletionContract;Lcom/clockwork/api/CommandCompletionAsyncContract;Lcom/clockwork/api/CommandPolicyProfile;Lkotlin/jvm/functions/Function2;)V
+	public final fun command (Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/lang/String;Ljava/util/List;JILjava/lang/String;Ljava/lang/String;Ljava/util/List;Lcom/clockwork/api/CommandCompletionContract;Lcom/clockwork/api/CommandCompletionAsyncContract;Lcom/clockwork/api/CommandPolicyProfile;Lkotlin/jvm/functions/Function2;)V
+	public static synthetic fun command$default (Lcom/clockwork/api/CommandDsl;Lcom/clockwork/api/CommandSpec;Ljava/util/List;Lcom/clockwork/api/CommandCompletionContract;Lcom/clockwork/api/CommandCompletionAsyncContract;Lcom/clockwork/api/CommandPolicyProfile;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
+	public static synthetic fun command$default (Lcom/clockwork/api/CommandDsl;Lcom/clockwork/api/CommandSpec;Ljava/util/List;Lcom/clockwork/api/CommandCompletionContract;Lcom/clockwork/api/CommandCompletionAsyncContract;Lcom/clockwork/api/CommandPolicyProfile;Lkotlin/jvm/functions/Function2;ILjava/lang/Object;)V
+	public static synthetic fun command$default (Lcom/clockwork/api/CommandDsl;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/lang/String;Ljava/util/List;JILjava/lang/String;Ljava/lang/String;Ljava/util/List;Lcom/clockwork/api/CommandCompletionContract;Lcom/clockwork/api/CommandCompletionAsyncContract;Lcom/clockwork/api/CommandPolicyProfile;Lkotlin/jvm/functions/Function2;ILjava/lang/Object;)V
+	public final fun spec (Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/lang/String;Ljava/util/List;JILjava/lang/String;Ljava/lang/String;Ljava/util/List;Lcom/clockwork/api/CommandCompletionContract;Lcom/clockwork/api/CommandCompletionAsyncContract;Lcom/clockwork/api/CommandPolicyProfile;Lkotlin/jvm/functions/Function1;)V
+	public static synthetic fun spec$default (Lcom/clockwork/api/CommandDsl;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/lang/String;Ljava/util/List;JILjava/lang/String;Ljava/lang/String;Ljava/util/List;Lcom/clockwork/api/CommandCompletionContract;Lcom/clockwork/api/CommandCompletionAsyncContract;Lcom/clockwork/api/CommandPolicyProfile;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
 }
 
 public final class com/clockwork/api/CommandError {
@@ -515,6 +517,13 @@ public final class com/clockwork/api/EventBus$DefaultImpls {
 	public static fun setTracingEnabled (Lcom/clockwork/api/EventBus;Z)Z
 	public static fun subscribe (Lcom/clockwork/api/EventBus;Ljava/lang/Class;Lcom/clockwork/api/EventSubscriptionOptions;Lkotlin/jvm/functions/Function1;)V
 	public static fun unsubscribe (Lcom/clockwork/api/EventBus;Ljava/lang/Class;Lkotlin/jvm/functions/Function1;)Z
+}
+
+public final class com/clockwork/api/EventDsl {
+	public fun <init> ()V
+	public final fun on (Ljava/lang/Class;Lcom/clockwork/api/EventSubscriptionOptions;Lkotlin/jvm/functions/Function1;)V
+	public final fun on (Ljava/lang/Class;Lkotlin/jvm/functions/Function1;)V
+	public final fun once (Ljava/lang/Class;Lkotlin/jvm/functions/Function1;)V
 }
 
 public final class com/clockwork/api/EventPriority : java/lang/Enum {
@@ -1162,6 +1171,9 @@ public final class com/clockwork/api/GigaPluginDsl {
 	public final fun animations (Lkotlin/jvm/functions/Function1;)V
 	public final fun blocks (Lkotlin/jvm/functions/Function1;)V
 	public final fun commands (Lkotlin/jvm/functions/Function1;)V
+	public final fun events (Lkotlin/jvm/functions/Function1;)V
+	public final fun hostMutations (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;)Lcom/clockwork/api/HostMutationBatchResult;
+	public static synthetic fun hostMutations$default (Lcom/clockwork/api/GigaPluginDsl;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/clockwork/api/HostMutationBatchResult;
 	public final fun install ()V
 	public final fun items (Lkotlin/jvm/functions/Function1;)V
 	public final fun machines (Lkotlin/jvm/functions/Function1;)V
@@ -1359,15 +1371,22 @@ public abstract interface class com/clockwork/api/HostAccess {
 	public abstract fun createWorld (Ljava/lang/String;J)Lcom/clockwork/api/HostWorldSnapshot;
 	public abstract fun entities (Ljava/lang/String;)Ljava/util/List;
 	public abstract fun entityData (Ljava/lang/String;)Ljava/util/Map;
+	public abstract fun entityDataOrEmpty (Ljava/lang/String;)Ljava/util/Map;
 	public abstract fun findEntity (Ljava/lang/String;)Lcom/clockwork/api/HostEntitySnapshot;
 	public abstract fun findPlayer (Ljava/lang/String;)Lcom/clockwork/api/HostPlayerSnapshot;
 	public abstract fun givePlayerItem (Ljava/lang/String;Ljava/lang/String;I)I
 	public abstract fun grantPlayerPermission (Ljava/lang/String;Ljava/lang/String;)Z
 	public abstract fun hasPlayerPermission (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/Boolean;
 	public abstract fun inventoryItem (Ljava/lang/String;I)Ljava/lang/String;
+	public abstract fun isPlayerOp (Ljava/lang/String;)Z
 	public abstract fun kickPlayer (Ljava/lang/String;Ljava/lang/String;)Z
+	public abstract fun listEntities (Ljava/lang/String;)Ljava/util/List;
+	public abstract fun listWorlds ()Ljava/util/List;
+	public abstract fun lookupPlayer (Ljava/lang/String;)Lcom/clockwork/api/HostPlayerSnapshot;
 	public abstract fun movePlayer (Ljava/lang/String;Lcom/clockwork/api/HostLocationRef;)Lcom/clockwork/api/HostPlayerSnapshot;
+	public abstract fun permissionsOfPlayer (Ljava/lang/String;)Ljava/util/Set;
 	public abstract fun playerGameMode (Ljava/lang/String;)Ljava/lang/String;
+	public abstract fun playerHasPermission (Ljava/lang/String;Ljava/lang/String;)Z
 	public abstract fun playerInventory (Ljava/lang/String;)Lcom/clockwork/api/HostInventorySnapshot;
 	public abstract fun playerIsOp (Ljava/lang/String;)Ljava/lang/Boolean;
 	public abstract fun playerPermissions (Ljava/lang/String;)Ljava/util/Set;
@@ -1389,6 +1408,7 @@ public abstract interface class com/clockwork/api/HostAccess {
 	public abstract fun setWorldWeather (Ljava/lang/String;Ljava/lang/String;)Z
 	public abstract fun spawnEntity (Ljava/lang/String;Lcom/clockwork/api/HostLocationRef;)Lcom/clockwork/api/HostEntitySnapshot;
 	public abstract fun worldData (Ljava/lang/String;)Ljava/util/Map;
+	public abstract fun worldDataOrEmpty (Ljava/lang/String;)Ljava/util/Map;
 	public abstract fun worldTime (Ljava/lang/String;)Ljava/lang/Long;
 	public abstract fun worldWeather (Ljava/lang/String;)Ljava/lang/String;
 	public abstract fun worlds ()Ljava/util/List;
@@ -1410,16 +1430,24 @@ public final class com/clockwork/api/HostAccess$DefaultImpls {
 	public static synthetic fun createWorld$default (Lcom/clockwork/api/HostAccess;Ljava/lang/String;JILjava/lang/Object;)Lcom/clockwork/api/HostWorldSnapshot;
 	public static synthetic fun entities$default (Lcom/clockwork/api/HostAccess;Ljava/lang/String;ILjava/lang/Object;)Ljava/util/List;
 	public static fun entityData (Lcom/clockwork/api/HostAccess;Ljava/lang/String;)Ljava/util/Map;
+	public static fun entityDataOrEmpty (Lcom/clockwork/api/HostAccess;Ljava/lang/String;)Ljava/util/Map;
 	public static fun findEntity (Lcom/clockwork/api/HostAccess;Ljava/lang/String;)Lcom/clockwork/api/HostEntitySnapshot;
 	public static fun givePlayerItem (Lcom/clockwork/api/HostAccess;Ljava/lang/String;Ljava/lang/String;I)I
 	public static synthetic fun givePlayerItem$default (Lcom/clockwork/api/HostAccess;Ljava/lang/String;Ljava/lang/String;IILjava/lang/Object;)I
 	public static fun grantPlayerPermission (Lcom/clockwork/api/HostAccess;Ljava/lang/String;Ljava/lang/String;)Z
 	public static fun hasPlayerPermission (Lcom/clockwork/api/HostAccess;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/Boolean;
 	public static fun inventoryItem (Lcom/clockwork/api/HostAccess;Ljava/lang/String;I)Ljava/lang/String;
+	public static fun isPlayerOp (Lcom/clockwork/api/HostAccess;Ljava/lang/String;)Z
 	public static fun kickPlayer (Lcom/clockwork/api/HostAccess;Ljava/lang/String;Ljava/lang/String;)Z
 	public static synthetic fun kickPlayer$default (Lcom/clockwork/api/HostAccess;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Z
+	public static fun listEntities (Lcom/clockwork/api/HostAccess;Ljava/lang/String;)Ljava/util/List;
+	public static synthetic fun listEntities$default (Lcom/clockwork/api/HostAccess;Ljava/lang/String;ILjava/lang/Object;)Ljava/util/List;
+	public static fun listWorlds (Lcom/clockwork/api/HostAccess;)Ljava/util/List;
+	public static fun lookupPlayer (Lcom/clockwork/api/HostAccess;Ljava/lang/String;)Lcom/clockwork/api/HostPlayerSnapshot;
 	public static fun movePlayer (Lcom/clockwork/api/HostAccess;Ljava/lang/String;Lcom/clockwork/api/HostLocationRef;)Lcom/clockwork/api/HostPlayerSnapshot;
+	public static fun permissionsOfPlayer (Lcom/clockwork/api/HostAccess;Ljava/lang/String;)Ljava/util/Set;
 	public static fun playerGameMode (Lcom/clockwork/api/HostAccess;Ljava/lang/String;)Ljava/lang/String;
+	public static fun playerHasPermission (Lcom/clockwork/api/HostAccess;Ljava/lang/String;Ljava/lang/String;)Z
 	public static fun playerIsOp (Lcom/clockwork/api/HostAccess;Ljava/lang/String;)Ljava/lang/Boolean;
 	public static fun playerPermissions (Lcom/clockwork/api/HostAccess;Ljava/lang/String;)Ljava/util/Set;
 	public static fun playerStatus (Lcom/clockwork/api/HostAccess;Ljava/lang/String;)Lcom/clockwork/api/HostPlayerStatusSnapshot;
@@ -1437,6 +1465,7 @@ public final class com/clockwork/api/HostAccess$DefaultImpls {
 	public static fun setWorldTime (Lcom/clockwork/api/HostAccess;Ljava/lang/String;J)Z
 	public static fun setWorldWeather (Lcom/clockwork/api/HostAccess;Ljava/lang/String;Ljava/lang/String;)Z
 	public static fun worldData (Lcom/clockwork/api/HostAccess;Ljava/lang/String;)Ljava/util/Map;
+	public static fun worldDataOrEmpty (Lcom/clockwork/api/HostAccess;Ljava/lang/String;)Ljava/util/Map;
 	public static fun worldTime (Lcom/clockwork/api/HostAccess;Ljava/lang/String;)Ljava/lang/Long;
 	public static fun worldWeather (Lcom/clockwork/api/HostAccess;Ljava/lang/String;)Ljava/lang/String;
 }
@@ -1521,6 +1550,19 @@ public final class com/clockwork/api/HostMutationBatch {
 	public final fun getRollbackReason ()Ljava/lang/String;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/HostMutationBatchDsl {
+	public final fun breakBlock (Ljava/lang/String;IIIZ)V
+	public static synthetic fun breakBlock$default (Lcom/clockwork/api/HostMutationBatchDsl;Ljava/lang/String;IIIZILjava/lang/Object;)V
+	public final fun createWorld (Ljava/lang/String;J)V
+	public static synthetic fun createWorld$default (Lcom/clockwork/api/HostMutationBatchDsl;Ljava/lang/String;JILjava/lang/Object;)V
+	public final fun movePlayer (Ljava/lang/String;Ljava/lang/String;DDD)V
+	public final fun setBlock (Ljava/lang/String;IIILjava/lang/String;)V
+	public final fun setPlayerInventoryItem (Ljava/lang/String;ILjava/lang/String;)V
+	public final fun setWorldData (Ljava/lang/String;Ljava/util/Map;)V
+	public final fun setWorldTime (Ljava/lang/String;J)V
+	public final fun spawnEntity (Ljava/lang/String;Ljava/lang/String;DDD)V
 }
 
 public final class com/clockwork/api/HostMutationBatchResult {
@@ -1896,6 +1938,10 @@ public final class com/clockwork/api/PluginApiExtensionsKt {
 	public static synthetic fun buildResourcePackBundle$default (Lcom/clockwork/api/PluginContext;Lcom/clockwork/api/ResourcePackBundleOptions;ILjava/lang/Object;)Lcom/clockwork/api/ResourcePackBundle;
 	public static final fun closeUi (Lcom/clockwork/api/PluginContext;Ljava/lang/String;)Z
 	public static final fun hasPermission (Lcom/clockwork/api/PluginContext;Ljava/lang/String;)Z
+	public static final fun hostMutationBatch (Lcom/clockwork/api/PluginContext;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Lcom/clockwork/api/HostMutationBatch;
+	public static synthetic fun hostMutationBatch$default (Lcom/clockwork/api/PluginContext;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/clockwork/api/HostMutationBatch;
+	public static final fun mutateHost (Lcom/clockwork/api/PluginContext;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;)Lcom/clockwork/api/HostMutationBatchResult;
+	public static synthetic fun mutateHost$default (Lcom/clockwork/api/PluginContext;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/clockwork/api/HostMutationBatchResult;
 	public static final fun notify (Lcom/clockwork/api/PluginContext;Ljava/lang/String;Lcom/clockwork/api/UiLevel;Ljava/lang/String;Ljava/lang/String;J)Z
 	public static synthetic fun notify$default (Lcom/clockwork/api/PluginContext;Ljava/lang/String;Lcom/clockwork/api/UiLevel;Ljava/lang/String;Ljava/lang/String;JILjava/lang/Object;)Z
 	public static final fun notifyError (Lcom/clockwork/api/PluginContext;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Z

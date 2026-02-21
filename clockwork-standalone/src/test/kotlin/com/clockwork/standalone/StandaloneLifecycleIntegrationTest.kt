@@ -45,6 +45,7 @@ class StandaloneLifecycleIntegrationTest {
                     "host.server.read",
                     "host.server.broadcast",
                     "host.player.message",
+                    "host.world.read",
                     "host.world.write",
                     "host.mutation.batch"
                 )
@@ -63,6 +64,9 @@ class StandaloneLifecycleIntegrationTest {
 
             val adapters = core.adapters("clockwork-demo")
             assertTrue(adapters.any { it.id == "bridge.host.server" })
+            assertTrue(adapters.any { it.id == "bridge.host.world" })
+            assertTrue(adapters.any { it.id == "bridge.host.entity" })
+            assertTrue(adapters.any { it.id == "bridge.host.inventory" })
 
             val invoke = core.invokeAdapter(
                 pluginId = "clockwork-demo",
@@ -72,6 +76,15 @@ class StandaloneLifecycleIntegrationTest {
             )
             assertTrue(invoke.success)
             assertEquals("Clockwork Standalone", invoke.payload["name"])
+
+            val worldInvoke = core.invokeAdapter(
+                pluginId = "clockwork-demo",
+                adapterId = "bridge.host.world",
+                action = "world.list",
+                payload = emptyMap()
+            )
+            assertTrue(worldInvoke.success)
+            assertEquals("1", worldInvoke.payload["count"])
 
             val reload = core.reload("clockwork-demo")
             assertEquals(ReloadStatus.SUCCESS, reload.status)
@@ -96,6 +109,27 @@ class StandaloneLifecycleIntegrationTest {
                 commandLine = "demo-network chat hello"
             )
             assertTrue(network.contains("Network status=ACCEPTED"))
+
+            val machineStatus = core.run(
+                pluginId = "clockwork-demo",
+                sender = sender(),
+                commandLine = "demo-machine status"
+            )
+            assertTrue(machineStatus.contains("Machine=crusher_machine"))
+
+            val burst = core.run(
+                pluginId = "clockwork-demo",
+                sender = sender(),
+                commandLine = "demo-network-burst 4 metrics"
+            )
+            assertTrue(burst.contains("Burst sent count=4"))
+
+            val uiTour = core.run(
+                pluginId = "clockwork-demo",
+                sender = sender(),
+                commandLine = "demo-ui-tour Alex"
+            )
+            assertTrue(uiTour.contains("UI tour delivered"))
 
             val notify = core.run(
                 pluginId = "clockwork-demo",
@@ -398,6 +432,81 @@ class StandaloneLifecycleIntegrationTest {
             assertTrue(perf.has("adapterCounters"))
             assertTrue(perf.has("adapterAudit"))
             assertTrue(perf.path("adapterCounters").path("total").asLong() >= 30L)
+        } finally {
+            core.stop()
+        }
+    }
+
+    @Test
+    fun `tick stability metrics and plugin budget exhaustion are tracked`() {
+        val root = Files.createTempDirectory("clockwork-standalone-it-tick-stability")
+        val pluginsDir = root.resolve("plugins")
+        val dataDir = root.resolve("data")
+        Files.createDirectories(pluginsDir)
+        Files.createDirectories(dataDir)
+
+        val core = GigaStandaloneCore(
+            config = StandaloneCoreConfig(
+                pluginsDirectory = pluginsDir,
+                dataDirectory = dataDir,
+                tickPeriodMillis = 1L,
+                autoSaveEveryTicks = 0L,
+                perPluginTickBudgetNanos = 1L
+            ),
+            logger = {}
+        )
+        core.start()
+        try {
+            writeDemoManifestJar(
+                jarPath = pluginsDir.resolve("clockwork-demo-it-tick-stability.jar"),
+                pluginId = "clockwork-demo",
+                permissions = listOf("host.server.read")
+            )
+            assertEquals(1, core.loadNewPlugins())
+
+            Thread.sleep(60L)
+
+            val status = core.status()
+            assertTrue(status.tickCount > 0L)
+            assertTrue(status.averageTickJitterNanos >= 0L)
+            assertTrue(status.maxTickJitterNanos >= status.averageTickJitterNanos)
+            assertTrue(status.pluginBudgetExhaustions > 0L)
+        } finally {
+            core.stop()
+        }
+    }
+
+    @Test
+    fun `deterministic execution order snapshot is stable and sorted`() {
+        val root = Files.createTempDirectory("clockwork-standalone-it-order")
+        val pluginsDir = root.resolve("plugins")
+        val dataDir = root.resolve("data")
+        Files.createDirectories(pluginsDir)
+        Files.createDirectories(dataDir)
+
+        val core = GigaStandaloneCore(
+            config = StandaloneCoreConfig(
+                pluginsDirectory = pluginsDir,
+                dataDirectory = dataDir,
+                tickPeriodMillis = 1L,
+                autoSaveEveryTicks = 0L
+            ),
+            logger = {}
+        )
+        core.start()
+        try {
+            writeDemoManifestJar(
+                jarPath = pluginsDir.resolve("clockwork-demo-it-order.jar"),
+                pluginId = "clockwork-demo"
+            )
+            assertEquals(1, core.loadNewPlugins())
+            val first = core.deterministicExecutionOrder()
+            val second = core.deterministicExecutionOrder()
+            assertEquals(first, second)
+            assertEquals(first.keys.toList(), first.keys.toList().sorted())
+            first.values.forEach { systems ->
+                assertEquals(systems, systems.sorted())
+            }
         } finally {
             core.stop()
         }

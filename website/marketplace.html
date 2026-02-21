@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Clockwork Marketplace | Minecraft Server Plugins</title>
+  <meta name="description" content="Clockwork Plugin Marketplace: finde, vergleiche und installiere leistungsstarke Plugins fuer die Clockwork Server Software." />
+  <link rel="icon" type="image/png" href="../logos/logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="scroll-progress" aria-hidden="true"></div>
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow-a" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow-b" aria-hidden="true"></div>
+
+  <header class="site-header reveal">
+    <div class="brand">
+      <img class="brand-banner" src="../logos/banner.png" alt="Clockwork banner" />
+    </div>
+    <div class="header-actions">
+      <a class="btn btn-ghost" href="./index.html">Website Home</a>
+      <a class="btn btn-primary" href="../docs/index.md">Docs</a>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside class="sidebar reveal">
+      <label class="search-wrap" for="api-search">
+        <span>Marketplace Search</span>
+        <input id="api-search" type="search" placeholder="e.g. automation, economy, admin" />
+      </label>
+      <nav id="docs-nav">
+        <a href="#market-home">Home</a>
+        <a href="#market-featured">Featured</a>
+        <a href="#market-trending">Trending</a>
+        <a href="#market-new">New</a>
+      </nav>
+    </aside>
+
+    <div class="content">
+      <section id="market-home" class="doc-section reveal" data-api-item="clockwork marketplace plugins discover install">
+        <p class="eyebrow">MARKETPLACE</p>
+        <h1>Clockwork Plugin Marketplace</h1>
+        <p class="lead">
+          Entdecke Plugins im Modrinth-inspirierten Layout, mit Fokus auf Performance, Sicherheit und klare Operator-Infos.
+        </p>
+        <div class="pill-row">
+          <span class="pill">One-click Install (WIP)</span>
+          <span class="pill">Version Compatibility</span>
+          <span class="pill">Security Signals</span>
+          <span class="pill">Runtime Ratings</span>
+        </div>
+        <p style="margin-top: 1rem;">
+          <a class="btn btn-ghost" href="./index.html#marketplace">Back to Website Section</a>
+        </p>
+      </section>
+
+      <section id="market-featured" class="doc-section reveal" data-api-item="featured plugins marketplace">
+        <div class="section-head">
+          <p class="eyebrow">FEATURED</p>
+          <h2>Curated Plugins</h2>
+        </div>
+        <div class="market-shell">
+          <div class="market-top">
+            <label class="market-search">
+              <span>Search Plugins</span>
+              <input type="search" placeholder="Search by name, tag or author..." />
+            </label>
+            <div class="market-filters">
+              <span class="market-chip active">All</span>
+              <span class="market-chip">Automation</span>
+              <span class="market-chip">Worldgen</span>
+              <span class="market-chip">Economy</span>
+              <span class="market-chip">Combat</span>
+              <span class="market-chip">Admin</span>
+            </div>
+          </div>
+
+          <div class="market-grid">
+            <article class="market-card">
+              <div class="market-icon">CW</div>
+              <div class="market-main">
+                <div class="market-head">
+                  <h3>Clockwork Create Lite</h3>
+                  <span class="market-version">v0.9.2</span>
+                </div>
+                <p>Create-artige Maschinen, Rotation und Rezeptfluss fuer Standalone-Core.</p>
+                <div class="market-tags">
+                  <span>automation</span>
+                  <span>machines</span>
+                  <span>recipes</span>
+                </div>
+              </div>
+              <div class="market-meta">
+                <strong>1.2M</strong>
+                <span>Downloads</span>
+                <strong>4.8</strong>
+                <span>Rating</span>
+                <a class="btn btn-primary" href="#">Install</a>
+              </div>
+            </article>
+
+            <article class="market-card">
+              <div class="market-icon">AD</div>
+              <div class="market-main">
+                <div class="market-head">
+                  <h3>Admin Guardrails</h3>
+                  <span class="market-version">v2.1.1</span>
+                </div>
+                <p>Permission bundles, command audit und runtime recommendations fuer Operatoren.</p>
+                <div class="market-tags">
+                  <span>admin</span>
+                  <span>security</span>
+                  <span>ops</span>
+                </div>
+              </div>
+              <div class="market-meta">
+                <strong>1.9M</strong>
+                <span>Downloads</span>
+                <strong>4.9</strong>
+                <span>Rating</span>
+                <a class="btn btn-primary" href="#">Install</a>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="market-trending" class="doc-section reveal" data-api-item="trending plugins">
+        <div class="section-head">
+          <p class="eyebrow">TRENDING</p>
+          <h2>Most Active This Week</h2>
+        </div>
+        <article class="api-card">
+          <ul>
+            <li>NetX Economies</li>
+            <li>WildGrid Terrain</li>
+            <li>Clockwork Create Lite</li>
+          </ul>
+        </article>
+      </section>
+
+      <section id="market-new" class="doc-section reveal" data-api-item="new plugins releases">
+        <div class="section-head">
+          <p class="eyebrow">NEW</p>
+          <h2>Latest Releases</h2>
+        </div>
+        <article class="api-card">
+          <ul>
+            <li>Factory UI Kit v0.3.0</li>
+            <li>Raid Director v1.0.0</li>
+            <li>Network HUD v0.8.4</li>
+          </ul>
+        </article>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-footer reveal">
+    <p>Clockwork Marketplace • Preview Layout</p>
+  </footer>
+
+  <script src="./app.js"></script>
+</body>
+</html>

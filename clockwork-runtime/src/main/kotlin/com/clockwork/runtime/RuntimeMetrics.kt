@@ -36,12 +36,29 @@ data class FaultBudgetPolicy(
     val windowMillis: Long = 60_000L
 )
 
+enum class FaultBudgetStage {
+    NORMAL,
+    WARN,
+    THROTTLE,
+    ISOLATE
+}
+
+data class FaultBudgetEscalationPolicy(
+    val warnUsageRatio: Double = 0.60,
+    val throttleUsageRatio: Double = 0.80,
+    val isolateUsageRatio: Double = 1.00,
+    val throttleBudgetMultiplier: Double = 0.50
+)
+
 data class PluginFaultBudgetSnapshot(
     val policy: FaultBudgetPolicy,
     val used: Int,
     val remaining: Int,
     val tripped: Boolean,
-    val recentSources: Map<String, Int>
+    val recentSources: Map<String, Int>,
+    val usageRatio: Double = 0.0,
+    val stage: FaultBudgetStage = FaultBudgetStage.NORMAL,
+    val escalationPolicy: FaultBudgetEscalationPolicy = FaultBudgetEscalationPolicy()
 )
 
 data class SystemIsolationSnapshot(
@@ -121,7 +138,8 @@ data class AdapterCountersSnapshot(
 data class AdapterAuditRetentionPolicy(
     val maxEntriesPerPlugin: Int = 512,
     val maxEntriesPerAdapter: Int = 128,
-    val maxAgeMillis: Long = 300_000L
+    val maxAgeMillis: Long = 300_000L,
+    val maxMemoryBytes: Long = 512L * 1024L
 )
 
 data class AdapterAuditEntrySnapshot(
@@ -138,6 +156,7 @@ data class AdapterAuditSnapshot(
     val retention: AdapterAuditRetentionPolicy,
     val totalRecorded: Long,
     val retainedEntries: Int,
+    val retainedEstimatedBytes: Long,
     val outcomeCounts: Map<String, Long>,
     val recent: List<AdapterAuditEntrySnapshot>
 )
@@ -145,6 +164,7 @@ data class AdapterAuditSnapshot(
 class RuntimeMetrics(
     private val thresholds: ProfileDiagnosticsThresholds = ProfileDiagnosticsThresholds(),
     private val faultBudgetPolicy: FaultBudgetPolicy = FaultBudgetPolicy(),
+    private val faultBudgetEscalationPolicy: FaultBudgetEscalationPolicy = FaultBudgetEscalationPolicy(),
     private val adapterAuditRetention: AdapterAuditRetentionPolicy = AdapterAuditRetentionPolicy()
 ) {
     private val systemMetrics = ConcurrentHashMap<String, ConcurrentHashMap<String, MutableMetric>>()
@@ -282,12 +302,23 @@ class RuntimeMetrics(
             }
             val used = window.faults.size
             val remaining = (faultBudgetPolicy.maxFaultsPerWindow - used).coerceAtLeast(0)
+            val usageRatio = if (faultBudgetPolicy.maxFaultsPerWindow <= 0) 0.0
+            else used.toDouble() / faultBudgetPolicy.maxFaultsPerWindow.toDouble()
+            val stage = when {
+                usageRatio >= faultBudgetEscalationPolicy.isolateUsageRatio -> FaultBudgetStage.ISOLATE
+                usageRatio >= faultBudgetEscalationPolicy.throttleUsageRatio -> FaultBudgetStage.THROTTLE
+                usageRatio >= faultBudgetEscalationPolicy.warnUsageRatio -> FaultBudgetStage.WARN
+                else -> FaultBudgetStage.NORMAL
+            }
             return PluginFaultBudgetSnapshot(
                 policy = faultBudgetPolicy,
                 used = used,
                 remaining = remaining,
                 tripped = used >= faultBudgetPolicy.maxFaultsPerWindow,
-                recentSources = window.sourceCounts.toSortedMap(compareByDescending<String> { window.sourceCounts[it] ?: 0 }.thenBy { it })
+                recentSources = window.sourceCounts.toSortedMap(compareByDescending<String> { window.sourceCounts[it] ?: 0 }.thenBy { it }),
+                usageRatio = usageRatio,
+                stage = stage,
+                escalationPolicy = faultBudgetEscalationPolicy
             )
         }
     }
@@ -414,6 +445,7 @@ class RuntimeMetrics(
             window.entries.addLast(entry)
             window.totalRecorded++
             window.perAdapterRetained[adapterId] = (window.perAdapterRetained[adapterId] ?: 0) + 1
+            window.retainedEstimatedBytes += estimateAuditEntryBytes(entry)
             window.outcomeCounts[outcome.name] = (window.outcomeCounts[outcome.name] ?: 0L) + 1L
             trimAdapterAuditToBounds(window)
         }
@@ -427,6 +459,7 @@ class RuntimeMetrics(
                 retention = adapterAuditRetention,
                 totalRecorded = window.totalRecorded,
                 retainedEntries = window.entries.size,
+                retainedEstimatedBytes = window.retainedEstimatedBytes,
                 outcomeCounts = window.outcomeCounts.toSortedMap(),
                 recent = window.entries.toList()
             )
@@ -469,12 +502,22 @@ class RuntimeMetrics(
                 break
             }
         }
+        while (window.retainedEstimatedBytes > adapterAuditRetention.maxMemoryBytes) {
+            removeOldestAuditEntry(window)
+        }
     }
 
     private fun removeOldestAuditEntry(window: MutableAdapterAuditWindow) {
         val removed = window.entries.pollFirst() ?: return
+        window.retainedEstimatedBytes = (window.retainedEstimatedBytes - estimateAuditEntryBytes(removed)).coerceAtLeast(0L)
         val nextCount = (window.perAdapterRetained[removed.adapterId] ?: 0) - 1
         if (nextCount <= 0) window.perAdapterRetained.remove(removed.adapterId) else window.perAdapterRetained[removed.adapterId] = nextCount
+    }
+
+    private fun estimateAuditEntryBytes(entry: AdapterAuditEntrySnapshot): Long {
+        // Approximation used only for bounded in-memory retention control.
+        val textBytes = (entry.adapterId.length + entry.action.length + entry.outcome.length + entry.detail.length) * 2L
+        return 96L + textBytes
     }
 
     private class MutableMetric {
@@ -538,6 +581,7 @@ class RuntimeMetrics(
     private class MutableAdapterAuditWindow {
         val entries = ArrayDeque<AdapterAuditEntrySnapshot>()
         var totalRecorded: Long = 0L
+        var retainedEstimatedBytes: Long = 0L
         val perAdapterRetained = linkedMapOf<String, Int>()
         val outcomeCounts = linkedMapOf<String, Long>()
     }

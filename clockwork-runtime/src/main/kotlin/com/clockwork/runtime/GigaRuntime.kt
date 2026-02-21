@@ -8,6 +8,7 @@ import java.net.URLClassLoader
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
+import java.security.MessageDigest
 import java.util.ArrayDeque
 import java.util.Comparator
 import java.util.UUID
@@ -30,8 +31,10 @@ data class LoadedPlugin(
 class GigaRuntime(
     private val pluginsDirectory: Path,
     private val dataDirectory: Path,
+    private val schedulerWorkerThreads: Int = 1,
     private val adapterSecurity: AdapterSecurityConfig = AdapterSecurityConfig(),
     private val faultBudgetPolicy: FaultBudgetPolicy = FaultBudgetPolicy(),
+    private val faultBudgetEscalationPolicy: FaultBudgetEscalationPolicy = FaultBudgetEscalationPolicy(),
     private val eventDispatchMode: EventDispatchMode = EventDispatchMode.EXACT,
     private val hostAccess: HostAccess = HostAccess.unavailable(),
     private val rootLogger: GigaLogger = GigaLogger { println("[GigaRuntime] $it") }
@@ -43,10 +46,12 @@ class GigaRuntime(
     private val pluginNetworkHub = RuntimePluginNetworkHub()
     private val metrics = RuntimeMetrics(
         faultBudgetPolicy = faultBudgetPolicy,
+        faultBudgetEscalationPolicy = faultBudgetEscalationPolicy,
         adapterAuditRetention = AdapterAuditRetentionPolicy(
             maxEntriesPerPlugin = adapterSecurity.auditRetentionMaxEntriesPerPlugin,
             maxEntriesPerAdapter = adapterSecurity.auditRetentionMaxEntriesPerAdapter,
-            maxAgeMillis = adapterSecurity.auditRetentionMaxAgeMillis
+            maxAgeMillis = adapterSecurity.auditRetentionMaxAgeMillis,
+            maxMemoryBytes = adapterSecurity.auditRetentionMaxMemoryBytes
         )
     )
     private val isolatedSystems = ConcurrentHashMap<String, ConcurrentHashMap<String, SystemIsolationSnapshot>>()
@@ -343,6 +348,7 @@ class GigaRuntime(
 
         val orderedIds = resolution.ordered.map { it.manifest.id }
         val previous = orderedIds.mapNotNull { loaded[it] }.associateBy { it.manifest.id }
+        val beforeDataHash = pluginDataHash(previous.keys)
 
         val checkpointRoot = createDataCheckpoint(previous.keys)
 
@@ -350,13 +356,18 @@ class GigaRuntime(
 
         return try {
             val reloaded = resolution.ordered.map(::loadDescriptor)
+            val afterDataHash = pluginDataHash(previous.keys)
+            val changedPlugins = previous.keys
+                .filter { id -> beforeDataHash[id] != afterDataHash[id] }
+                .sorted()
             previous.values.forEach { safeDeleteIfExists(it.runtimeJarPath) }
             deleteDirectoryIfExists(checkpointRoot)
             ReloadReport(
                 target = target,
                 affectedPlugins = orderedIds,
                 reloadedPlugins = reloaded.map { it.manifest.id },
-                status = ReloadStatus.SUCCESS
+                status = ReloadStatus.SUCCESS,
+                checkpointChangedPlugins = changedPlugins
             )
         } catch (t: Throwable) {
             val failureMessage = t.message ?: t.javaClass.simpleName
@@ -364,26 +375,80 @@ class GigaRuntime(
             restoreDataCheckpoint(checkpointRoot, previous.keys)
 
             val rollbackError = restorePrevious(previous, orderedIds)
+            val afterRollbackDataHash = pluginDataHash(previous.keys)
+            val rollbackDataRestored = previous.keys.all { id -> beforeDataHash[id] == afterRollbackDataHash[id] }
             deleteDirectoryIfExists(checkpointRoot)
 
             if (rollbackError == null) {
+                val recovered = orderedIds.filter { loaded.containsKey(it) }.sorted()
+                val failed = orderedIds.filterNot { loaded.containsKey(it) }.sorted()
                 ReloadReport(
                     target = target,
                     affectedPlugins = orderedIds,
                     reloadedPlugins = orderedIds,
                     status = ReloadStatus.ROLLED_BACK,
-                    reason = failureMessage
+                    reason = failureMessage,
+                    rollbackRecoveredPlugins = recovered,
+                    rollbackFailedPlugins = failed,
+                    rollbackDataRestored = rollbackDataRestored
                 )
             } else {
+                val recovered = orderedIds.filter { loaded.containsKey(it) }.sorted()
+                val failed = orderedIds.filterNot { loaded.containsKey(it) }.sorted()
                 ReloadReport(
                     target = target,
                     affectedPlugins = orderedIds,
                     reloadedPlugins = loaded.keys.intersect(orderedIds.toSet()).sorted(),
                     status = ReloadStatus.FAILED,
-                    reason = "Reload failed: $failureMessage; rollback failed: $rollbackError"
+                    reason = "Reload failed: $failureMessage; rollback failed: $rollbackError",
+                    rollbackRecoveredPlugins = recovered,
+                    rollbackFailedPlugins = failed,
+                    rollbackDataRestored = rollbackDataRestored
                 )
             }
         }
+    }
+
+    private fun pluginDataHash(pluginIds: Set<String>): Map<String, String> {
+        return pluginIds.associateWith { id ->
+            val pluginDir = normalizedDataDirectory.resolve(id).normalize()
+            require(pluginDir.startsWith(normalizedDataDirectory)) { "Unsafe plugin data path '$pluginDir'" }
+            if (!Files.exists(pluginDir)) {
+                "absent"
+            } else {
+                hashDirectory(pluginDir)
+            }
+        }
+    }
+
+    private fun hashDirectory(root: Path): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        Files.walk(root).use { stream ->
+            stream
+                .sorted()
+                .forEach { entry ->
+                    val relative = root.relativize(entry).toString().replace('\\', '/')
+                    digest.update(relative.toByteArray(Charsets.UTF_8))
+                    if (Files.isRegularFile(entry)) {
+                        digest.update(longToBytes(Files.size(entry)))
+                        digest.update(longToBytes(Files.getLastModifiedTime(entry).toMillis()))
+                    }
+                }
+        }
+        return digest.digest().joinToString("") { b -> "%02x".format(b) }
+    }
+
+    private fun longToBytes(value: Long): ByteArray {
+        return byteArrayOf(
+            (value shr 56).toByte(),
+            (value shr 48).toByte(),
+            (value shr 40).toByte(),
+            (value shr 32).toByte(),
+            (value shr 24).toByte(),
+            (value shr 16).toByte(),
+            (value shr 8).toByte(),
+            value.toByte()
+        )
     }
 
     private fun restorePrevious(previous: Map<String, LoadedPlugin>, orderedIds: List<String>): String? {
@@ -456,6 +521,7 @@ class GigaRuntime(
             val plugin = instantiatePlugin(manifest, loader)
             val scheduler = RuntimeScheduler(
                 pluginId = manifest.id,
+                workerThreads = schedulerWorkerThreads,
                 runObserver = { pluginId, taskId, durationNanos, success ->
                     metrics.recordTaskRun(pluginId, taskId, durationNanos, success)
                 }

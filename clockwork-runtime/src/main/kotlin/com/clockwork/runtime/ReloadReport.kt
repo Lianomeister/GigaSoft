@@ -11,6 +11,9 @@ data class ReloadReport(
     val affectedPlugins: List<String>,
     val reloadedPlugins: List<String>,
     val status: ReloadStatus,
-    val reason: String? = null
+    val reason: String? = null,
+    val checkpointChangedPlugins: List<String> = emptyList(),
+    val rollbackRecoveredPlugins: List<String> = emptyList(),
+    val rollbackFailedPlugins: List<String> = emptyList(),
+    val rollbackDataRestored: Boolean = false
 )
-

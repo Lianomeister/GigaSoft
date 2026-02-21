@@ -2,6 +2,7 @@ package com.clockwork.api
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class DslPluginTest {
@@ -43,6 +44,9 @@ class DslPluginTest {
             }
         }
 
+        val host = RecordingHostAccess()
+        var tickEvents = 0
+        var tickOnceEvents = 0
         val plugin = gigaPlugin("test") {
             items { item("gear", "Gear") }
             textures { texture("gear_base", "assets/demo/textures/item/gear.png") }
@@ -63,12 +67,7 @@ class DslPluginTest {
             }
             systems { system("tick") {} }
             commands {
-                command(
-                    spec = CommandSpec(
-                        command = "demo",
-                        aliases = listOf("d")
-                    )
-                ) { sender, _ ->
+                command(id = "demo", aliases = listOf("d")) { sender, _ ->
                     CommandResult.ok("ok:${sender.id}")
                 }
                 command(
@@ -96,6 +95,14 @@ class DslPluginTest {
                     CommandResult.ok((value * factor).toString())
                 }
             }
+            events {
+                on<GigaTickEvent> { _ ->
+                    tickEvents++
+                }
+                once<GigaTickEvent> {
+                    tickOnceEvents++
+                }
+            }
             adapters {
                 adapter(
                     id = "bridge",
@@ -105,9 +112,13 @@ class DslPluginTest {
                     AdapterResponse(success = invocation.action == "ping")
                 }
             }
+            hostMutations(id = "startup-seed") {
+                createWorld("factory", seed = 77L)
+                setWorldTime("factory", 1200L)
+            }
         }
 
-        val ctx = RuntimelessContext(registry, adapters)
+        val ctx = RuntimelessContext(registry, adapters, host)
         plugin.onEnable(ctx)
 
         assertEquals(listOf("gear"), registry.itemIds)
@@ -125,6 +136,13 @@ class DslPluginTest {
         assertTrue(ctx.eventsSeen.any { it is GigaModelRegisteredEvent })
         assertEquals("ok:alice", ctx.commandRegistry.invoke("d", "alice", emptyList()))
         assertEquals("8", ctx.commandRegistry.invoke("m", "alice", listOf("FAST", "4")))
+        ctx.eventBus.publish(GigaTickEvent(1))
+        ctx.eventBus.publish(GigaTickEvent(2))
+        assertEquals(2, tickEvents)
+        assertEquals(1, tickOnceEvents)
+        assertNotNull(host.lastBatch)
+        assertEquals("startup-seed", host.lastBatch?.id)
+        assertEquals(2, host.lastBatch?.operations?.size)
         val completions = CommandCompletionCatalog.suggest(
             commandOrAlias = "m",
             ctx = ctx,
@@ -138,12 +156,15 @@ class DslPluginTest {
 
     private class RuntimelessContext(
         private val registryFacade: RegistryFacade,
-        private val adapterRegistry: ModAdapterRegistry
+        private val adapterRegistry: ModAdapterRegistry,
+        private val hostAccess: HostAccess
     ) : PluginContext {
         val eventsSeen = mutableListOf<Any>()
+        val logs = mutableListOf<String>()
+        val eventBus = RecordingEventBus { event -> eventsSeen += event }
         val commandRegistry = RecordingCommands()
         override val manifest: PluginManifest = PluginManifest("test", "test", "1", "main")
-        override val logger: GigaLogger = GigaLogger { }
+        override val logger: GigaLogger = GigaLogger { logs += it }
         override val scheduler: Scheduler = object : Scheduler {
             override fun repeating(taskId: String, periodTicks: Int, block: () -> Unit) {}
             override fun once(taskId: String, delayTicks: Int, block: () -> Unit) {}
@@ -158,9 +179,42 @@ class DslPluginTest {
             }
         }
         override val commands: CommandRegistry = commandRegistry
-        override val events: EventBus = object : EventBus {
-            override fun <T : Any> subscribe(eventType: Class<T>, listener: (T) -> Unit) {}
-            override fun publish(event: Any) { eventsSeen += event }
+        override val events: EventBus = eventBus
+        override val host: HostAccess = hostAccess
+    }
+
+    private class RecordingEventBus(
+        private val onPublish: (Any) -> Unit
+    ) : EventBus {
+        private val listeners = linkedMapOf<Class<*>, MutableList<Any>>()
+        override fun <T : Any> subscribe(eventType: Class<T>, listener: (T) -> Unit) {
+            val bucket = listeners.getOrPut(eventType) { mutableListOf() }
+            bucket += listener
+        }
+
+        override fun <T : Any> unsubscribe(eventType: Class<T>, listener: (T) -> Unit): Boolean {
+            return listeners[eventType]?.remove(listener) == true
+        }
+
+        override fun publish(event: Any) {
+            onPublish(event)
+            listeners[event::class.java].orEmpty().toList().forEach { listener ->
+                @Suppress("UNCHECKED_CAST")
+                (listener as (Any) -> Unit).invoke(event)
+            }
+        }
+    }
+
+    private class RecordingHostAccess : HostAccess by HostAccess.unavailable() {
+        var lastBatch: HostMutationBatch? = null
+        override fun applyMutationBatch(batch: HostMutationBatch): HostMutationBatchResult {
+            lastBatch = batch
+            return HostMutationBatchResult(
+                batchId = batch.id,
+                success = true,
+                appliedOperations = batch.operations.size,
+                rolledBack = false
+            )
         }
     }
 

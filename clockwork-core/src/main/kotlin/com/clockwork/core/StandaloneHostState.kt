@@ -60,8 +60,20 @@ data class StandaloneBlockData(
     val data: Map<String, String>
 )
 
+data class StandaloneChunkLoadingMetrics(
+    val tick: Long,
+    val loadedChunks: Int,
+    val chunkLoads: Long,
+    val chunkEvictions: Long,
+    val chunkHits: Long,
+    val chunkMisses: Long
+)
+
 class StandaloneHostState(
-    defaultWorld: String = "world"
+    defaultWorld: String = "world",
+    private val chunkViewDistance: Int = 4,
+    private val maxChunkLoadsPerTick: Int = 128,
+    private val maxLoadedChunksPerWorld: Int = 4096
 ) {
     companion object {
         private val CASE_INSENSITIVE = String.CASE_INSENSITIVE_ORDER
@@ -90,6 +102,17 @@ class StandaloneHostState(
         val created: Boolean
     )
 
+    private data class BlockCoord(
+        val x: Int,
+        val y: Int,
+        val z: Int
+    )
+
+    private data class ChunkCoord(
+        val x: Int,
+        val z: Int
+    )
+
     private val stateLock = Any()
     private val worlds = LinkedHashMap<String, StandaloneWorld>()
     private val worldData = LinkedHashMap<String, MutableMap<String, String>>()
@@ -103,8 +126,14 @@ class StandaloneHostState(
     private val playerGameModesByName = LinkedHashMap<String, String>()
     private val playerStatusByName = LinkedHashMap<String, StandalonePlayerStatus>()
     private val inventoriesByOwner = LinkedHashMap<String, MutableMap<Int, String>>()
-    private val blocks = LinkedHashMap<String, StandaloneBlock>()
-    private val blockData = LinkedHashMap<String, MutableMap<String, String>>()
+    private val blocksByWorld = LinkedHashMap<String, MutableMap<BlockCoord, StandaloneBlock>>()
+    private val blockDataByWorld = LinkedHashMap<String, MutableMap<BlockCoord, MutableMap<String, String>>>()
+    private val loadedChunksByWorld = LinkedHashMap<String, LinkedHashMap<ChunkCoord, Long>>()
+    private var chunkTick: Long = 0L
+    private var chunkLoads: Long = 0L
+    private var chunkEvictions: Long = 0L
+    private var chunkHits: Long = 0L
+    private var chunkMisses: Long = 0L
     @Volatile
     private var worldsCache: List<StandaloneWorld> = emptyList()
     @Volatile
@@ -253,6 +282,7 @@ class StandaloneHostState(
                 y = y,
                 z = z
             )
+            touchChunkUnsafe(nextPlayer.world, x.toInt(), z.toInt())
             incrementWorldEntityCountUnsafe(nextPlayer.world)
             entitiesAllDirty = true
             entitiesWorldCache.remove(canonicalKey(nextPlayer.world))
@@ -331,6 +361,7 @@ class StandaloneHostState(
                 incrementWorldEntityCountUnsafe(nextWorld)
                 entitiesWorldCache.remove(canonicalKey(nextWorld))
             }
+            touchChunkUnsafe(nextWorld, x.toInt(), z.toInt())
             entitiesAllDirty = true
             moved
         }
@@ -370,10 +401,13 @@ class StandaloneHostState(
 
     fun tickWorlds() {
         synchronized(stateLock) {
+            chunkTick += 1L
             for ((key, world) in worlds) {
                 worlds[key] = world.copy(time = world.time + 1L)
             }
             worldsDirty = true
+            preloadChunksAroundPlayersUnsafe()
+            evictChunksUnsafe()
         }
     }
 
@@ -402,6 +436,7 @@ class StandaloneHostState(
                 entitiesWorldCache.remove(canonicalKey(previous.world))
             }
             incrementWorldEntityCountUnsafe(entity.world)
+            touchChunkUnsafe(entity.world, x.toInt(), z.toInt())
             entitiesAllDirty = true
             entitiesWorldCache.remove(canonicalKey(entity.world))
             entity
@@ -495,29 +530,31 @@ class StandaloneHostState(
                     value.copy(effects = value.effects.toSortedMap())
                 },
                 inventories = inventoriesByOwner.toSortedMap().mapValues { (_, slots) -> slots.toSortedMap() },
-                blocks = blocks.values.sortedWith(
+                blocks = blocksByWorld.entries
+                    .asSequence()
+                    .flatMap { (_, byPos) -> byPos.values.asSequence() }
+                    .sortedWith(
                     compareBy<StandaloneBlock, String>(String.CASE_INSENSITIVE_ORDER) { it.world }
                         .thenBy { it.y }
                         .thenBy { it.z }
                         .thenBy { it.x }
-                ),
-                blockData = blockData.entries
-                    .filter { it.value.isNotEmpty() }
-                    .mapNotNull { (key, values) ->
-                        val parts = key.split(":")
-                        if (parts.size != 4) return@mapNotNull null
-                        val world = parts[0]
-                        val x = parts[1].toIntOrNull() ?: return@mapNotNull null
-                        val y = parts[2].toIntOrNull() ?: return@mapNotNull null
-                        val z = parts[3].toIntOrNull() ?: return@mapNotNull null
-                        StandaloneBlockData(
-                            world = world,
-                            x = x,
-                            y = y,
-                            z = z,
-                            data = values.toSortedMap()
-                        )
+                    )
+                    .toList(),
+                blockData = blockDataByWorld.entries
+                    .asSequence()
+                    .flatMap { (worldKey, byPos) ->
+                        val worldName = worlds[worldKey]?.name ?: worldKey
+                        byPos.entries.asSequence().filter { it.value.isNotEmpty() }.map { (pos, values) ->
+                            StandaloneBlockData(
+                                world = worldName,
+                                x = pos.x,
+                                y = pos.y,
+                                z = pos.z,
+                                data = values.toSortedMap()
+                            )
+                        }
                     }
+                    .toList()
             )
         }
     }
@@ -536,8 +573,14 @@ class StandaloneHostState(
             playerGameModesByName.clear()
             playerStatusByName.clear()
             inventoriesByOwner.clear()
-            blocks.clear()
-            blockData.clear()
+            blocksByWorld.clear()
+            blockDataByWorld.clear()
+            loadedChunksByWorld.clear()
+            chunkTick = 0L
+            chunkLoads = 0L
+            chunkEvictions = 0L
+            chunkHits = 0L
+            chunkMisses = 0L
 
             snapshot.worlds.forEach { world ->
                 val name = world.name.trim()
@@ -686,14 +729,18 @@ class StandaloneHostState(
                 if (blockId.equals("air", ignoreCase = true) || blockId.equals("empty", ignoreCase = true)) return@forEach
                 val resolvedWorld = createWorldWithStatusUnsafe(worldName, seed = 0L).world.name
                 val resolved = block.copy(world = resolvedWorld, blockId = blockId)
-                blocks[blockKey(resolved.world, resolved.x, resolved.y, resolved.z)] = resolved
+                val worldKey = canonicalKey(resolved.world)
+                val pos = blockCoord(resolved.x, resolved.y, resolved.z)
+                blocksByWorld.computeIfAbsent(worldKey) { LinkedHashMap() }[pos] = resolved
+                touchChunkUnsafe(resolved.world, resolved.x, resolved.z)
             }
 
             snapshot.blockData.forEach { entry ->
                 val worldName = entry.world.trim()
                 if (worldName.isEmpty()) return@forEach
-                val key = blockKey(worldName, entry.x, entry.y, entry.z)
-                if (!blocks.containsKey(key)) return@forEach
+                val worldKey = canonicalKey(worldName)
+                val pos = blockCoord(entry.x, entry.y, entry.z)
+                if (!blocksByWorld[worldKey].orEmpty().containsKey(pos)) return@forEach
                 val sanitized = linkedMapOf<String, String>()
                 entry.data.forEach { (k, v) ->
                     val keyName = k.trim()
@@ -703,7 +750,7 @@ class StandaloneHostState(
                     }
                 }
                 if (sanitized.isNotEmpty()) {
-                    blockData[key] = sanitized
+                    blockDataByWorld.computeIfAbsent(worldKey) { LinkedHashMap() }[pos] = sanitized
                 }
             }
 
@@ -725,12 +772,18 @@ class StandaloneHostState(
         val existing = worlds[key]
         if (existing != null) {
             worldEntityCounts.putIfAbsent(key, 0)
+            loadedChunksByWorld.putIfAbsent(key, LinkedHashMap())
+            blocksByWorld.putIfAbsent(key, LinkedHashMap())
+            blockDataByWorld.putIfAbsent(key, LinkedHashMap())
             return WorldCreateResult(world = existing, created = false)
         }
         val created = StandaloneWorld(name = worldName, seed = seed, time = 0L)
         worlds[key] = created
         worldWeather.putIfAbsent(key, "clear")
         worldEntityCounts.putIfAbsent(key, 0)
+        loadedChunksByWorld.putIfAbsent(key, LinkedHashMap())
+        blocksByWorld.putIfAbsent(key, LinkedHashMap())
+        blockDataByWorld.putIfAbsent(key, LinkedHashMap())
         worldsDirty = true
         return WorldCreateResult(world = created, created = true)
     }
@@ -768,7 +821,9 @@ class StandaloneHostState(
         val worldName = world.trim()
         if (worldName.isEmpty()) return null
         return synchronized(stateLock) {
-            blocks[blockKey(worldName, x, y, z)]
+            touchChunkUnsafe(worldName, x, z)
+            val worldKey = canonicalKey(worldName)
+            blocksByWorld[worldKey]?.get(blockCoord(x, y, z))
         }
     }
 
@@ -787,12 +842,15 @@ class StandaloneHostState(
                 z = z,
                 blockId = block
             )
-            val key = blockKey(resolvedWorld, x, y, z)
-            val previous = blocks[key]
-            blocks[key] = next
+            val worldKey = canonicalKey(resolvedWorld)
+            val pos = blockCoord(x, y, z)
+            val worldBlocks = blocksByWorld.computeIfAbsent(worldKey) { LinkedHashMap() }
+            val previous = worldBlocks[pos]
+            worldBlocks[pos] = next
             if (previous != null && !previous.blockId.equals(next.blockId, ignoreCase = true)) {
-                blockData.remove(key)
+                blockDataByWorld[worldKey]?.remove(pos)
             }
+            touchChunkUnsafe(resolvedWorld, x, z)
             next
         }
     }
@@ -801,9 +859,11 @@ class StandaloneHostState(
         val worldName = world.trim()
         if (worldName.isEmpty()) return null
         return synchronized(stateLock) {
-            val key = blockKey(worldName, x, y, z)
-            blockData.remove(key)
-            blocks.remove(key)
+            touchChunkUnsafe(worldName, x, z)
+            val worldKey = canonicalKey(worldName)
+            val pos = blockCoord(x, y, z)
+            blockDataByWorld[worldKey]?.remove(pos)
+            blocksByWorld[worldKey]?.remove(pos)
         }
     }
 
@@ -811,9 +871,11 @@ class StandaloneHostState(
         val worldName = world.trim()
         if (worldName.isEmpty()) return null
         return synchronized(stateLock) {
-            val key = blockKey(worldName, x, y, z)
-            if (!blocks.containsKey(key)) return@synchronized null
-            blockData[key]?.toMap() ?: emptyMap()
+            touchChunkUnsafe(worldName, x, z)
+            val worldKey = canonicalKey(worldName)
+            val pos = blockCoord(x, y, z)
+            if (!blocksByWorld[worldKey].orEmpty().containsKey(pos)) return@synchronized null
+            blockDataByWorld[worldKey]?.get(pos)?.toMap() ?: emptyMap()
         }
     }
 
@@ -821,8 +883,10 @@ class StandaloneHostState(
         val worldName = world.trim()
         if (worldName.isEmpty()) return null
         return synchronized(stateLock) {
-            val key = blockKey(worldName, x, y, z)
-            if (!blocks.containsKey(key)) return@synchronized null
+            touchChunkUnsafe(worldName, x, z)
+            val worldKey = canonicalKey(worldName)
+            val pos = blockCoord(x, y, z)
+            if (!blocksByWorld[worldKey].orEmpty().containsKey(pos)) return@synchronized null
             val sanitized = linkedMapOf<String, String>()
             data.forEach { (k, v) ->
                 val keyName = k.trim()
@@ -832,10 +896,10 @@ class StandaloneHostState(
                 }
             }
             if (sanitized.isEmpty()) {
-                blockData.remove(key)
+                blockDataByWorld[worldKey]?.remove(pos)
                 return@synchronized emptyMap()
             }
-            blockData[key] = sanitized
+            blockDataByWorld.computeIfAbsent(worldKey) { LinkedHashMap() }[pos] = sanitized
             sanitized.toMap()
         }
     }
@@ -1080,8 +1144,74 @@ class StandaloneHostState(
         return null
     }
 
-    private fun blockKey(world: String, x: Int, y: Int, z: Int): String {
-        return "${canonicalKey(world)}:$x:$y:$z"
+    fun chunkLoadingMetrics(): StandaloneChunkLoadingMetrics {
+        synchronized(stateLock) {
+            val loaded = loadedChunksByWorld.values.sumOf { it.size }
+            return StandaloneChunkLoadingMetrics(
+                tick = chunkTick,
+                loadedChunks = loaded,
+                chunkLoads = chunkLoads,
+                chunkEvictions = chunkEvictions,
+                chunkHits = chunkHits,
+                chunkMisses = chunkMisses
+            )
+        }
+    }
+
+    private fun blockCoord(x: Int, y: Int, z: Int): BlockCoord = BlockCoord(x, y, z)
+
+    private fun chunkCoord(x: Int, z: Int): ChunkCoord = ChunkCoord(x shr 4, z shr 4)
+
+    private fun touchChunkUnsafe(world: String, x: Int, z: Int): Boolean {
+        val worldKey = canonicalKey(world)
+        val chunks = loadedChunksByWorld.computeIfAbsent(worldKey) { LinkedHashMap() }
+        val coord = chunkCoord(x, z)
+        val loaded = chunks.containsKey(coord)
+        chunks[coord] = chunkTick
+        if (loaded) {
+            chunkHits += 1L
+            return false
+        }
+        chunkMisses += 1L
+        chunkLoads += 1L
+        return true
+    }
+
+    private fun preloadChunksAroundPlayersUnsafe() {
+        val radius = chunkViewDistance.coerceAtLeast(0)
+        if (radius <= 0) return
+        val loadBudget = maxChunkLoadsPerTick.coerceAtLeast(1)
+        var loadedThisTick = 0
+        playersByName.values.forEach { player ->
+            if (loadedThisTick >= loadBudget) return@forEach
+            val baseChunkX = player.x.toInt() shr 4
+            val baseChunkZ = player.z.toInt() shr 4
+            for (dx in -radius..radius) {
+                if (loadedThisTick >= loadBudget) break
+                for (dz in -radius..radius) {
+                    if (loadedThisTick >= loadBudget) break
+                    if (touchChunkUnsafe(player.world, (baseChunkX + dx) shl 4, (baseChunkZ + dz) shl 4)) {
+                        loadedThisTick += 1
+                    }
+                }
+            }
+        }
+    }
+
+    private fun evictChunksUnsafe() {
+        val cap = maxLoadedChunksPerWorld.coerceAtLeast(1)
+        loadedChunksByWorld.forEach { (_, chunks) ->
+            if (chunks.size <= cap) return@forEach
+            val overflow = chunks.size - cap
+            val stale = chunks.entries
+                .sortedBy { it.value }
+                .take(overflow)
+            stale.forEach { entry ->
+                if (chunks.remove(entry.key) != null) {
+                    chunkEvictions += 1L
+                }
+            }
+        }
     }
 
     private fun normalizeWeather(value: String): String? {

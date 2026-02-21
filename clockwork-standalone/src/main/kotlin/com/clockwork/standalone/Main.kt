@@ -4,17 +4,24 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.clockwork.api.CommandSender
 import com.clockwork.api.CommandSenderType
 import com.clockwork.core.GigaStandaloneCore
+import com.clockwork.core.StandaloneCapacityException
 import com.clockwork.core.StandaloneCoreConfig
 import com.clockwork.runtime.AdapterExecutionMode
 import com.clockwork.runtime.AdapterSecurityConfig
 import com.clockwork.runtime.EventDispatchMode
+import com.clockwork.runtime.FaultBudgetEscalationPolicy
 import com.clockwork.runtime.FaultBudgetPolicy
 import com.clockwork.runtime.MetricSnapshot
 import com.clockwork.net.StandaloneNetConfig
 import com.clockwork.net.StandaloneNetServer
 import com.clockwork.net.SessionActionResult
 import com.clockwork.net.StandaloneSessionHandler
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
 import java.nio.file.Path
+import java.time.Instant
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 import kotlin.system.exitProcess
 
 fun main(args: Array<String>) {
@@ -27,9 +34,16 @@ fun main(args: Array<String>) {
             dataDirectory = Path.of(launchConfig.dataDir),
             serverName = launchConfig.serverName,
             serverVersion = launchConfig.serverVersion,
+            defaultWorld = launchConfig.defaultWorld,
             maxPlayers = launchConfig.maxPlayers,
+            maxWorlds = launchConfig.maxWorlds,
+            maxEntities = launchConfig.maxEntities,
             tickPeriodMillis = launchConfig.tickPeriodMillis,
             autoSaveEveryTicks = launchConfig.autoSaveEveryTicks,
+            chunkViewDistance = launchConfig.chunkViewDistance,
+            maxChunkLoadsPerTick = launchConfig.maxChunkLoadsPerTick,
+            maxLoadedChunksPerWorld = launchConfig.maxLoadedChunksPerWorld,
+            runtimeSchedulerWorkerThreads = launchConfig.runtimeSchedulerWorkerThreads,
             adapterSecurity = AdapterSecurityConfig(
                 maxPayloadEntries = launchConfig.adapterMaxPayloadEntries,
                 maxPayloadKeyChars = launchConfig.adapterMaxPayloadKeyChars,
@@ -44,6 +58,12 @@ fun main(args: Array<String>) {
                 auditRetentionMaxEntriesPerPlugin = launchConfig.adapterAuditRetentionMaxEntriesPerPlugin,
                 auditRetentionMaxEntriesPerAdapter = launchConfig.adapterAuditRetentionMaxEntriesPerAdapter,
                 auditRetentionMaxAgeMillis = launchConfig.adapterAuditRetentionMaxAgeMillis,
+                auditRetentionMaxMemoryBytes = launchConfig.adapterAuditRetentionMaxMemoryBytes,
+                payloadPolicyProfile = when (launchConfig.adapterPayloadPolicyProfile.lowercase()) {
+                    "strict" -> com.clockwork.runtime.AdapterPayloadPolicyProfile.STRICT
+                    "perf" -> com.clockwork.runtime.AdapterPayloadPolicyProfile.PERF
+                    else -> com.clockwork.runtime.AdapterPayloadPolicyProfile.BALANCED
+                },
                 executionMode = when (launchConfig.adapterExecutionMode.lowercase()) {
                     "fast" -> AdapterExecutionMode.FAST
                     else -> AdapterExecutionMode.SAFE
@@ -52,6 +72,12 @@ fun main(args: Array<String>) {
             faultBudgetPolicy = FaultBudgetPolicy(
                 maxFaultsPerWindow = launchConfig.faultBudgetMaxFaultsPerWindow,
                 windowMillis = launchConfig.faultBudgetWindowMillis
+            ),
+            faultBudgetEscalationPolicy = FaultBudgetEscalationPolicy(
+                warnUsageRatio = launchConfig.faultBudgetWarnUsageRatio,
+                throttleUsageRatio = launchConfig.faultBudgetThrottleUsageRatio,
+                isolateUsageRatio = launchConfig.faultBudgetIsolateUsageRatio,
+                throttleBudgetMultiplier = launchConfig.faultBudgetThrottleBudgetMultiplier
             ),
             eventDispatchMode = when (launchConfig.eventDispatchMode.lowercase()) {
                 "polymorphic" -> EventDispatchMode.POLYMORPHIC
@@ -79,6 +105,8 @@ fun main(args: Array<String>) {
                 maxJsonPayloadKeyChars = launchConfig.netMaxJsonPayloadKeyChars,
                 maxJsonPayloadValueChars = launchConfig.netMaxJsonPayloadValueChars,
                 maxJsonPayloadTotalChars = launchConfig.netMaxJsonPayloadTotalChars,
+                workerThreads = launchConfig.netWorkerThreads,
+                workerQueueCapacity = launchConfig.netWorkerQueueCapacity,
                 auditLogEnabled = launchConfig.netAuditLogEnabled,
                 textFlushEveryResponses = launchConfig.netTextFlushEveryResponses,
                 frameFlushEveryResponses = launchConfig.netFrameFlushEveryResponses
@@ -86,7 +114,11 @@ fun main(args: Array<String>) {
             logger = { message -> println("[GigaNet] $message") },
             handler = object : StandaloneSessionHandler {
                 override fun join(name: String, world: String, x: Double, y: Double, z: Double): SessionActionResult {
-                    val player = core.joinPlayer(name, world, x, y, z)
+                    val player = try {
+                        core.joinPlayer(name, world, x, y, z)
+                    } catch (limit: StandaloneCapacityException) {
+                        return SessionActionResult(false, limit.code, limit.message ?: "capacity limit reached")
+                    }
                     return SessionActionResult(
                         success = true,
                         code = "JOINED",
@@ -166,7 +198,11 @@ fun main(args: Array<String>) {
                 }
 
                 override fun worldCreate(name: String, seed: Long): SessionActionResult {
-                    val world = core.createWorld(name, seed)
+                    val world = try {
+                        core.createWorld(name, seed)
+                    } catch (limit: StandaloneCapacityException) {
+                        return SessionActionResult(false, limit.code, limit.message ?: "capacity limit reached")
+                    }
                     return SessionActionResult(
                         success = true,
                         code = "WORLD_CREATED",
@@ -176,8 +212,13 @@ fun main(args: Array<String>) {
                 }
 
                 override fun entitySpawn(type: String, world: String, x: Double, y: Double, z: Double): SessionActionResult {
-                    val entity = runCatching { core.spawnEntity(type, world, x, y, z) }.getOrNull()
-                        ?: return SessionActionResult(false, "ENTITY_SPAWN_FAILED", "entity spawn cancelled or failed")
+                    val entity = try {
+                        core.spawnEntity(type, world, x, y, z)
+                    } catch (limit: StandaloneCapacityException) {
+                        return SessionActionResult(false, limit.code, limit.message ?: "capacity limit reached")
+                    } catch (_: Exception) {
+                        return SessionActionResult(false, "ENTITY_SPAWN_FAILED", "entity spawn cancelled or failed")
+                    }
                     return SessionActionResult(
                         success = true,
                         code = "ENTITY_SPAWNED",
@@ -214,8 +255,8 @@ fun main(args: Array<String>) {
 
     core.start()
     netServer?.start()
-    val commandHelp = "Commands: help, status [--json], save, load, plugins, plugin list [--json], plugin error [pluginId] [--json], plugin scan, plugin reload <id|all|changed>, worlds, world create, entities, entity spawn, players, player join|leave|move, inventory, scan, sync, reload <id|all|changed>, doctor [--json] [--pretty|--compact], profile <id> [--json] [--pretty|--compact], run <plugin> <command...>, adapters <plugin> [--json], adapter invoke <plugin> <adapterId> <action> [k=v ...] [--json], stop"
-    println("Clockwork standalone core is running (name=${launchConfig.serverName} version=${launchConfig.serverVersion} maxPlayers=${launchConfig.maxPlayers} tickMs=${launchConfig.tickPeriodMillis} autosaveTicks=${launchConfig.autoSaveEveryTicks} netPort=${if (netServer == null) "disabled" else launchConfig.netPort} netAuthRequired=${launchConfig.netAuthRequired} netSessionTtlSeconds=${launchConfig.netSessionTtlSeconds} netMaxTextLineBytes=${launchConfig.netMaxTextLineBytes} netReadTimeoutMs=${launchConfig.netReadTimeoutMillis} netMaxConcurrentSessions=${launchConfig.netMaxConcurrentSessions} netMaxSessionsPerIp=${launchConfig.netMaxSessionsPerIp} netRpmConnection=${launchConfig.netMaxRequestsPerMinutePerConnection} netRpmIp=${launchConfig.netMaxRequestsPerMinutePerIp} netTextFlushEvery=${launchConfig.netTextFlushEveryResponses} netFrameFlushEvery=${launchConfig.netFrameFlushEveryResponses} adapterSchema=${launchConfig.securityConfigSchemaVersion} adapterMode=${launchConfig.adapterExecutionMode} adapterTimeoutMs=${launchConfig.adapterTimeoutMillis} adapterRateLimitPerMinute=${launchConfig.adapterRateLimitPerMinute} adapterRateLimitPerMinutePerPlugin=${launchConfig.adapterRateLimitPerMinutePerPlugin} adapterMaxConcurrentPerAdapter=${launchConfig.adapterMaxConcurrentInvocationsPerAdapter} adapterAuditRetentionPlugin=${launchConfig.adapterAuditRetentionMaxEntriesPerPlugin} adapterAuditRetentionAdapter=${launchConfig.adapterAuditRetentionMaxEntriesPerAdapter} adapterAuditRetentionAgeMs=${launchConfig.adapterAuditRetentionMaxAgeMillis} faultBudgetMaxFaults=${launchConfig.faultBudgetMaxFaultsPerWindow} faultBudgetWindowMs=${launchConfig.faultBudgetWindowMillis} eventDispatchMode=${launchConfig.eventDispatchMode}).")
+    val commandHelp = "Commands: help, status [--json], save, load, plugins, plugin list [--json], plugin error [pluginId] [--json], plugin scan, plugin reload <id|all|changed>, worlds, world create, entities, entity spawn, players, player join|leave|move, inventory, scan, sync, reload <id|all|changed>, doctor [--json] [--pretty|--compact], profile <id> [--json] [--pretty|--compact], diag export [--compact] [path], profile export <id> [--compact] [path], run <plugin> <command...>, adapters <plugin> [--json], adapter invoke <plugin> <adapterId> <action> [k=v ...] [--json], stop"
+    println("Clockwork standalone core is running (name=${launchConfig.serverName} version=${launchConfig.serverVersion} defaultWorld=${launchConfig.defaultWorld} maxPlayers=${launchConfig.maxPlayers} maxWorlds=${launchConfig.maxWorlds} maxEntities=${launchConfig.maxEntities} tickMs=${launchConfig.tickPeriodMillis} autosaveTicks=${launchConfig.autoSaveEveryTicks} runtimeSchedulerThreads=${launchConfig.runtimeSchedulerWorkerThreads} netPort=${if (netServer == null) "disabled" else launchConfig.netPort} netAuthRequired=${launchConfig.netAuthRequired} netSessionTtlSeconds=${launchConfig.netSessionTtlSeconds} netMaxTextLineBytes=${launchConfig.netMaxTextLineBytes} netReadTimeoutMs=${launchConfig.netReadTimeoutMillis} netMaxConcurrentSessions=${launchConfig.netMaxConcurrentSessions} netMaxSessionsPerIp=${launchConfig.netMaxSessionsPerIp} netRpmConnection=${launchConfig.netMaxRequestsPerMinutePerConnection} netRpmIp=${launchConfig.netMaxRequestsPerMinutePerIp} netWorkerThreads=${launchConfig.netWorkerThreads} netWorkerQueueCapacity=${launchConfig.netWorkerQueueCapacity} netTextFlushEvery=${launchConfig.netTextFlushEveryResponses} netFrameFlushEvery=${launchConfig.netFrameFlushEveryResponses} adapterSchema=${launchConfig.securityConfigSchemaVersion} adapterMode=${launchConfig.adapterExecutionMode} adapterTimeoutMs=${launchConfig.adapterTimeoutMillis} adapterRateLimitPerMinute=${launchConfig.adapterRateLimitPerMinute} adapterRateLimitPerMinutePerPlugin=${launchConfig.adapterRateLimitPerMinutePerPlugin} adapterMaxConcurrentPerAdapter=${launchConfig.adapterMaxConcurrentInvocationsPerAdapter} adapterAuditRetentionPlugin=${launchConfig.adapterAuditRetentionMaxEntriesPerPlugin} adapterAuditRetentionAdapter=${launchConfig.adapterAuditRetentionMaxEntriesPerAdapter} adapterAuditRetentionAgeMs=${launchConfig.adapterAuditRetentionMaxAgeMillis} faultBudgetMaxFaults=${launchConfig.faultBudgetMaxFaultsPerWindow} faultBudgetWindowMs=${launchConfig.faultBudgetWindowMillis} faultBudgetWarnRatio=${launchConfig.faultBudgetWarnUsageRatio} faultBudgetThrottleRatio=${launchConfig.faultBudgetThrottleUsageRatio} faultBudgetIsolateRatio=${launchConfig.faultBudgetIsolateUsageRatio} faultBudgetThrottleBudgetMultiplier=${launchConfig.faultBudgetThrottleBudgetMultiplier} eventDispatchMode=${launchConfig.eventDispatchMode}).")
     launchConfig.securityConfigWarnings.forEach { warning ->
         println("[security-config] $warning")
     }
@@ -246,6 +287,7 @@ fun main(args: Array<String>) {
                 } else {
                     println("running=${s.running} uptimeMs=${s.uptimeMillis} ticks=${s.tickCount} avgTickNs=${s.averageTickDurationNanos} lastTickNs=${s.lastTickDurationNanos} tickFailures=${s.tickFailures} plugins=${s.loadedPlugins} players=${s.onlinePlayers} worlds=${s.worlds} entities=${s.entities}")
                     println("tickPhases.avgNs queue=${s.averageQueueDrainNanos} world=${s.averageWorldTickNanos} events=${s.averageEventPublishNanos} systems=${s.averageSystemsNanos}")
+                    println("tickStability jitterAvgNs=${s.averageTickJitterNanos} jitterMaxNs=${s.maxTickJitterNanos} overruns=${s.tickOverruns} pluginBudgetExhaustions=${s.pluginBudgetExhaustions} faultWarnTicks=${s.faultBudgetWarnTicks} faultThrottleTicks=${s.faultBudgetThrottleTicks} faultIsolateTicks=${s.faultBudgetIsolateTicks}")
                     if (netServer != null) {
                         val nm = netServer.metrics()
                         println("net req=${nm.totalRequests} json=${nm.jsonRequests} legacy=${nm.legacyRequests} avgReqNs=${nm.averageRequestNanos}")
@@ -294,7 +336,12 @@ fun main(args: Array<String>) {
                     continue
                 }
                 val seed = parts.getOrNull(3)?.toLongOrNull() ?: 0L
-                val world = core.createWorld(name, seed)
+                val world = try {
+                    core.createWorld(name, seed)
+                } catch (limit: StandaloneCapacityException) {
+                    println(limit.message ?: "world limit reached")
+                    continue
+                }
                 println("world created ${world.name} seed=${world.seed}")
             }
             "entities" -> {
@@ -319,7 +366,14 @@ fun main(args: Array<String>) {
                     println("Usage: entity spawn <type> <world> <x> <y> <z>")
                     continue
                 }
-                val entity = runCatching { core.spawnEntity(type, world, x, y, z) }.getOrNull()
+                val entity = try {
+                    core.spawnEntity(type, world, x, y, z)
+                } catch (limit: StandaloneCapacityException) {
+                    println(limit.message ?: "entity limit reached")
+                    continue
+                } catch (_: Exception) {
+                    null
+                }
                 if (entity == null) {
                     println("entity spawn cancelled or failed")
                     continue
@@ -341,11 +395,16 @@ fun main(args: Array<String>) {
                             println("Usage: player join <name> [world] [x] [y] [z]")
                             continue
                         }
-                        val world = parts.getOrNull(3) ?: "world"
+                        val world = parts.getOrNull(3) ?: launchConfig.defaultWorld
                         val x = parts.getOrNull(4)?.toDoubleOrNull() ?: 0.0
                         val y = parts.getOrNull(5)?.toDoubleOrNull() ?: 64.0
                         val z = parts.getOrNull(6)?.toDoubleOrNull() ?: 0.0
-                        val player = core.joinPlayer(name, world, x, y, z)
+                        val player = try {
+                            core.joinPlayer(name, world, x, y, z)
+                        } catch (limit: StandaloneCapacityException) {
+                            println(limit.message ?: "join rejected by capacity limit")
+                            continue
+                        }
                         println("joined ${player.name} (${player.uuid}) @ ${player.world} ${player.x},${player.y},${player.z}")
                     }
                     "leave" -> {
@@ -444,7 +503,13 @@ fun main(args: Array<String>) {
                             }
                             else -> core.reload(target)
                         }
-                        println("status=${report.status} reloaded=${report.reloadedPlugins.joinToString(",")} reason=${report.reason ?: "<none>"}")
+                        println(
+                            "status=${report.status} reloaded=${report.reloadedPlugins.joinToString(",")} " +
+                                "changedData=${report.checkpointChangedPlugins.joinToString(",")} " +
+                                "rollbackRecovered=${report.rollbackRecoveredPlugins.joinToString(",")} " +
+                                "rollbackFailed=${report.rollbackFailedPlugins.joinToString(",")} " +
+                                "rollbackDataRestored=${report.rollbackDataRestored} reason=${report.reason ?: "<none>"}"
+                        )
                     }
                     "error", "errors" -> {
                         val jsonMode = parts.any { it.equals("--json", ignoreCase = true) }
@@ -471,7 +536,7 @@ fun main(args: Array<String>) {
                                 }
                             } else {
                                 errors.forEach { issue ->
-                                    println("plugin.error[${issue.pluginId}] source=${issue.source} reason=${issue.reason}")
+                                    println("plugin.error[${issue.pluginId}] class=${issue.errorClass} source=${issue.source} reason=${issue.reason}")
                                 }
                             }
                         }
@@ -507,7 +572,13 @@ fun main(args: Array<String>) {
                     }
                     else -> core.reload(target)
                 }
-                println("status=${report.status} reloaded=${report.reloadedPlugins.joinToString(",")} reason=${report.reason ?: "<none>"}")
+                println(
+                    "status=${report.status} reloaded=${report.reloadedPlugins.joinToString(",")} " +
+                        "changedData=${report.checkpointChangedPlugins.joinToString(",")} " +
+                        "rollbackRecovered=${report.rollbackRecoveredPlugins.joinToString(",")} " +
+                        "rollbackFailed=${report.rollbackFailedPlugins.joinToString(",")} " +
+                        "rollbackDataRestored=${report.rollbackDataRestored} reason=${report.reason ?: "<none>"}"
+                )
             }
             "doctor" -> {
                 val d = core.doctor()
@@ -544,7 +615,7 @@ fun main(args: Array<String>) {
                         recommendations.toSortedMap().forEach { (pluginId, recs) ->
                             if (recs.isNotEmpty()) {
                                 println(
-                                    "recommend[$pluginId]=" + recs.joinToString("|") { "${it.code}:${it.severity}" }
+                                    "recommend[$pluginId]=" + recs.joinToString("|") { "${it.code}:${it.severity}:${it.errorClass}" }
                                 )
                             }
                         }
@@ -587,17 +658,46 @@ fun main(args: Array<String>) {
                             }
                             if (perf.faultBudget.used > 0) {
                                 println(
-                                    "fault.budget[$pluginId]=used:${perf.faultBudget.used},remaining:${perf.faultBudget.remaining},tripped:${perf.faultBudget.tripped}"
+                                    "fault.budget[$pluginId]=used:${perf.faultBudget.used},remaining:${perf.faultBudget.remaining},tripped:${perf.faultBudget.tripped},stage:${perf.faultBudget.stage},usageRatio:${"%.3f".format(perf.faultBudget.usageRatio)}"
                                 )
                             }
                             recommendations[pluginId].orEmpty().forEach { rec ->
-                                println("recommend[$pluginId]=${rec.code}(${rec.severity}) ${rec.message}")
+                                println("recommend[$pluginId]=${rec.code}(${rec.severity}/${rec.errorClass}) ${rec.message}")
                             }
                         }
                     }
                 }
             }
             "profile" -> {
+                if (parts.getOrNull(1)?.equals("export", ignoreCase = true) == true) {
+                    val id = parts.getOrNull(2)
+                    if (id.isNullOrBlank()) {
+                        println("Usage: profile export <id> [--compact] [path]")
+                        continue
+                    }
+                    val compact = parts.any { it.equals("--compact", ignoreCase = true) }
+                    val explicitPath = parts
+                        .drop(3)
+                        .firstOrNull { !it.startsWith("--") }
+                    val targetDir = if (explicitPath.isNullOrBlank()) {
+                        Path.of(launchConfig.dataDir).resolve("diagnostics").resolve("latest")
+                    } else {
+                        Path.of(explicitPath)
+                    }
+                    val exported = exportProfileBundle(
+                        core = core,
+                        mapper = objectMapper,
+                        pluginId = id,
+                        outputDir = targetDir,
+                        compact = compact
+                    )
+                    if (!exported) {
+                        println("No profile for plugin '$id'")
+                    } else {
+                        println("profile.exported plugin=$id path=${targetDir.toAbsolutePath()}")
+                    }
+                    continue
+                }
                 val id = parts.getOrNull(1)
                 if (id == null) {
                     println("Usage: profile <id> [--json] [--pretty|--compact]")
@@ -638,7 +738,7 @@ fun main(args: Array<String>) {
                             "plugin=${p.pluginId} systems=${p.systems.size} slow=${p.slowSystems.size} adapters=${p.adapters.size} hotspots=${p.adapterHotspots.size} isolated=${p.isolatedSystems.count { it.isolated || it.isolationCount > 0L }} recommendations=${recommendations.size}"
                         )
                         if (recommendations.isNotEmpty()) {
-                            println("recommend=${recommendations.joinToString("|") { "${it.code}:${it.severity}" }}")
+                            println("recommend=${recommendations.joinToString("|") { "${it.code}:${it.severity}:${it.errorClass}" }}")
                         }
                         continue
                     }
@@ -679,12 +779,37 @@ fun main(args: Array<String>) {
                     }
                     if (p.faultBudget.used > 0) {
                         println(
-                            "fault.budget=used:${p.faultBudget.used},remaining:${p.faultBudget.remaining},tripped:${p.faultBudget.tripped}"
+                            "fault.budget=used:${p.faultBudget.used},remaining:${p.faultBudget.remaining},tripped:${p.faultBudget.tripped},stage:${p.faultBudget.stage},usageRatio:${"%.3f".format(p.faultBudget.usageRatio)}"
                         )
                     }
                     recommendations.forEach { rec ->
-                        println("recommend=${rec.code}(${rec.severity}) ${rec.message}")
+                        println("recommend=${rec.code}(${rec.severity}/${rec.errorClass}) ${rec.message}")
                     }
+                }
+            }
+            "diag" -> {
+                when (parts.getOrNull(1)?.lowercase()) {
+                    "export" -> {
+                        val compact = parts.any { it.equals("--compact", ignoreCase = true) }
+                        val explicitPath = parts
+                            .drop(2)
+                            .firstOrNull { !it.startsWith("--") }
+                        val targetDir = if (explicitPath.isNullOrBlank()) {
+                            Path.of(launchConfig.dataDir).resolve("diagnostics").resolve("latest")
+                        } else {
+                            Path.of(explicitPath)
+                        }
+                        val summary = exportDiagnosticsBundle(
+                            core = core,
+                            mapper = objectMapper,
+                            outputDir = targetDir,
+                            compact = compact
+                        )
+                        println(
+                            "diag.exported plugins=${summary.plugins.size} json=${summary.snapshotFile.toAbsolutePath()} html=${summary.htmlFile.toAbsolutePath()}"
+                        )
+                    }
+                    else -> println("Usage: diag export [--compact] [path]")
                 }
             }
             "run" -> {
@@ -772,10 +897,138 @@ private fun parsePayload(rawPairs: List<String>): Map<String, String> {
     }.toMap()
 }
 
+private data class DiagnosticsExportSummary(
+    val generatedAtUtc: String,
+    val plugins: List<String>,
+    val snapshotFile: Path,
+    val htmlFile: Path
+)
+
+private fun exportDiagnosticsBundle(
+    core: GigaStandaloneCore,
+    mapper: ObjectMapper,
+    outputDir: Path,
+    compact: Boolean
+): DiagnosticsExportSummary {
+    Files.createDirectories(outputDir)
+    val generatedAt = DateTimeFormatter.ISO_INSTANT.format(Instant.now().atOffset(ZoneOffset.UTC))
+    val diagnostics = core.doctor()
+    val recommendations = buildDoctorRecommendations(diagnostics)
+    val pluginIds = core.plugins()
+        .map { it.substringBefore('@') }
+        .distinct()
+        .sorted()
+    val profiles = pluginIds.associateWith { id -> core.profile(id) }
+
+    val payload = linkedMapOf<String, Any?>(
+        "generatedAtUtc" to generatedAt,
+        "diagnostics" to diagnostics,
+        "recommendations" to recommendations,
+        "profiles" to profiles
+    )
+    val snapshotFile = outputDir.resolve("diagnostics.json")
+    val snapshotJson = if (compact) mapper.writeValueAsString(payload) else mapper.writerWithDefaultPrettyPrinter().writeValueAsString(payload)
+    Files.writeString(snapshotFile, snapshotJson, StandardCharsets.UTF_8)
+
+    val htmlFile = outputDir.resolve("index.html")
+    Files.writeString(
+        htmlFile,
+        renderDiagnosticsHtml(generatedAt, pluginIds, recommendations, profiles),
+        StandardCharsets.UTF_8
+    )
+
+    return DiagnosticsExportSummary(
+        generatedAtUtc = generatedAt,
+        plugins = pluginIds,
+        snapshotFile = snapshotFile,
+        htmlFile = htmlFile
+    )
+}
+
+private fun exportProfileBundle(
+    core: GigaStandaloneCore,
+    mapper: ObjectMapper,
+    pluginId: String,
+    outputDir: Path,
+    compact: Boolean
+): Boolean {
+    val profile = core.profile(pluginId) ?: return false
+    Files.createDirectories(outputDir)
+    val recommendations = buildProfileRecommendations(profile)
+    val payload = linkedMapOf<String, Any?>(
+        "generatedAtUtc" to DateTimeFormatter.ISO_INSTANT.format(Instant.now().atOffset(ZoneOffset.UTC)),
+        "profile" to profile,
+        "recommendations" to recommendations
+    )
+    val outFile = outputDir.resolve("profile-$pluginId.json")
+    val json = if (compact) mapper.writeValueAsString(payload) else mapper.writerWithDefaultPrettyPrinter().writeValueAsString(payload)
+    Files.writeString(outFile, json, StandardCharsets.UTF_8)
+    return true
+}
+
+internal fun renderDiagnosticsHtml(
+    generatedAtUtc: String,
+    pluginIds: List<String>,
+    recommendations: Map<String, List<OperatorRecommendation>>,
+    profiles: Map<String, com.clockwork.runtime.PluginRuntimeProfile?>
+): String {
+    val rows = pluginIds.joinToString("\n") { pluginId ->
+        val profile = profiles[pluginId]
+        val rec = recommendations[pluginId].orEmpty()
+        val slow = profile?.slowSystems?.size ?: 0
+        val hotspots = profile?.adapterHotspots?.size ?: 0
+        val faults = profile?.faultBudget?.used ?: 0
+        val recText = if (rec.isEmpty()) "none" else rec.joinToString("; ") { "${it.code}(${it.severity}/${it.errorClass})" }
+        "<tr><td>$pluginId</td><td>$slow</td><td>$hotspots</td><td>$faults</td><td>$recText</td></tr>"
+    }
+    return """
+        <!doctype html>
+        <html lang="en">
+        <head>
+          <meta charset="utf-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+          <title>Clockwork Diagnostics Preview</title>
+          <style>
+            :root { --bg:#0f1419; --panel:#1a222c; --line:#2c3947; --text:#ecf1f6; --muted:#9fb2c7; --accent:#40c4aa; }
+            body { margin:0; font-family:Consolas, "Liberation Mono", monospace; background:var(--bg); color:var(--text); }
+            .wrap { max-width:1100px; margin:0 auto; padding:24px; }
+            .head { margin-bottom:16px; }
+            .meta { color:var(--muted); font-size:13px; }
+            .panel { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px; }
+            table { width:100%; border-collapse:collapse; font-size:13px; }
+            th, td { border-bottom:1px solid var(--line); text-align:left; padding:8px; vertical-align:top; }
+            th { color:var(--accent); }
+            code { color:var(--accent); }
+          </style>
+        </head>
+        <body>
+          <div class="wrap">
+            <div class="head">
+              <h1>Clockwork Diagnostics Preview</h1>
+              <div class="meta">Generated at: <code>$generatedAtUtc</code></div>
+              <div class="meta">Source snapshot: <code>diagnostics.json</code></div>
+            </div>
+            <div class="panel">
+              <table>
+                <thead>
+                  <tr><th>Plugin</th><th>Slow Systems</th><th>Adapter Hotspots</th><th>Fault Budget Used</th><th>Recommendations</th></tr>
+                </thead>
+                <tbody>
+                  $rows
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </body>
+        </html>
+    """.trimIndent()
+}
+
 private data class PluginLoadIssue(
     val pluginId: String,
     val source: String,
-    val reason: String
+    val reason: String,
+    val errorClass: String
 )
 
 internal enum class OperatorOutputMode {
@@ -786,6 +1039,7 @@ internal enum class OperatorOutputMode {
 internal data class OperatorRecommendation(
     val code: String,
     val severity: String,
+    val errorClass: String,
     val message: String
 )
 
@@ -796,7 +1050,12 @@ private fun collectPluginLoadIssues(
     val issues = mutableListOf<PluginLoadIssue>()
     fun addAll(source: String, data: Map<String, String>) {
         data.forEach { (pluginId, reason) ->
-            issues += PluginLoadIssue(pluginId = pluginId, source = source, reason = reason)
+            issues += PluginLoadIssue(
+                pluginId = pluginId,
+                source = source,
+                reason = reason,
+                errorClass = classifyPluginLoadIssue(source = source, reason = reason)
+            )
         }
     }
     addAll("lastScanRejected", diagnostics.lastScanRejected)
@@ -815,6 +1074,17 @@ private fun collectPluginLoadIssues(
         .distinctBy { "${it.source}|${it.pluginId}|${it.reason}" }
         .sortedWith(compareBy<PluginLoadIssue> { it.pluginId.lowercase() }.thenBy { it.source })
         .toList()
+}
+
+private fun classifyPluginLoadIssue(source: String, reason: String): String {
+    val normalizedSource = source.lowercase()
+    val normalizedReason = reason.lowercase()
+    return when {
+        "dependency" in normalizedSource || "dependency" in normalizedReason || "missing plugin" in normalizedReason -> "dependency"
+        "version" in normalizedSource || "api" in normalizedSource || "incompatible" in normalizedReason -> "compatibility"
+        "permission" in normalizedReason || "security" in normalizedReason -> "security"
+        else -> "runtime"
+    }
 }
 
 internal fun statusView(
@@ -855,6 +1125,13 @@ internal fun statusView(
             "averageTickDurationNanos" to s.averageTickDurationNanos,
             "lastTickDurationNanos" to s.lastTickDurationNanos,
             "tickFailures" to s.tickFailures,
+            "averageTickJitterNanos" to s.averageTickJitterNanos,
+            "maxTickJitterNanos" to s.maxTickJitterNanos,
+            "tickOverruns" to s.tickOverruns,
+            "pluginBudgetExhaustions" to s.pluginBudgetExhaustions,
+            "faultBudgetWarnTicks" to s.faultBudgetWarnTicks,
+            "faultBudgetThrottleTicks" to s.faultBudgetThrottleTicks,
+            "faultBudgetIsolateTicks" to s.faultBudgetIsolateTicks,
             "loadedPlugins" to s.loadedPlugins,
             "onlinePlayers" to s.onlinePlayers,
             "worlds" to s.worlds,
@@ -919,6 +1196,7 @@ internal fun buildPluginPerformanceRecommendations(
         out += OperatorRecommendation(
             code = "SYS_SLOW",
             severity = "warning",
+            errorClass = "performance",
             message = "Optimize system '${worst.systemId}' (avgNs=${worst.averageNanos}, maxNs=${worst.maxNanos}); consider batching/cache reductions."
         )
     }
@@ -927,6 +1205,7 @@ internal fun buildPluginPerformanceRecommendations(
         out += OperatorRecommendation(
             code = "ADAPTER_HOTSPOT",
             severity = "warning",
+            errorClass = "performance",
             message = "Review adapter '${worst.adapterId}' usage (denyRate=${"%.3f".format(worst.deniedRate)}, timeoutRate=${"%.3f".format(worst.timeoutRate)}); tighten payloads/capabilities or raise quotas intentionally."
         )
     }
@@ -936,14 +1215,22 @@ internal fun buildPluginPerformanceRecommendations(
         out += OperatorRecommendation(
             code = "SYSTEM_ISOLATED",
             severity = "warning",
+            errorClass = "stability",
             message = "System isolation detected for '${worst.systemId}' (isolations=${worst.isolationCount}); add failure guards and backoff-safe logic."
         )
     }
-    if (perf.faultBudget.tripped || perf.faultBudget.remaining <= 10) {
+    if (perf.faultBudget.stage != com.clockwork.runtime.FaultBudgetStage.NORMAL || perf.faultBudget.remaining <= 10) {
+        val code = when (perf.faultBudget.stage) {
+            com.clockwork.runtime.FaultBudgetStage.WARN -> "FAULT_BUDGET_WARN"
+            com.clockwork.runtime.FaultBudgetStage.THROTTLE -> "FAULT_BUDGET_THROTTLE"
+            com.clockwork.runtime.FaultBudgetStage.ISOLATE -> "FAULT_BUDGET_ISOLATE"
+            com.clockwork.runtime.FaultBudgetStage.NORMAL -> "FAULT_BUDGET_PRESSURE"
+        }
         out += OperatorRecommendation(
-            code = "FAULT_BUDGET_PRESSURE",
-            severity = if (perf.faultBudget.tripped) "critical" else "warning",
-            message = "Fault budget is under pressure (used=${perf.faultBudget.used}, remaining=${perf.faultBudget.remaining}); reduce repeated failures/timeouts in plugin '$pluginId'."
+            code = code,
+            severity = if (perf.faultBudget.stage == com.clockwork.runtime.FaultBudgetStage.ISOLATE || perf.faultBudget.tripped) "critical" else "warning",
+            errorClass = "stability",
+            message = "Fault budget stage=${perf.faultBudget.stage} ratio=${"%.3f".format(perf.faultBudget.usageRatio)} (used=${perf.faultBudget.used}, remaining=${perf.faultBudget.remaining}); reduce repeated failures/timeouts in plugin '$pluginId'."
         )
     }
     return out

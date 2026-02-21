@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Clockwork Docs | API Reference</title>
-  <meta name="description" content="Clockwork Standalone API documentation: PluginContext, DSL, events, adapters, lifecycle." />
+  <title>Clockwork | Minecraft Server Software</title>
+  <meta name="description" content="Clockwork Startseite: Standalone Minecraft Server Software mit starker Plugin-Power plus API Docs und Vergleich zu Vanilla, Spigot/Paper und Folia." />
+  <link rel="icon" type="image/png" href="../logos/logo.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
@@ -18,25 +19,25 @@
 
   <header class="site-header reveal">
     <div class="brand">
-      <span class="brand-mark">GS</span>
-      <div>
-        <strong>Clockwork Docs</strong>
-        <p>Standalone-first API</p>
-      </div>
+      <img class="brand-banner" src="../logos/banner.png" alt="Clockwork banner" />
     </div>
     <div class="header-actions">
-      <a class="btn btn-ghost" href="../README.md">README</a>
-      <a class="btn btn-primary" href="#quickstart">Quickstart</a>
+      <a class="btn btn-ghost" href="#comparison">Compare</a>
+      <a class="btn btn-ghost" href="./marketplace.html">Marketplace</a>
+      <a class="btn btn-primary" href="#quickstart">Build a Plugin</a>
     </div>
   </header>
 
   <main class="layout">
     <aside class="sidebar reveal">
       <label class="search-wrap" for="api-search">
-        <span>API Search</span>
+        <span>Page Search</span>
         <input id="api-search" type="search" placeholder="e.g. ctx.host, adapter, event" />
       </label>
       <nav id="docs-nav">
+        <a href="#home">Home</a>
+        <a href="#comparison">Comparison</a>
+        <a href="#marketplace">Marketplace</a>
         <a href="#overview">Overview</a>
         <a href="#quickstart">Quickstart</a>
         <a href="#versioning">Versioning</a>
@@ -59,6 +60,242 @@
     </aside>
 
     <div class="content">
+      <section id="home" class="doc-section reveal" data-api-item="clockwork home startseite minecraft server software standalone plugin platform">
+        <p class="eyebrow">STARTSEITE</p>
+        <h1>Build Mod-like Gameplay as Plugins</h1>
+        <p class="lead">
+          Clockwork ist eine standalone Minecraft Server Software mit Fokus auf plugin-first Entwicklung:
+          schnelle Iteration, starke Guardrails und ein API/DSL Layer fuer komplexe Systeme.
+        </p>
+        <div class="pill-row">
+          <span class="pill">Standalone Core</span>
+          <span class="pill">Kotlin DSL</span>
+          <span class="pill">Hot Reload</span>
+          <span class="pill">Security by Default</span>
+        </div>
+        <div class="hero-grid">
+          <article class="api-card">
+            <h3>Fokus</h3>
+            <ul>
+              <li>Mod-artige Features ohne Forge/Fabric Tooling-Stress</li>
+              <li>Deterministische Runtime + Diagnose mit `doctor/profile`</li>
+              <li>Host-API und Adapter-Layer fuer kontrollierte Integrationen</li>
+            </ul>
+          </article>
+          <article class="api-card">
+            <h3>Schneller Einstieg</h3>
+            <ul>
+              <li><a href="../README.md">README</a></li>
+              <li><a href="../docs/index.md">Docs Index</a></li>
+              <li><a href="../docs/tutorials/plugin-start.md">Tutorial: Plugin Start</a></li>
+              <li><a href="../docs/tutorials/adapters.md">Tutorial: Adapters</a></li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section id="comparison" class="doc-section reveal" data-api-item="comparison clockwork vanilla spigot paper folia tabelle">
+        <div class="section-head">
+          <p class="eyebrow">VERGLEICH</p>
+          <h2>Clockwork vs Vanilla vs Spigot/Paper vs Folia</h2>
+        </div>
+        <div class="table-wrap">
+          <table class="comparison-table">
+            <thead>
+              <tr>
+                <th>Feature</th>
+                <th>
+                  <span class="software-head"><span class="sw-icon">CW</span>Clockwork</span>
+                </th>
+                <th>
+                  <span class="software-head"><span class="sw-icon">VA</span>Vanilla</span>
+                </th>
+                <th>
+                  <span class="software-head"><span class="sw-icon">PP</span>Spigot/Paper</span>
+                </th>
+                <th>
+                  <span class="software-head"><span class="sw-icon">FO</span>Folia</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Plugin System Support</td>
+                <td><span class="support yes">&#10003; Ja</span></td>
+                <td><span class="support no">&#10007; Nein</span></td>
+                <td><span class="support yes">&#10003; Ja</span></td>
+                <td><span class="support yes">&#10003; Ja</span></td>
+              </tr>
+              <tr>
+                <td>Mod-like Plugin Features Support</td>
+                <td><span class="support yes">&#10003; Ja</span></td>
+                <td><span class="support no">&#10007; Nein</span></td>
+                <td><span class="support no">&#10007; Nein</span></td>
+                <td><span class="support no">&#10007; Nein</span></td>
+              </tr>
+              <tr>
+                <td>Fast Startup (&lt; 10s local baseline)</td>
+                <td><span class="support yes">&#10003; Ja</span></td>
+                <td><span class="support yes">&#10003; Ja</span></td>
+                <td><span class="support yes">&#10003; Ja</span></td>
+                <td><span class="support yes">&#10003; Ja</span></td>
+              </tr>
+              <tr>
+                <td>Fast Reload Workflow (&lt; 10s cycle)</td>
+                <td><span class="support yes">&#10003; Ja</span></td>
+                <td><span class="support no">&#10007; Nein</span></td>
+                <td><span class="support no">&#10007; Nein</span></td>
+                <td><span class="support no">&#10007; Nein</span></td>
+              </tr>
+              <tr>
+                <td>Built-in Diagnostics (`doctor/profile`)</td>
+                <td><span class="support yes">&#10003; Ja</span></td>
+                <td><span class="support no">&#10007; Nein</span></td>
+                <td><span class="support no">&#10007; Nein</span></td>
+                <td><span class="support no">&#10007; Nein</span></td>
+              </tr>
+              <tr>
+                <td>Legacy Bukkit Plugin Compatibility</td>
+                <td><span class="support no">&#10007; Nein</span></td>
+                <td><span class="support no">&#10007; Nein</span></td>
+                <td><span class="support yes">&#10003; Ja</span></td>
+                <td><span class="support no">&#10007; Nein</span></td>
+              </tr>
+              <tr>
+                <td>Region/Advanced Multithreading Support</td>
+                <td><span class="support yes">&#10003; Ja</span></td>
+                <td><span class="support no">&#10007; Nein</span></td>
+                <td><span class="support no">&#10007; Nein</span></td>
+                <td><span class="support yes">&#10003; Ja</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="marketplace" class="doc-section reveal" data-api-item="marketplace plugins browse install modrinth layout ratings downloads categories">
+        <div class="section-head">
+          <p class="eyebrow">MARKETPLACE</p>
+          <h2>Plugin Marketplace</h2>
+        </div>
+        <p class="lead">
+          Modrinth-inspiriertes Layout fuer Clockwork-Plugins: schnelle Suche, klare Kategorien, Version- und Kompatibilitaetsinfos.
+        </p>
+        <p>
+          <a class="btn btn-primary" href="./marketplace.html">Open Full Marketplace Page</a>
+        </p>
+        <div class="market-shell">
+          <div class="market-top">
+            <label class="market-search">
+              <span>Search Plugins</span>
+              <input type="search" placeholder="Search by name, tag or author..." />
+            </label>
+            <div class="market-filters">
+              <span class="market-chip active">All</span>
+              <span class="market-chip">Automation</span>
+              <span class="market-chip">Worldgen</span>
+              <span class="market-chip">Economy</span>
+              <span class="market-chip">Combat</span>
+              <span class="market-chip">Admin</span>
+            </div>
+          </div>
+
+          <div class="market-grid">
+            <article class="market-card">
+              <div class="market-icon">CW</div>
+              <div class="market-main">
+                <div class="market-head">
+                  <h3>Clockwork Create Lite</h3>
+                  <span class="market-version">v0.9.2</span>
+                </div>
+                <p>Create-artige Maschinen, Rotation und Rezeptfluss fuer Standalone-Core.</p>
+                <div class="market-tags">
+                  <span>automation</span>
+                  <span>machines</span>
+                  <span>recipes</span>
+                </div>
+              </div>
+              <div class="market-meta">
+                <strong>1.2M</strong>
+                <span>Downloads</span>
+                <strong>4.8</strong>
+                <span>Rating</span>
+                <a class="btn btn-primary" href="#">Install</a>
+              </div>
+            </article>
+
+            <article class="market-card">
+              <div class="market-icon">NX</div>
+              <div class="market-main">
+                <div class="market-head">
+                  <h3>NetX Economies</h3>
+                  <span class="market-version">v1.4.0</span>
+                </div>
+                <p>Transaktionen, Shop-Adapter und profile-basierte Preisregeln mit Audit.</p>
+                <div class="market-tags">
+                  <span>economy</span>
+                  <span>shop</span>
+                  <span>adapter</span>
+                </div>
+              </div>
+              <div class="market-meta">
+                <strong>870K</strong>
+                <span>Downloads</span>
+                <strong>4.6</strong>
+                <span>Rating</span>
+                <a class="btn btn-primary" href="#">Install</a>
+              </div>
+            </article>
+
+            <article class="market-card">
+              <div class="market-icon">WG</div>
+              <div class="market-main">
+                <div class="market-head">
+                  <h3>WildGrid Terrain</h3>
+                  <span class="market-version">v0.7.5</span>
+                </div>
+                <p>Deterministische Biome-Layer und custom worldgen profiles fuer Adventure-Server.</p>
+                <div class="market-tags">
+                  <span>worldgen</span>
+                  <span>biomes</span>
+                  <span>terrain</span>
+                </div>
+              </div>
+              <div class="market-meta">
+                <strong>510K</strong>
+                <span>Downloads</span>
+                <strong>4.7</strong>
+                <span>Rating</span>
+                <a class="btn btn-primary" href="#">Install</a>
+              </div>
+            </article>
+
+            <article class="market-card">
+              <div class="market-icon">AD</div>
+              <div class="market-main">
+                <div class="market-head">
+                  <h3>Admin Guardrails</h3>
+                  <span class="market-version">v2.1.1</span>
+                </div>
+                <p>Permission bundles, command audit und runtime recommendations fuer Operatoren.</p>
+                <div class="market-tags">
+                  <span>admin</span>
+                  <span>security</span>
+                  <span>ops</span>
+                </div>
+              </div>
+              <div class="market-meta">
+                <strong>1.9M</strong>
+                <span>Downloads</span>
+                <strong>4.9</strong>
+                <span>Rating</span>
+                <a class="btn btn-primary" href="#">Install</a>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
       <section id="overview" class="doc-section reveal" data-api-item="overview standalone runtime kotlin api">
         <p class="eyebrow">OVERVIEW</p>
         <h1>Clockwork API Documentation</h1>
@@ -363,7 +600,7 @@ eventDispatchMode=hybrid</code></pre>
         </div>
       </section>
 
-      <section id="adapters" class="doc-section reveal" data-api-item="adapters bridge.host.server bridge.host.player invocation security rate limit timeout">
+      <section id="adapters" class="doc-section reveal" data-api-item="adapters bridge.host.server bridge.host.player bridge.host.world bridge.host.entity bridge.host.inventory invocation security rate limit timeout">
         <div class="section-head">
           <p class="eyebrow">ADAPTER API</p>
           <h2>Adapter Registry & Security</h2>
@@ -372,8 +609,11 @@ eventDispatchMode=hybrid</code></pre>
           <article class="api-card">
             <h3>Built-in IDs (host-neutral)</h3>
             <ul>
-              <li><code>bridge.host.server</code> : <code>server.info</code>, <code>server.broadcast</code>, <code>world.list</code>, <code>entity.list</code></li>
-              <li><code>bridge.host.player</code> : <code>player.lookup</code></li>
+              <li><code>bridge.host.server</code> : <code>server.info</code>, <code>server.broadcast</code></li>
+              <li><code>bridge.host.player</code> : <code>player.lookup</code>, <code>player.message</code>, <code>player.move</code></li>
+              <li><code>bridge.host.world</code> : <code>world.list</code>, <code>world.time.get</code>, <code>world.time.set</code>, <code>block.get</code>, <code>block.set</code></li>
+              <li><code>bridge.host.entity</code> : <code>entity.list</code>, <code>entity.spawn</code>, <code>entity.remove</code></li>
+              <li><code>bridge.host.inventory</code> : <code>inventory.peek</code>, <code>inventory.item</code>, <code>inventory.set</code></li>
             </ul>
             <p><strong>Policy:</strong> <code>SAFE</code> validates payload + quotas + timeout. <code>FAST</code> is low-latency and bypasses quotas/timeout.</p>
           </article>
@@ -384,7 +624,7 @@ eventDispatchMode=hybrid</code></pre>
               <button class="copy-btn" data-copy-target="code-adapter">Copy</button>
             </div>
             <pre><code id="code-adapter">val response = ctx.adapters.invoke(
-    adapterId = "bridge.host.server",
+    adapterId = "bridge.host.world",
     invocation = AdapterInvocation(
         action = "server.info",
         payload = emptyMap()

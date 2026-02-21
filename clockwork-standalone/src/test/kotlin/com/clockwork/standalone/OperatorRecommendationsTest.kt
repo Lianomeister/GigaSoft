@@ -6,6 +6,8 @@ import com.clockwork.runtime.AdapterCountersSnapshot
 import com.clockwork.runtime.AdapterHotspotSnapshot
 import com.clockwork.runtime.PluginFaultBudgetSnapshot
 import com.clockwork.runtime.PluginPerformanceDiagnostics
+import com.clockwork.runtime.FaultBudgetEscalationPolicy
+import com.clockwork.runtime.FaultBudgetStage
 import com.clockwork.runtime.FaultBudgetPolicy
 import com.clockwork.runtime.SlowSystemSnapshot
 import com.clockwork.runtime.SystemIsolationSnapshot
@@ -22,6 +24,7 @@ class OperatorRecommendationsTest {
                 retention = AdapterAuditRetentionPolicy(),
                 totalRecorded = 14,
                 retainedEntries = 14,
+                retainedEstimatedBytes = 2048L,
                 outcomeCounts = mapOf("ACCEPTED" to 10),
                 recent = emptyList()
             ),
@@ -69,7 +72,10 @@ class OperatorRecommendationsTest {
                 used = 10,
                 remaining = 0,
                 tripped = true,
-                recentSources = mapOf("adapter:bridge.host.server" to 10)
+                recentSources = mapOf("adapter:bridge.host.server" to 10),
+                usageRatio = 1.0,
+                stage = FaultBudgetStage.ISOLATE,
+                escalationPolicy = FaultBudgetEscalationPolicy()
             )
         )
 
@@ -79,7 +85,8 @@ class OperatorRecommendationsTest {
         assertTrue("SYS_SLOW" in codes)
         assertTrue("ADAPTER_HOTSPOT" in codes)
         assertTrue("SYSTEM_ISOLATED" in codes)
-        assertTrue("FAULT_BUDGET_PRESSURE" in codes)
-        assertEquals("critical", recommendations.first { it.code == "FAULT_BUDGET_PRESSURE" }.severity)
+        assertTrue("FAULT_BUDGET_ISOLATE" in codes)
+        assertEquals("critical", recommendations.first { it.code == "FAULT_BUDGET_ISOLATE" }.severity)
+        assertEquals("stability", recommendations.first { it.code == "FAULT_BUDGET_ISOLATE" }.errorClass)
     }
 }

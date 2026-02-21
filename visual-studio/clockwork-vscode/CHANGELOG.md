@@ -1,9 +1,9 @@
-# Changelog
+﻿# Changelog
 
 ## 0.5.0
 
-- Updated extension defaults/templates to `1.5.0-rc.2`.
-- Updated manifest diagnostics and quick-fixes to suggest `1.5.0-rc.2`.
+- Updated extension defaults/templates to `1.5.0`.
+- Updated manifest diagnostics and quick-fixes to suggest `1.5.0`.
 - Updated snippets and docs wording to match the 1.5 API surface.
 - Kept CommandSpec/Event/Network guidance as first-class snippets for Plugin API UX 2.0.
 
@@ -59,4 +59,5 @@
 - Added gigaplugin manifest validation command.
 - Added release update check command (GitHub latest release).
 - Added Kotlin and YAML snippets.
+
 

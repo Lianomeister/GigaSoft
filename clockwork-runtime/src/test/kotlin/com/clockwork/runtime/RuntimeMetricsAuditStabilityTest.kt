@@ -11,7 +11,8 @@ class RuntimeMetricsAuditStabilityTest {
             adapterAuditRetention = AdapterAuditRetentionPolicy(
                 maxEntriesPerPlugin = 40,
                 maxEntriesPerAdapter = 12,
-                maxAgeMillis = 60_000L
+                maxAgeMillis = 60_000L,
+                maxMemoryBytes = 24_000L
             )
         )
 
@@ -32,8 +33,38 @@ class RuntimeMetricsAuditStabilityTest {
         val profile = metrics.snapshot(pluginId = "demo", activeTaskIds = emptyList())
         assertEquals(1_000L, profile.adapterCounters.total)
         assertTrue(profile.adapterAudit.retainedEntries <= 40)
+        assertTrue(profile.adapterAudit.retainedEstimatedBytes <= 24_000L)
         assertTrue(profile.adapterAudit.recent.count { it.adapterId == "bridge.host.server" } <= 12)
         assertTrue(profile.adapterAudit.recent.count { it.adapterId == "bridge.host.player" } <= 12)
+    }
+
+    @Test
+    fun `adapter audit retention respects memory budget`() {
+        val metrics = RuntimeMetrics(
+            adapterAuditRetention = AdapterAuditRetentionPolicy(
+                maxEntriesPerPlugin = 200,
+                maxEntriesPerAdapter = 200,
+                maxAgeMillis = 60_000L,
+                maxMemoryBytes = 1_200L
+            )
+        )
+
+        repeat(100) { idx ->
+            metrics.recordAdapterInvocation(
+                pluginId = "demo",
+                adapterId = "bridge.host.server",
+                outcome = AdapterInvocationOutcome.ACCEPTED,
+                action = "run",
+                detail = "entry-$idx-abcdefghijklmnopqrstuvwxyz",
+                durationNanos = 1_000L,
+                payloadEntries = 2
+            )
+        }
+
+        val profile = metrics.snapshot(pluginId = "demo", activeTaskIds = emptyList())
+        assertTrue(profile.adapterAudit.retainedEstimatedBytes <= 1_200L)
+        assertTrue(profile.adapterAudit.retainedEntries > 0)
+        assertTrue(profile.adapterAudit.retainedEntries < 100)
     }
 
     @Test
@@ -51,5 +82,6 @@ class RuntimeMetricsAuditStabilityTest {
         assertEquals(0L, after.adapterCounters.total)
         assertEquals(0L, after.adapterAudit.totalRecorded)
         assertEquals(0, after.adapterAudit.retainedEntries)
+        assertEquals(0L, after.adapterAudit.retainedEstimatedBytes)
     }
 }

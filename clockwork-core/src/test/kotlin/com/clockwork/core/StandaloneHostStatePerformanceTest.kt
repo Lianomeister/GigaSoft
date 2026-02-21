@@ -51,4 +51,47 @@ class StandaloneHostStatePerformanceTest {
                 "spawn=$entitySpawn spawnMedianMs=${spawnNanos / 1_000_000.0}"
         )
     }
+
+    @Test
+    fun `chunk loading and block access baseline`() {
+        val state = StandaloneHostState(
+            chunkViewDistance = 4,
+            maxChunkLoadsPerTick = 256,
+            maxLoadedChunksPerWorld = 2048
+        )
+        state.joinPlayer("Perf", "world", 0.0, 64.0, 0.0)
+
+        val blockWrites = 40_000
+        val writesNanos = measureNanoTime {
+            repeat(blockWrites) { idx ->
+                val x = (idx % 400) - 200
+                val z = ((idx / 400) % 400) - 200
+                val y = 64 + (idx % 4)
+                state.setBlock("world", x, y, z, "stone")
+                if (idx % 200 == 0) {
+                    state.tickWorlds()
+                }
+            }
+        }
+
+        val readsNanos = measureNanoTime {
+            repeat(blockWrites) { idx ->
+                val x = (idx % 400) - 200
+                val z = ((idx / 400) % 400) - 200
+                val y = 64 + (idx % 4)
+                state.blockAt("world", x, y, z)
+            }
+        }
+
+        val metrics = state.chunkLoadingMetrics()
+        assertTrue(metrics.chunkLoads > 0L)
+        assertTrue(metrics.loadedChunks <= 2048)
+        assertTrue(writesNanos < 500_000_000L, "Block write regression: ${writesNanos / 1_000_000.0}ms")
+        assertTrue(readsNanos < 300_000_000L, "Block read regression: ${readsNanos / 1_000_000.0}ms")
+        println(
+            "PERF core.chunk blocks=$blockWrites writesMs=${writesNanos / 1_000_000.0} " +
+                "readsMs=${readsNanos / 1_000_000.0} loadedChunks=${metrics.loadedChunks} " +
+                "chunkLoads=${metrics.chunkLoads} evictions=${metrics.chunkEvictions}"
+        )
+    }
 }

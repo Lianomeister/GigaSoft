@@ -3,7 +3,8 @@
 Versioned companion docs:
 
 - `docs/api/v1.5.0.md`
-- `docs/migrations/v1.5.md`
+- `docs/migrations/v1.1-to-v1.5.0.md`
+- `docs/migrations/v1.5.0-rc.1-to-v1.5.0.md`
 
 This page is the practical reference for plugin authors targeting `apiVersion: 1`.
 
@@ -73,6 +74,9 @@ Read views:
 - 1.5 helper: `subscribe<T>(options) { ... }`
 - 1.1 helper: `subscribeOnce<T> { ... }`
 - 1.5 helper: `publishAsyncUnit(event)`
+- 1.5 helper on `PluginContext`: `onEvent<T> { ... }`
+- 1.5 helper on `PluginContext`: `onEvent<T>(options) { ... }`
+- 1.5 helper on `PluginContext`: `onEventOnce<T> { ... }`
 
 `EventSubscriptionOptions`:
 
@@ -133,20 +137,27 @@ Built-in events:
 - `serverInfo()`
 - `broadcast(message)`
 - `findPlayer(name)`
+- `lookupPlayer(name)` (alias)
 - `sendPlayerMessage(name, message)`
 - `kickPlayer(name, reason)`
 - `playerIsOp(name)`
+- `isPlayerOp(name)` (null-safe helper)
 - `setPlayerOp(name, op)`
 - `playerPermissions(name)`
+- `permissionsOfPlayer(name)` (null-safe helper)
 - `hasPlayerPermission(name, permission)`
+- `playerHasPermission(name, permission)` (null-safe helper)
 - `grantPlayerPermission(name, permission)`
 - `revokePlayerPermission(name, permission)`
 - `worlds()`
+- `listWorlds()` (alias)
 - `entities(world?)`
+- `listEntities(world?)` (alias)
 - `spawnEntity(type, location)`
 - `findEntity(uuid)`
 - `removeEntity(uuid)`
 - `entityData(uuid)`
+- `entityDataOrEmpty(uuid)` (null-safe helper)
 - `setEntityData(uuid, data)`
 - `blockAt(world, x, y, z)`
 - `setBlock(world, x, y, z, blockId)`
@@ -161,6 +172,7 @@ Built-in events:
 - `worldTime(name)`
 - `setWorldTime(name, time)`
 - `worldData(name)`
+- `worldDataOrEmpty(name)` (null-safe helper)
 - `setWorldData(name, data)`
 - `worldWeather(name)`
 - `setWorldWeather(name, weather)`
@@ -194,6 +206,8 @@ Batch mutation types (`HostMutationType`):
 Plugin helper:
 
 - `ctx.applyHostMutationBatch(batch) { rollbackResult -> ... }`
+- `ctx.hostMutationBatch(id, rollbackReason) { ... }`
+- `ctx.mutateHost(id, rollbackReason) { ... }`
 
 Additional permission gate:
 
@@ -493,7 +507,13 @@ Gameplay lifecycle events:
   - `commands { }`
     - 1.5 spec-first:
       - `command(spec = CommandSpec(...), middleware = [...], completion = ...) { invocation -> CommandResult }`
+      - `command(id = "...", aliases = [...], argsSchema = [...], policy = ..., completionAsync = ...) { sender, args -> ... }`
       - `spec(command = "...", argsSchema = [...], permission = "...", cooldownMillis = ..., rateLimitPerMinute = ...) { invocation -> CommandResult }`
+  - `events { }`
+    - `on<EventType> { ... }`
+    - `on<EventType>(EventSubscriptionOptions(...)) { ... }`
+    - `once<EventType> { ... }`
+  - `hostMutations(id = "...") { ... }`
   - `adapters { }`
 
 

@@ -3,6 +3,7 @@ package com.clockwork.standalone
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.clockwork.core.GigaStandaloneCore
 import com.clockwork.core.StandaloneCoreConfig
+import com.clockwork.core.StandaloneCapacityException
 import com.clockwork.net.SessionActionResult
 import com.clockwork.net.StandaloneNetConfig
 import com.clockwork.net.StandaloneNetServer
@@ -111,6 +112,69 @@ class StandaloneNetSessionIntegrationTest {
                 assertEquals("4.0", lookup.payload["x"])
                 assertEquals("65.0", lookup.payload["y"])
                 assertEquals("6.0", lookup.payload["z"])
+            }
+        } finally {
+            net.stop()
+            core.stop()
+        }
+    }
+
+    @Test
+    fun `net hello returns server full when max players reached`() {
+        val root = Files.createTempDirectory("clockwork-standalone-net-full-it")
+        val core = GigaStandaloneCore(
+            config = StandaloneCoreConfig(
+                pluginsDirectory = root.resolve("plugins"),
+                dataDirectory = root.resolve("data"),
+                maxPlayers = 1,
+                tickPeriodMillis = 1L,
+                autoSaveEveryTicks = 0L
+            ),
+            logger = {}
+        )
+        core.start()
+        val net = StandaloneNetServer(
+            config = StandaloneNetConfig(
+                host = "127.0.0.1",
+                port = 0,
+                authRequired = true,
+                sharedSecret = "player-secret",
+                sessionTtlSeconds = 60
+            ),
+            logger = {},
+            handler = coreHandler(core)
+        )
+        net.start()
+        try {
+            val port = waitForPort(net)
+            Socket("127.0.0.1", port).use { socket ->
+                val reader = socket.getInputStream().bufferedReader()
+                val writer = socket.getOutputStream().bufferedWriter()
+
+                val auth = sendJson(reader, writer, "auth", "1", payload = mapOf("secret" to "player-secret"))
+                assertTrue(auth.success)
+                val sid = auth.payload["sessionId"].orEmpty()
+                assertTrue(sid.isNotBlank())
+
+                val hello1 = sendJson(
+                    reader,
+                    writer,
+                    "hello",
+                    "2",
+                    payload = mapOf("sessionId" to sid, "name" to "Alex", "world" to "world")
+                )
+                assertTrue(hello1.success)
+                assertEquals("JOINED", hello1.code)
+
+                val hello2 = sendJson(
+                    reader,
+                    writer,
+                    "hello",
+                    "3",
+                    payload = mapOf("sessionId" to sid, "name" to "Steve", "world" to "world")
+                )
+                assertTrue(!hello2.success)
+                assertEquals("SERVER_FULL", hello2.code)
             }
         } finally {
             net.stop()
@@ -538,7 +602,11 @@ class StandaloneNetSessionIntegrationTest {
     private fun coreHandler(core: GigaStandaloneCore): StandaloneSessionHandler {
         return object : StandaloneSessionHandler {
             override fun join(name: String, world: String, x: Double, y: Double, z: Double): SessionActionResult {
-                val player = core.joinPlayer(name, world, x, y, z)
+                val player = try {
+                    core.joinPlayer(name, world, x, y, z)
+                } catch (limit: StandaloneCapacityException) {
+                    return SessionActionResult(false, limit.code, limit.message ?: "capacity limit reached")
+                }
                 return SessionActionResult(
                     success = true,
                     code = "JOINED",
@@ -613,12 +681,20 @@ class StandaloneNetSessionIntegrationTest {
             }
 
             override fun worldCreate(name: String, seed: Long): SessionActionResult {
-                val world = core.createWorld(name, seed)
+                val world = try {
+                    core.createWorld(name, seed)
+                } catch (limit: StandaloneCapacityException) {
+                    return SessionActionResult(false, limit.code, limit.message ?: "capacity limit reached")
+                }
                 return SessionActionResult(true, "WORLD_CREATED", "world created ${world.name}")
             }
 
             override fun entitySpawn(type: String, world: String, x: Double, y: Double, z: Double): SessionActionResult {
-                val entity = core.spawnEntity(type, world, x, y, z)
+                val entity = try {
+                    core.spawnEntity(type, world, x, y, z)
+                } catch (limit: StandaloneCapacityException) {
+                    return SessionActionResult(false, limit.code, limit.message ?: "capacity limit reached")
+                }
                 return SessionActionResult(true, "ENTITY_SPAWNED", "spawned ${entity.type}")
             }
 

@@ -1,0 +1,382 @@
+public final class com/clockwork/host/api/HostAccessAdapterKt {
+	public static final fun asHostAccess (Lcom/clockwork/host/api/HostBridgePort;)Lcom/clockwork/api/HostAccess;
+}
+
+public final class com/clockwork/host/api/HostAdapterIds {
+	public static final field ENTITY Ljava/lang/String;
+	public static final field INSTANCE Lcom/clockwork/host/api/HostAdapterIds;
+	public static final field INVENTORY Ljava/lang/String;
+	public static final field PLAYER Ljava/lang/String;
+	public static final field SERVER Ljava/lang/String;
+	public static final field WORLD Ljava/lang/String;
+}
+
+public final class com/clockwork/host/api/HostBlockSnapshot {
+	public fun <init> (Ljava/lang/String;IIILjava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()I
+	public final fun component3 ()I
+	public final fun component4 ()I
+	public final fun component5 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;IIILjava/lang/String;)Lcom/clockwork/host/api/HostBlockSnapshot;
+	public static synthetic fun copy$default (Lcom/clockwork/host/api/HostBlockSnapshot;Ljava/lang/String;IIILjava/lang/String;ILjava/lang/Object;)Lcom/clockwork/host/api/HostBlockSnapshot;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBlockId ()Ljava/lang/String;
+	public final fun getWorld ()Ljava/lang/String;
+	public final fun getX ()I
+	public final fun getY ()I
+	public final fun getZ ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/host/api/HostBridgeAdapters {
+	public static final field INSTANCE Lcom/clockwork/host/api/HostBridgeAdapters;
+	public final fun registerDefaults (Ljava/lang/String;Lcom/clockwork/api/ModAdapterRegistry;Lcom/clockwork/host/api/HostBridgePort;Lcom/clockwork/api/GigaLogger;Ljava/lang/String;Ljava/util/Set;)V
+	public static synthetic fun registerDefaults$default (Lcom/clockwork/host/api/HostBridgeAdapters;Ljava/lang/String;Lcom/clockwork/api/ModAdapterRegistry;Lcom/clockwork/host/api/HostBridgePort;Lcom/clockwork/api/GigaLogger;Ljava/lang/String;Ljava/util/Set;ILjava/lang/Object;)V
+}
+
+public final class com/clockwork/host/api/HostBridgeAdapters$Permission {
+	public static final field HOST_BLOCK_READ Ljava/lang/String;
+	public static final field HOST_BLOCK_WRITE Ljava/lang/String;
+	public static final field HOST_BROADCAST Ljava/lang/String;
+	public static final field HOST_ENTITY_READ Ljava/lang/String;
+	public static final field HOST_ENTITY_REMOVE Ljava/lang/String;
+	public static final field HOST_ENTITY_SPAWN Ljava/lang/String;
+	public static final field HOST_INVENTORY_READ Ljava/lang/String;
+	public static final field HOST_INVENTORY_WRITE Ljava/lang/String;
+	public static final field HOST_PLAYER_MESSAGE Ljava/lang/String;
+	public static final field HOST_PLAYER_MOVE Ljava/lang/String;
+	public static final field HOST_PLAYER_READ Ljava/lang/String;
+	public static final field HOST_SERVER_READ Ljava/lang/String;
+	public static final field HOST_WORLD_READ Ljava/lang/String;
+	public static final field HOST_WORLD_WRITE Ljava/lang/String;
+	public static final field INSTANCE Lcom/clockwork/host/api/HostBridgeAdapters$Permission;
+}
+
+public abstract interface class com/clockwork/host/api/HostBridgePort : com/clockwork/host/api/HostEntityPort, com/clockwork/host/api/HostPlayerPort, com/clockwork/host/api/HostWorldPort {
+	public abstract fun broadcast (Ljava/lang/String;)V
+	public abstract fun serverInfo ()Lcom/clockwork/host/api/HostServerSnapshot;
+}
+
+public final class com/clockwork/host/api/HostBridgePort$DefaultImpls {
+	public static fun addPlayerEffect (Lcom/clockwork/host/api/HostBridgePort;Ljava/lang/String;Ljava/lang/String;II)Z
+	public static fun blockAt (Lcom/clockwork/host/api/HostBridgePort;Ljava/lang/String;III)Lcom/clockwork/host/api/HostBlockSnapshot;
+	public static fun blockData (Lcom/clockwork/host/api/HostBridgePort;Ljava/lang/String;III)Ljava/util/Map;
+	public static fun breakBlock (Lcom/clockwork/host/api/HostBridgePort;Ljava/lang/String;IIIZ)Z
+	public static fun createWorld (Lcom/clockwork/host/api/HostBridgePort;Ljava/lang/String;J)Lcom/clockwork/host/api/HostWorldSnapshot;
+	public static fun entityData (Lcom/clockwork/host/api/HostBridgePort;Ljava/lang/String;)Ljava/util/Map;
+	public static fun entityDataOrEmpty (Lcom/clockwork/host/api/HostBridgePort;Ljava/lang/String;)Ljava/util/Map;
+	public static fun findEntity (Lcom/clockwork/host/api/HostBridgePort;Ljava/lang/String;)Lcom/clockwork/host/api/HostEntitySnapshot;
+	public static fun givePlayerItem (Lcom/clockwork/host/api/HostBridgePort;Ljava/lang/String;Ljava/lang/String;I)I
+	public static fun grantPlayerPermission (Lcom/clockwork/host/api/HostBridgePort;Ljava/lang/String;Ljava/lang/String;)Z
+	public static fun hasPlayerPermission (Lcom/clockwork/host/api/HostBridgePort;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/Boolean;
+	public static fun inventoryItem (Lcom/clockwork/host/api/HostBridgePort;Ljava/lang/String;I)Ljava/lang/String;
+	public static fun isPlayerOp (Lcom/clockwork/host/api/HostBridgePort;Ljava/lang/String;)Z
+	public static fun kickPlayer (Lcom/clockwork/host/api/HostBridgePort;Ljava/lang/String;Ljava/lang/String;)Z
+	public static fun listEntities (Lcom/clockwork/host/api/HostBridgePort;Ljava/lang/String;)Ljava/util/List;
+	public static fun listWorlds (Lcom/clockwork/host/api/HostBridgePort;)Ljava/util/List;
+	public static fun lookupPlayer (Lcom/clockwork/host/api/HostBridgePort;Ljava/lang/String;)Lcom/clockwork/host/api/HostPlayerSnapshot;
+	public static fun movePlayer (Lcom/clockwork/host/api/HostBridgePort;Ljava/lang/String;Lcom/clockwork/host/api/HostLocationRef;)Lcom/clockwork/host/api/HostPlayerSnapshot;
+	public static fun permissionsOfPlayer (Lcom/clockwork/host/api/HostBridgePort;Ljava/lang/String;)Ljava/util/Set;
+	public static fun playerGameMode (Lcom/clockwork/host/api/HostBridgePort;Ljava/lang/String;)Ljava/lang/String;
+	public static fun playerHasPermission (Lcom/clockwork/host/api/HostBridgePort;Ljava/lang/String;Ljava/lang/String;)Z
+	public static fun playerIsOp (Lcom/clockwork/host/api/HostBridgePort;Ljava/lang/String;)Ljava/lang/Boolean;
+	public static fun playerPermissions (Lcom/clockwork/host/api/HostBridgePort;Ljava/lang/String;)Ljava/util/Set;
+	public static fun playerStatus (Lcom/clockwork/host/api/HostBridgePort;Ljava/lang/String;)Lcom/clockwork/host/api/HostPlayerStatusSnapshot;
+	public static fun removeEntity (Lcom/clockwork/host/api/HostBridgePort;Ljava/lang/String;)Z
+	public static fun removePlayerEffect (Lcom/clockwork/host/api/HostBridgePort;Ljava/lang/String;Ljava/lang/String;)Z
+	public static fun revokePlayerPermission (Lcom/clockwork/host/api/HostBridgePort;Ljava/lang/String;Ljava/lang/String;)Z
+	public static fun sendPlayerMessage (Lcom/clockwork/host/api/HostBridgePort;Ljava/lang/String;Ljava/lang/String;)Z
+	public static fun setBlock (Lcom/clockwork/host/api/HostBridgePort;Ljava/lang/String;IIILjava/lang/String;)Lcom/clockwork/host/api/HostBlockSnapshot;
+	public static fun setBlockData (Lcom/clockwork/host/api/HostBridgePort;Ljava/lang/String;IIILjava/util/Map;)Ljava/util/Map;
+	public static fun setEntityData (Lcom/clockwork/host/api/HostBridgePort;Ljava/lang/String;Ljava/util/Map;)Ljava/util/Map;
+	public static fun setPlayerGameMode (Lcom/clockwork/host/api/HostBridgePort;Ljava/lang/String;Ljava/lang/String;)Z
+	public static fun setPlayerOp (Lcom/clockwork/host/api/HostBridgePort;Ljava/lang/String;Z)Z
+	public static fun setPlayerStatus (Lcom/clockwork/host/api/HostBridgePort;Ljava/lang/String;Lcom/clockwork/host/api/HostPlayerStatusSnapshot;)Lcom/clockwork/host/api/HostPlayerStatusSnapshot;
+	public static fun setWorldData (Lcom/clockwork/host/api/HostBridgePort;Ljava/lang/String;Ljava/util/Map;)Ljava/util/Map;
+	public static fun setWorldTime (Lcom/clockwork/host/api/HostBridgePort;Ljava/lang/String;J)Z
+	public static fun setWorldWeather (Lcom/clockwork/host/api/HostBridgePort;Ljava/lang/String;Ljava/lang/String;)Z
+	public static fun worldData (Lcom/clockwork/host/api/HostBridgePort;Ljava/lang/String;)Ljava/util/Map;
+	public static fun worldDataOrEmpty (Lcom/clockwork/host/api/HostBridgePort;Ljava/lang/String;)Ljava/util/Map;
+	public static fun worldTime (Lcom/clockwork/host/api/HostBridgePort;Ljava/lang/String;)Ljava/lang/Long;
+	public static fun worldWeather (Lcom/clockwork/host/api/HostBridgePort;Ljava/lang/String;)Ljava/lang/String;
+}
+
+public abstract interface class com/clockwork/host/api/HostEntityPort {
+	public abstract fun entities (Ljava/lang/String;)Ljava/util/List;
+	public abstract fun entityData (Ljava/lang/String;)Ljava/util/Map;
+	public abstract fun entityDataOrEmpty (Ljava/lang/String;)Ljava/util/Map;
+	public abstract fun findEntity (Ljava/lang/String;)Lcom/clockwork/host/api/HostEntitySnapshot;
+	public abstract fun listEntities (Ljava/lang/String;)Ljava/util/List;
+	public abstract fun removeEntity (Ljava/lang/String;)Z
+	public abstract fun setEntityData (Ljava/lang/String;Ljava/util/Map;)Ljava/util/Map;
+	public abstract fun spawnEntity (Ljava/lang/String;Lcom/clockwork/host/api/HostLocationRef;)Lcom/clockwork/host/api/HostEntitySnapshot;
+}
+
+public final class com/clockwork/host/api/HostEntityPort$DefaultImpls {
+	public static synthetic fun entities$default (Lcom/clockwork/host/api/HostEntityPort;Ljava/lang/String;ILjava/lang/Object;)Ljava/util/List;
+	public static fun entityData (Lcom/clockwork/host/api/HostEntityPort;Ljava/lang/String;)Ljava/util/Map;
+	public static fun entityDataOrEmpty (Lcom/clockwork/host/api/HostEntityPort;Ljava/lang/String;)Ljava/util/Map;
+	public static fun findEntity (Lcom/clockwork/host/api/HostEntityPort;Ljava/lang/String;)Lcom/clockwork/host/api/HostEntitySnapshot;
+	public static fun listEntities (Lcom/clockwork/host/api/HostEntityPort;Ljava/lang/String;)Ljava/util/List;
+	public static synthetic fun listEntities$default (Lcom/clockwork/host/api/HostEntityPort;Ljava/lang/String;ILjava/lang/Object;)Ljava/util/List;
+	public static fun removeEntity (Lcom/clockwork/host/api/HostEntityPort;Ljava/lang/String;)Z
+	public static fun setEntityData (Lcom/clockwork/host/api/HostEntityPort;Ljava/lang/String;Ljava/util/Map;)Ljava/util/Map;
+}
+
+public final class com/clockwork/host/api/HostEntityRef {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;)Lcom/clockwork/host/api/HostEntityRef;
+	public static synthetic fun copy$default (Lcom/clockwork/host/api/HostEntityRef;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/clockwork/host/api/HostEntityRef;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getType ()Ljava/lang/String;
+	public final fun getUuid ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/host/api/HostEntitySnapshot {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Lcom/clockwork/host/api/HostLocationRef;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Lcom/clockwork/host/api/HostLocationRef;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Lcom/clockwork/host/api/HostLocationRef;)Lcom/clockwork/host/api/HostEntitySnapshot;
+	public static synthetic fun copy$default (Lcom/clockwork/host/api/HostEntitySnapshot;Ljava/lang/String;Ljava/lang/String;Lcom/clockwork/host/api/HostLocationRef;ILjava/lang/Object;)Lcom/clockwork/host/api/HostEntitySnapshot;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getLocation ()Lcom/clockwork/host/api/HostLocationRef;
+	public final fun getType ()Ljava/lang/String;
+	public final fun getUuid ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class com/clockwork/host/api/HostInventoryPort {
+	public abstract fun givePlayerItem (Ljava/lang/String;Ljava/lang/String;I)I
+	public abstract fun inventoryItem (Ljava/lang/String;I)Ljava/lang/String;
+	public abstract fun playerInventory (Ljava/lang/String;)Lcom/clockwork/host/api/HostInventorySnapshot;
+	public abstract fun setPlayerInventoryItem (Ljava/lang/String;ILjava/lang/String;)Z
+}
+
+public final class com/clockwork/host/api/HostInventoryPort$DefaultImpls {
+	public static fun givePlayerItem (Lcom/clockwork/host/api/HostInventoryPort;Ljava/lang/String;Ljava/lang/String;I)I
+	public static synthetic fun givePlayerItem$default (Lcom/clockwork/host/api/HostInventoryPort;Ljava/lang/String;Ljava/lang/String;IILjava/lang/Object;)I
+	public static fun inventoryItem (Lcom/clockwork/host/api/HostInventoryPort;Ljava/lang/String;I)Ljava/lang/String;
+}
+
+public final class com/clockwork/host/api/HostInventoryRef {
+	public fun <init> (I)V
+	public final fun component1 ()I
+	public final fun copy (I)Lcom/clockwork/host/api/HostInventoryRef;
+	public static synthetic fun copy$default (Lcom/clockwork/host/api/HostInventoryRef;IILjava/lang/Object;)Lcom/clockwork/host/api/HostInventoryRef;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getSize ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/host/api/HostInventorySnapshot {
+	public fun <init> (Ljava/lang/String;II)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()I
+	public final fun component3 ()I
+	public final fun copy (Ljava/lang/String;II)Lcom/clockwork/host/api/HostInventorySnapshot;
+	public static synthetic fun copy$default (Lcom/clockwork/host/api/HostInventorySnapshot;Ljava/lang/String;IIILjava/lang/Object;)Lcom/clockwork/host/api/HostInventorySnapshot;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getNonEmptySlots ()I
+	public final fun getOwner ()Ljava/lang/String;
+	public final fun getSize ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/host/api/HostLocationRef {
+	public fun <init> (Ljava/lang/String;DDD)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()D
+	public final fun component3 ()D
+	public final fun component4 ()D
+	public final fun copy (Ljava/lang/String;DDD)Lcom/clockwork/host/api/HostLocationRef;
+	public static synthetic fun copy$default (Lcom/clockwork/host/api/HostLocationRef;Ljava/lang/String;DDDILjava/lang/Object;)Lcom/clockwork/host/api/HostLocationRef;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getWorld ()Ljava/lang/String;
+	public final fun getX ()D
+	public final fun getY ()D
+	public final fun getZ ()D
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class com/clockwork/host/api/HostPlayerPort : com/clockwork/host/api/HostInventoryPort {
+	public abstract fun addPlayerEffect (Ljava/lang/String;Ljava/lang/String;II)Z
+	public abstract fun findPlayer (Ljava/lang/String;)Lcom/clockwork/host/api/HostPlayerSnapshot;
+	public abstract fun grantPlayerPermission (Ljava/lang/String;Ljava/lang/String;)Z
+	public abstract fun hasPlayerPermission (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/Boolean;
+	public abstract fun isPlayerOp (Ljava/lang/String;)Z
+	public abstract fun kickPlayer (Ljava/lang/String;Ljava/lang/String;)Z
+	public abstract fun lookupPlayer (Ljava/lang/String;)Lcom/clockwork/host/api/HostPlayerSnapshot;
+	public abstract fun movePlayer (Ljava/lang/String;Lcom/clockwork/host/api/HostLocationRef;)Lcom/clockwork/host/api/HostPlayerSnapshot;
+	public abstract fun permissionsOfPlayer (Ljava/lang/String;)Ljava/util/Set;
+	public abstract fun playerGameMode (Ljava/lang/String;)Ljava/lang/String;
+	public abstract fun playerHasPermission (Ljava/lang/String;Ljava/lang/String;)Z
+	public abstract fun playerIsOp (Ljava/lang/String;)Ljava/lang/Boolean;
+	public abstract fun playerPermissions (Ljava/lang/String;)Ljava/util/Set;
+	public abstract fun playerStatus (Ljava/lang/String;)Lcom/clockwork/host/api/HostPlayerStatusSnapshot;
+	public abstract fun removePlayerEffect (Ljava/lang/String;Ljava/lang/String;)Z
+	public abstract fun revokePlayerPermission (Ljava/lang/String;Ljava/lang/String;)Z
+	public abstract fun sendPlayerMessage (Ljava/lang/String;Ljava/lang/String;)Z
+	public abstract fun setPlayerGameMode (Ljava/lang/String;Ljava/lang/String;)Z
+	public abstract fun setPlayerOp (Ljava/lang/String;Z)Z
+	public abstract fun setPlayerStatus (Ljava/lang/String;Lcom/clockwork/host/api/HostPlayerStatusSnapshot;)Lcom/clockwork/host/api/HostPlayerStatusSnapshot;
+}
+
+public final class com/clockwork/host/api/HostPlayerPort$DefaultImpls {
+	public static fun addPlayerEffect (Lcom/clockwork/host/api/HostPlayerPort;Ljava/lang/String;Ljava/lang/String;II)Z
+	public static synthetic fun addPlayerEffect$default (Lcom/clockwork/host/api/HostPlayerPort;Ljava/lang/String;Ljava/lang/String;IIILjava/lang/Object;)Z
+	public static fun givePlayerItem (Lcom/clockwork/host/api/HostPlayerPort;Ljava/lang/String;Ljava/lang/String;I)I
+	public static fun grantPlayerPermission (Lcom/clockwork/host/api/HostPlayerPort;Ljava/lang/String;Ljava/lang/String;)Z
+	public static fun hasPlayerPermission (Lcom/clockwork/host/api/HostPlayerPort;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/Boolean;
+	public static fun inventoryItem (Lcom/clockwork/host/api/HostPlayerPort;Ljava/lang/String;I)Ljava/lang/String;
+	public static fun isPlayerOp (Lcom/clockwork/host/api/HostPlayerPort;Ljava/lang/String;)Z
+	public static fun kickPlayer (Lcom/clockwork/host/api/HostPlayerPort;Ljava/lang/String;Ljava/lang/String;)Z
+	public static synthetic fun kickPlayer$default (Lcom/clockwork/host/api/HostPlayerPort;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Z
+	public static fun lookupPlayer (Lcom/clockwork/host/api/HostPlayerPort;Ljava/lang/String;)Lcom/clockwork/host/api/HostPlayerSnapshot;
+	public static fun movePlayer (Lcom/clockwork/host/api/HostPlayerPort;Ljava/lang/String;Lcom/clockwork/host/api/HostLocationRef;)Lcom/clockwork/host/api/HostPlayerSnapshot;
+	public static fun permissionsOfPlayer (Lcom/clockwork/host/api/HostPlayerPort;Ljava/lang/String;)Ljava/util/Set;
+	public static fun playerGameMode (Lcom/clockwork/host/api/HostPlayerPort;Ljava/lang/String;)Ljava/lang/String;
+	public static fun playerHasPermission (Lcom/clockwork/host/api/HostPlayerPort;Ljava/lang/String;Ljava/lang/String;)Z
+	public static fun playerIsOp (Lcom/clockwork/host/api/HostPlayerPort;Ljava/lang/String;)Ljava/lang/Boolean;
+	public static fun playerPermissions (Lcom/clockwork/host/api/HostPlayerPort;Ljava/lang/String;)Ljava/util/Set;
+	public static fun playerStatus (Lcom/clockwork/host/api/HostPlayerPort;Ljava/lang/String;)Lcom/clockwork/host/api/HostPlayerStatusSnapshot;
+	public static fun removePlayerEffect (Lcom/clockwork/host/api/HostPlayerPort;Ljava/lang/String;Ljava/lang/String;)Z
+	public static fun revokePlayerPermission (Lcom/clockwork/host/api/HostPlayerPort;Ljava/lang/String;Ljava/lang/String;)Z
+	public static fun sendPlayerMessage (Lcom/clockwork/host/api/HostPlayerPort;Ljava/lang/String;Ljava/lang/String;)Z
+	public static fun setPlayerGameMode (Lcom/clockwork/host/api/HostPlayerPort;Ljava/lang/String;Ljava/lang/String;)Z
+	public static fun setPlayerOp (Lcom/clockwork/host/api/HostPlayerPort;Ljava/lang/String;Z)Z
+	public static fun setPlayerStatus (Lcom/clockwork/host/api/HostPlayerPort;Ljava/lang/String;Lcom/clockwork/host/api/HostPlayerStatusSnapshot;)Lcom/clockwork/host/api/HostPlayerStatusSnapshot;
+}
+
+public final class com/clockwork/host/api/HostPlayerSnapshot {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Lcom/clockwork/host/api/HostLocationRef;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Lcom/clockwork/host/api/HostLocationRef;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Lcom/clockwork/host/api/HostLocationRef;)Lcom/clockwork/host/api/HostPlayerSnapshot;
+	public static synthetic fun copy$default (Lcom/clockwork/host/api/HostPlayerSnapshot;Ljava/lang/String;Ljava/lang/String;Lcom/clockwork/host/api/HostLocationRef;ILjava/lang/Object;)Lcom/clockwork/host/api/HostPlayerSnapshot;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getLocation ()Lcom/clockwork/host/api/HostLocationRef;
+	public final fun getName ()Ljava/lang/String;
+	public final fun getUuid ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/host/api/HostPlayerStatusSnapshot {
+	public fun <init> (DDIDIDLjava/util/Map;)V
+	public synthetic fun <init> (DDIDIDLjava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()D
+	public final fun component2 ()D
+	public final fun component3 ()I
+	public final fun component4 ()D
+	public final fun component5 ()I
+	public final fun component6 ()D
+	public final fun component7 ()Ljava/util/Map;
+	public final fun copy (DDIDIDLjava/util/Map;)Lcom/clockwork/host/api/HostPlayerStatusSnapshot;
+	public static synthetic fun copy$default (Lcom/clockwork/host/api/HostPlayerStatusSnapshot;DDIDIDLjava/util/Map;ILjava/lang/Object;)Lcom/clockwork/host/api/HostPlayerStatusSnapshot;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getEffects ()Ljava/util/Map;
+	public final fun getExperienceLevel ()I
+	public final fun getExperienceProgress ()D
+	public final fun getFoodLevel ()I
+	public final fun getHealth ()D
+	public final fun getMaxHealth ()D
+	public final fun getSaturation ()D
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/host/api/HostServerSnapshot {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;III)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;IIIILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()I
+	public final fun component5 ()I
+	public final fun component6 ()I
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;III)Lcom/clockwork/host/api/HostServerSnapshot;
+	public static synthetic fun copy$default (Lcom/clockwork/host/api/HostServerSnapshot;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;IIIILjava/lang/Object;)Lcom/clockwork/host/api/HostServerSnapshot;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getMaxPlayers ()I
+	public final fun getName ()Ljava/lang/String;
+	public final fun getOnlinePlayers ()I
+	public final fun getPlatformVersion ()Ljava/lang/String;
+	public final fun getVersion ()Ljava/lang/String;
+	public final fun getWorldCount ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class com/clockwork/host/api/HostWorldPort {
+	public abstract fun blockAt (Ljava/lang/String;III)Lcom/clockwork/host/api/HostBlockSnapshot;
+	public abstract fun blockData (Ljava/lang/String;III)Ljava/util/Map;
+	public abstract fun breakBlock (Ljava/lang/String;IIIZ)Z
+	public abstract fun createWorld (Ljava/lang/String;J)Lcom/clockwork/host/api/HostWorldSnapshot;
+	public abstract fun listWorlds ()Ljava/util/List;
+	public abstract fun setBlock (Ljava/lang/String;IIILjava/lang/String;)Lcom/clockwork/host/api/HostBlockSnapshot;
+	public abstract fun setBlockData (Ljava/lang/String;IIILjava/util/Map;)Ljava/util/Map;
+	public abstract fun setWorldData (Ljava/lang/String;Ljava/util/Map;)Ljava/util/Map;
+	public abstract fun setWorldTime (Ljava/lang/String;J)Z
+	public abstract fun setWorldWeather (Ljava/lang/String;Ljava/lang/String;)Z
+	public abstract fun worldData (Ljava/lang/String;)Ljava/util/Map;
+	public abstract fun worldDataOrEmpty (Ljava/lang/String;)Ljava/util/Map;
+	public abstract fun worldTime (Ljava/lang/String;)Ljava/lang/Long;
+	public abstract fun worldWeather (Ljava/lang/String;)Ljava/lang/String;
+	public abstract fun worlds ()Ljava/util/List;
+}
+
+public final class com/clockwork/host/api/HostWorldPort$DefaultImpls {
+	public static fun blockAt (Lcom/clockwork/host/api/HostWorldPort;Ljava/lang/String;III)Lcom/clockwork/host/api/HostBlockSnapshot;
+	public static fun blockData (Lcom/clockwork/host/api/HostWorldPort;Ljava/lang/String;III)Ljava/util/Map;
+	public static fun breakBlock (Lcom/clockwork/host/api/HostWorldPort;Ljava/lang/String;IIIZ)Z
+	public static synthetic fun breakBlock$default (Lcom/clockwork/host/api/HostWorldPort;Ljava/lang/String;IIIZILjava/lang/Object;)Z
+	public static fun createWorld (Lcom/clockwork/host/api/HostWorldPort;Ljava/lang/String;J)Lcom/clockwork/host/api/HostWorldSnapshot;
+	public static synthetic fun createWorld$default (Lcom/clockwork/host/api/HostWorldPort;Ljava/lang/String;JILjava/lang/Object;)Lcom/clockwork/host/api/HostWorldSnapshot;
+	public static fun listWorlds (Lcom/clockwork/host/api/HostWorldPort;)Ljava/util/List;
+	public static fun setBlock (Lcom/clockwork/host/api/HostWorldPort;Ljava/lang/String;IIILjava/lang/String;)Lcom/clockwork/host/api/HostBlockSnapshot;
+	public static fun setBlockData (Lcom/clockwork/host/api/HostWorldPort;Ljava/lang/String;IIILjava/util/Map;)Ljava/util/Map;
+	public static fun setWorldData (Lcom/clockwork/host/api/HostWorldPort;Ljava/lang/String;Ljava/util/Map;)Ljava/util/Map;
+	public static fun setWorldTime (Lcom/clockwork/host/api/HostWorldPort;Ljava/lang/String;J)Z
+	public static fun setWorldWeather (Lcom/clockwork/host/api/HostWorldPort;Ljava/lang/String;Ljava/lang/String;)Z
+	public static fun worldData (Lcom/clockwork/host/api/HostWorldPort;Ljava/lang/String;)Ljava/util/Map;
+	public static fun worldDataOrEmpty (Lcom/clockwork/host/api/HostWorldPort;Ljava/lang/String;)Ljava/util/Map;
+	public static fun worldTime (Lcom/clockwork/host/api/HostWorldPort;Ljava/lang/String;)Ljava/lang/Long;
+	public static fun worldWeather (Lcom/clockwork/host/api/HostWorldPort;Ljava/lang/String;)Ljava/lang/String;
+}
+
+public final class com/clockwork/host/api/HostWorldRef {
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Lcom/clockwork/host/api/HostWorldRef;
+	public static synthetic fun copy$default (Lcom/clockwork/host/api/HostWorldRef;Ljava/lang/String;ILjava/lang/Object;)Lcom/clockwork/host/api/HostWorldRef;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getName ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/host/api/HostWorldSnapshot {
+	public fun <init> (Ljava/lang/String;I)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()I
+	public final fun copy (Ljava/lang/String;I)Lcom/clockwork/host/api/HostWorldSnapshot;
+	public static synthetic fun copy$default (Lcom/clockwork/host/api/HostWorldSnapshot;Ljava/lang/String;IILjava/lang/Object;)Lcom/clockwork/host/api/HostWorldSnapshot;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getEntityCount ()I
+	public final fun getName ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
