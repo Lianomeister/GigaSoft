@@ -103,6 +103,16 @@ Models:
 - `ModAdapter`
 - `ModAdapterRegistry`
 
+1.1 payload helpers on `AdapterInvocation`:
+
+- `payloadString(key)`
+- `payloadTrimmed(key)`
+- `payloadRequired(key)` (throws if missing/blank)
+- `payloadInt(key)`
+- `payloadLong(key)`
+- `payloadDouble(key)`
+- `payloadBool(key)` (`true/false`, `1/0`, `yes/no`, `on/off`)
+
 Registry operations:
 
 - `register(adapter)`

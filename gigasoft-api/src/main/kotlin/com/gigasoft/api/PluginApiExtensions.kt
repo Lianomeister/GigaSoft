@@ -76,3 +76,40 @@ fun CommandRegistry.registerOrReplaceResult(
 ) {
     registerOrReplaceResult(command, description) { _, sender, args -> action(sender, args) }
 }
+
+fun AdapterInvocation.payloadString(key: String): String? {
+    val normalizedKey = key.trim()
+    if (normalizedKey.isEmpty()) return null
+    return payload[normalizedKey]
+}
+
+fun AdapterInvocation.payloadTrimmed(key: String): String? {
+    return payloadString(key)?.trim()
+}
+
+fun AdapterInvocation.payloadRequired(key: String): String {
+    val value = payloadTrimmed(key)
+    require(!value.isNullOrEmpty()) { "Missing required payload key '$key'" }
+    return value
+}
+
+fun AdapterInvocation.payloadInt(key: String): Int? {
+    return payloadTrimmed(key)?.toIntOrNull()
+}
+
+fun AdapterInvocation.payloadLong(key: String): Long? {
+    return payloadTrimmed(key)?.toLongOrNull()
+}
+
+fun AdapterInvocation.payloadDouble(key: String): Double? {
+    return payloadTrimmed(key)?.toDoubleOrNull()
+}
+
+fun AdapterInvocation.payloadBool(key: String): Boolean? {
+    val value = payloadTrimmed(key)?.lowercase() ?: return null
+    return when (value) {
+        "true", "1", "yes", "y", "on" -> true
+        "false", "0", "no", "n", "off" -> false
+        else -> null
+    }
+}

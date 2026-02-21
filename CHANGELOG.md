@@ -14,6 +14,7 @@
   - simplified command registration helpers without explicit `PluginContext` argument,
   - `PluginContext.hasPermission(...)` and `PluginContext.requirePermission(...)`.
   - typed command responses via `CommandResult` and `registerResult` / `registerOrReplaceResult`.
+  - typed adapter payload parsing helpers on `AdapterInvocation` (`payloadString/Trimmed/Required/Int/Long/Double/Bool`).
 
 ### Planned
 - Network v1.1 improvements (session throughput and backpressure tuning).

@@ -479,6 +479,13 @@ public abstract interface class com/gigasoft/api/PersistentStore {
 
 public final class com/gigasoft/api/PluginApiExtensionsKt {
 	public static final fun hasPermission (Lcom/gigasoft/api/PluginContext;Ljava/lang/String;)Z
+	public static final fun payloadBool (Lcom/gigasoft/api/AdapterInvocation;Ljava/lang/String;)Ljava/lang/Boolean;
+	public static final fun payloadDouble (Lcom/gigasoft/api/AdapterInvocation;Ljava/lang/String;)Ljava/lang/Double;
+	public static final fun payloadInt (Lcom/gigasoft/api/AdapterInvocation;Ljava/lang/String;)Ljava/lang/Integer;
+	public static final fun payloadLong (Lcom/gigasoft/api/AdapterInvocation;Ljava/lang/String;)Ljava/lang/Long;
+	public static final fun payloadRequired (Lcom/gigasoft/api/AdapterInvocation;Ljava/lang/String;)Ljava/lang/String;
+	public static final fun payloadString (Lcom/gigasoft/api/AdapterInvocation;Ljava/lang/String;)Ljava/lang/String;
+	public static final fun payloadTrimmed (Lcom/gigasoft/api/AdapterInvocation;Ljava/lang/String;)Ljava/lang/String;
 	public static final fun register (Lcom/gigasoft/api/CommandRegistry;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function2;)V
 	public static synthetic fun register$default (Lcom/gigasoft/api/CommandRegistry;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function2;ILjava/lang/Object;)V
 	public static final fun registerOrReplace (Lcom/gigasoft/api/CommandRegistry;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function2;)V

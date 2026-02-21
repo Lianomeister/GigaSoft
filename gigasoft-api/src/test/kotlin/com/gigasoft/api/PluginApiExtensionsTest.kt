@@ -4,6 +4,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class PluginApiExtensionsTest {
@@ -68,6 +69,55 @@ class PluginApiExtensionsTest {
         assertFalse(ctx.hasPermission("host.world.read"))
         assertFailsWith<IllegalArgumentException> { ctx.requirePermission("host.world.read") }
         ctx.requirePermission("x.y.z")
+    }
+
+    @Test
+    fun `adapter payload helpers parse supported primitive types`() {
+        val invocation = AdapterInvocation(
+            action = "test",
+            payload = mapOf(
+                "name" to "  alpha  ",
+                "count" to "42",
+                "size" to "  9000000000 ",
+                "ratio" to "1.25",
+                "enabled" to "YES",
+                "flag" to "0"
+            )
+        )
+
+        assertEquals("  alpha  ", invocation.payloadString("name"))
+        assertEquals("alpha", invocation.payloadTrimmed("name"))
+        assertEquals(42, invocation.payloadInt("count"))
+        assertEquals(9_000_000_000L, invocation.payloadLong("size"))
+        assertEquals(1.25, invocation.payloadDouble("ratio"))
+        assertEquals(true, invocation.payloadBool("enabled"))
+        assertEquals(false, invocation.payloadBool("flag"))
+    }
+
+    @Test
+    fun `adapter payload helpers return null for invalid optional values`() {
+        val invocation = AdapterInvocation(
+            action = "test",
+            payload = mapOf(
+                "count" to "NaN",
+                "enabled" to "maybe"
+            )
+        )
+        assertNull(invocation.payloadInt("count"))
+        assertNull(invocation.payloadBool("enabled"))
+        assertNull(invocation.payloadString("missing"))
+    }
+
+    @Test
+    fun `adapter payload required throws for missing or blank values`() {
+        val invocation = AdapterInvocation(
+            action = "test",
+            payload = mapOf(
+                "name" to "  "
+            )
+        )
+        assertFailsWith<IllegalArgumentException> { invocation.payloadRequired("name") }
+        assertFailsWith<IllegalArgumentException> { invocation.payloadRequired("missing") }
     }
 
     private data class TestPayload(val value: String)
