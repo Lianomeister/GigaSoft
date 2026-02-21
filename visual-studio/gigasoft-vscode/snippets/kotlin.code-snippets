@@ -1,0 +1,65 @@
+{
+  "GigaPlugin Class": {
+    "prefix": "gigaplugin",
+    "body": [
+      "package ${1:plugin}",
+      "",
+      "import com.gigasoft.api.GigaPlugin",
+      "import com.gigasoft.api.PluginContext",
+      "import com.gigasoft.api.gigaPlugin",
+      "",
+      "class ${2:MainPlugin} : GigaPlugin {",
+      "    private val plugin = gigaPlugin(",
+      "        id = \"${3:my-plugin}\",",
+      "        name = \"${4:My Plugin}\",",
+      "        version = \"${5:1.1.0-SNAPSHOT}\",",
+      "        apiVersion = \"1\"",
+      "    ) {",
+      "        commands {",
+      "            command(\"ping\", \"Health check\") { sender, _ ->",
+      "                \"pong from $sender\"",
+      "            }",
+      "        }",
+      "    }",
+      "",
+      "    override fun onEnable(ctx: PluginContext) = plugin.onEnable(ctx)",
+      "    override fun onDisable(ctx: PluginContext) = plugin.onDisable(ctx)",
+      "}"
+    ],
+    "description": "Create a basic GigaSoft plugin class."
+  },
+  "Giga CommandResult": {
+    "prefix": "gigacmdresult",
+    "body": [
+      "ctx.commands.registerResult(\"${1:command}\", \"${2:description}\") { sender, args ->",
+      "    if (${3:true}) {",
+      "        com.gigasoft.api.CommandResult.ok(\"${4:done}\", code = \"OK\")",
+      "    } else {",
+      "        com.gigasoft.api.CommandResult.error(\"${5:failed}\", code = \"E_FAIL\")",
+      "    }",
+      "}"
+    ],
+    "description": "Register a command with typed CommandResult."
+  },
+  "Giga Adapter Handler": {
+    "prefix": "gigaadapter",
+    "body": [
+      "adapters {",
+      "    adapter(",
+      "        id = \"${1:my.adapter}\",",
+      "        name = \"${2:My Adapter}\",",
+      "        version = \"1.1.0-SNAPSHOT\",",
+      "        capabilities = setOf(${3:\"capability\"})",
+      "    ) { invocation ->",
+      "        val action = invocation.action",
+      "        val player = invocation.payloadTrimmed(\"player\")",
+      "        com.gigasoft.api.AdapterResponse(",
+      "            success = true,",
+      "            payload = mapOf(\"action\" to action, \"player\" to (player ?: \"\"))",
+      "        )",
+      "    }",
+      "}"
+    ],
+    "description": "Create a GigaSoft adapter with typed payload helpers."
+  }
+}

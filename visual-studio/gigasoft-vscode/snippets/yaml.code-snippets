@@ -1,0 +1,15 @@
+{
+  "Giga Plugin Manifest": {
+    "prefix": "gigapluginyml",
+    "body": [
+      "id: ${1:my-plugin}",
+      "name: ${2:My Plugin}",
+      "version: ${3:1.1.0-SNAPSHOT}",
+      "main: ${4:plugin.MainPlugin}",
+      "apiVersion: 1",
+      "dependencies: []",
+      "permissions: [${5:host.server.read}]"
+    ],
+    "description": "Generate a gigaplugin.yml file."
+  }
+}
