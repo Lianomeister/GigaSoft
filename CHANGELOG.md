@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased (1.1.0)
+
+### Changed
+- Project version moved to `1.1.0-SNAPSHOT` after the `1.0.0` release.
+- Default standalone server version moved to `1.1.0-SNAPSHOT`.
+- DSL default plugin version moved to `1.1.0-SNAPSHOT` for active development.
+
+### Planned
+- Network v1.1 improvements (session throughput and backpressure tuning).
+- Core host consistency/performance expansion for production gameplay scenarios.
+- Plugin DX and ops tooling enhancements for faster troubleshooting.
+
 ## 1.0.0 - 2026-02-20
 
 ### Added

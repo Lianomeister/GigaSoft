@@ -43,7 +43,7 @@ data class StandaloneCoreConfig(
     val dataDirectory: Path,
     val tickPeriodMillis: Long = 50L,
     val serverName: String = "GigaSoft Standalone",
-    val serverVersion: String = "1.0.0",
+    val serverVersion: String = "1.1.0-SNAPSHOT",
     val maxPlayers: Int = 0,
     val autoSaveEveryTicks: Long = 200L,
     val adapterSecurity: AdapterSecurityConfig = AdapterSecurityConfig(),

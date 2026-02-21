@@ -42,12 +42,12 @@ Standalone-first Minecraft server runtime focused on easy, powerful plugins with
 
 ## Standalone Run
 ```bash
-java -jar gigasoft-standalone/build/libs/gigasoft-standalone-1.0.0.jar
+java -jar gigasoft-standalone/build/libs/gigasoft-standalone-1.1.0-SNAPSHOT.jar
 ```
 
 Optional config file (`.properties`):
 ```bash
-java -jar gigasoft-standalone/build/libs/gigasoft-standalone-1.0.0.jar --config gigasoft-standalone/standalone.example.properties
+java -jar gigasoft-standalone/build/libs/gigasoft-standalone-1.1.0-SNAPSHOT.jar --config gigasoft-standalone/standalone.example.properties
 ```
 
 ## Standalone Commands

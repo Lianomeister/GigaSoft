@@ -49,7 +49,7 @@ fun parseLaunchConfig(args: Array<String>): StandaloneLaunchConfig {
     val pluginsDir = stringOption(args, fileConfig, "--plugins", "plugins", "dev-runtime/giga-plugins")
     val dataDir = stringOption(args, fileConfig, "--data", "data", "dev-runtime/giga-data")
     val serverName = stringOption(args, fileConfig, "--name", "name", "GigaSoft Standalone")
-    val serverVersion = stringOption(args, fileConfig, "--version", "version", "1.0.0")
+    val serverVersion = stringOption(args, fileConfig, "--version", "version", "1.1.0-SNAPSHOT")
     val maxPlayers = intOption(args, fileConfig, "--max-players", "maxPlayers", 0)
     val tickPeriodMillis = longOption(args, fileConfig, "--tick-ms", "tickPeriodMillis", 50L)
     val autoSaveEveryTicks = longOption(args, fileConfig, "--autosave-ticks", "autoSaveEveryTicks", 200L)

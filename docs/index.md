@@ -19,6 +19,7 @@
 ## Operations
 
 - `docs/ops/release-readiness.md`
+- `docs/ops/roadmap-1.1.md`
 - `docs/security/hardening-matrix.md`
 - `docs/performance/targets-v1.md`
 - `docs/performance/baseline-1.0.0.md`

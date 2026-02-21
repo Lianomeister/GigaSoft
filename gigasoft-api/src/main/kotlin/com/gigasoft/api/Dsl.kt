@@ -27,7 +27,7 @@ class DslGigaPlugin(
 fun gigaPlugin(
     id: String,
     name: String = id,
-    version: String = "1.0.0",
+    version: String = "1.1.0-SNAPSHOT",
     apiVersion: String = "1",
     dependencySpecs: List<DependencySpec> = emptyList(),
     dependencies: List<String> = emptyList(),
@@ -179,7 +179,7 @@ class AdapterDsl {
     fun adapter(
         id: String,
         name: String,
-        version: String = "1.0.0",
+        version: String = "1.1.0-SNAPSHOT",
         capabilities: Set<String> = emptySet(),
         handler: (AdapterInvocation) -> AdapterResponse
     ) {
