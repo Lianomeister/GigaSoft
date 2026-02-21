@@ -212,4 +212,40 @@ class GigaStandaloneCoreTest {
             core2.stop()
         }
     }
+
+    @Test
+    fun `extended host gameplay operations work through core api`() {
+        val root = Files.createTempDirectory("gigasoft-core-test-host-extended")
+        val core = GigaStandaloneCore(
+            config = StandaloneCoreConfig(
+                pluginsDirectory = root.resolve("plugins"),
+                dataDirectory = root.resolve("data"),
+                tickPeriodMillis = 1000L,
+                autoSaveEveryTicks = 0L
+            ),
+            logger = {}
+        )
+        core.start()
+        try {
+            core.createWorld("adventure", 10L)
+            assertNotNull(core.worldTime("adventure"))
+            assertTrue(core.setWorldTime("adventure", 6000L))
+            assertTrue((core.worldTime("adventure") ?: 0L) >= 6000L)
+
+            core.joinPlayer("Alex", "adventure", 0.0, 64.0, 0.0)
+            assertEquals(2, core.givePlayerItem("Alex", "iron_ingot", 2))
+            assertEquals("iron_ingot", core.inventoryItem("Alex", 0))
+
+            core.movePlayerWithCause("Alex", 3.0, 70.0, 3.0, "adventure", "test")
+            assertEquals("adventure", core.players().first { it.name == "Alex" }.world)
+
+            val entity = core.spawnEntity("zombie", "adventure", 1.0, 64.0, 1.0)
+            assertNotNull(core.findEntity(entity.uuid))
+            val removed = core.removeEntity(entity.uuid, "test")
+            assertNotNull(removed)
+            assertEquals(null, core.findEntity(entity.uuid))
+        } finally {
+            core.stop()
+        }
+    }
 }

@@ -8,9 +8,13 @@ import com.gigasoft.api.GigaInventoryChangeEvent
 import com.gigasoft.api.GigaPlayerJoinEvent
 import com.gigasoft.api.GigaPlayerLeaveEvent
 import com.gigasoft.api.GigaPlayerMoveEvent
+import com.gigasoft.api.GigaPlayerTeleportEvent
 import com.gigasoft.api.GigaTickEvent
+import com.gigasoft.api.GigaWorldTimeChangeEvent
+import com.gigasoft.api.GigaEntityRemoveEvent
 import com.gigasoft.api.GigaWorldCreatedEvent
 import com.gigasoft.api.EventBus
+import com.gigasoft.api.HostAccess
 import com.gigasoft.api.HostEntitySnapshot
 import com.gigasoft.api.HostLocationRef
 import com.gigasoft.api.HostPlayerSnapshot
@@ -18,7 +22,6 @@ import com.gigasoft.api.HostWorldSnapshot
 import com.gigasoft.api.PluginContext
 import com.gigasoft.api.TickSystem
 import com.gigasoft.host.api.HostBridgeAdapters
-import com.gigasoft.host.api.asHostAccess
 import com.gigasoft.runtime.AdapterSecurityConfig
 import com.gigasoft.runtime.EventDispatchMode
 import com.gigasoft.runtime.GigaRuntime
@@ -135,7 +138,7 @@ class GigaStandaloneCore(
             dataDirectory = config.dataDirectory,
             adapterSecurity = config.adapterSecurity,
             eventDispatchMode = config.eventDispatchMode,
-            hostAccess = hostBridge.asHostAccess(),
+            hostAccess = runtimeHostAccess(),
             rootLogger = logger
         )
 
@@ -280,6 +283,15 @@ class GigaStandaloneCore(
         y: Double,
         z: Double,
         world: String? = null
+    ): StandalonePlayer? = movePlayerWithCause(name, x, y, z, world, cause = "command")
+
+    fun movePlayerWithCause(
+        name: String,
+        x: Double,
+        y: Double,
+        z: Double,
+        world: String? = null,
+        cause: String = "plugin"
     ): StandalonePlayer? = mutate {
         if (!world.isNullOrBlank()) {
             ensureWorldExistsAndPublish(world, 0L)
@@ -288,6 +300,7 @@ class GigaStandaloneCore(
         val moved = hostState.movePlayer(name, x, y, z, world) ?: return@mutate null
         publishEvent(StandalonePlayerMoveEvent(previous, moved))
         publishEvent(GigaPlayerMoveEvent(previous.toHostSnapshot(), moved.toHostSnapshot()))
+        publishEvent(GigaPlayerTeleportEvent(previous.toHostSnapshot(), moved.toHostSnapshot(), cause))
         moved
     }
 
@@ -331,6 +344,31 @@ class GigaStandaloneCore(
             publishEvent(GigaInventoryChangeEvent(owner, slot, itemId))
         }
         updated
+    }
+
+    fun worldTime(name: String): Long? = hostState.worldTime(name)
+
+    fun setWorldTime(name: String, time: Long): Boolean = mutate {
+        val previous = hostState.worldTime(name) ?: return@mutate false
+        val updated = hostState.setWorldTime(name, time) ?: return@mutate false
+        if (previous != updated.time) {
+            publishEvent(GigaWorldTimeChangeEvent(world = updated.name, previousTime = previous, currentTime = updated.time))
+        }
+        true
+    }
+
+    fun findEntity(uuid: String): StandaloneEntity? = hostState.findEntity(uuid)
+
+    fun removeEntity(uuid: String, reason: String = "plugin"): StandaloneEntity? = mutate {
+        val removed = hostState.removeEntity(uuid) ?: return@mutate null
+        publishEvent(GigaEntityRemoveEvent(entity = removed.toHostSnapshot(), reason = reason))
+        removed
+    }
+
+    fun inventoryItem(owner: String, slot: Int): String? = hostState.inventoryItem(owner, slot)
+
+    fun givePlayerItem(owner: String, itemId: String, count: Int = 1): Int = mutate {
+        hostState.givePlayerItem(owner, itemId, count)
     }
 
     fun saveState() {
@@ -468,6 +506,44 @@ class GigaStandaloneCore(
         }
     }
 
+    private fun runtimeHostAccess(): HostAccess {
+        return object : HostAccess {
+            override fun serverInfo() = hostBridge.serverInfo().toApi()
+            override fun broadcast(message: String): Boolean = runCatching { hostBridge.broadcast(message) }.isSuccess
+            override fun findPlayer(name: String): HostPlayerSnapshot? = this@GigaStandaloneCore.findPlayer(name)
+            override fun worlds(): List<HostWorldSnapshot> = this@GigaStandaloneCore.worlds().map { it.toHostSnapshot() }
+            override fun entities(world: String?): List<HostEntitySnapshot> = this@GigaStandaloneCore.entities(world).map { it.toHostSnapshot() }
+            override fun spawnEntity(type: String, location: HostLocationRef): HostEntitySnapshot? {
+                return this@GigaStandaloneCore.spawnEntity(type, location.world, location.x, location.y, location.z).toHostSnapshot()
+            }
+            override fun playerInventory(name: String) = hostBridge.playerInventory(name).toApi()
+            override fun setPlayerInventoryItem(name: String, slot: Int, itemId: String): Boolean {
+                return this@GigaStandaloneCore.setInventoryItem(name, slot, itemId)
+            }
+            override fun createWorld(name: String, seed: Long): HostWorldSnapshot? {
+                return this@GigaStandaloneCore.createWorld(name, seed).toHostSnapshot()
+            }
+            override fun worldTime(name: String): Long? = this@GigaStandaloneCore.worldTime(name)
+            override fun setWorldTime(name: String, time: Long): Boolean = this@GigaStandaloneCore.setWorldTime(name, time)
+            override fun findEntity(uuid: String): HostEntitySnapshot? = this@GigaStandaloneCore.findEntity(uuid)?.toHostSnapshot()
+            override fun removeEntity(uuid: String): Boolean = this@GigaStandaloneCore.removeEntity(uuid) != null
+            override fun movePlayer(name: String, location: HostLocationRef): HostPlayerSnapshot? {
+                return this@GigaStandaloneCore.movePlayerWithCause(
+                    name = name,
+                    x = location.x,
+                    y = location.y,
+                    z = location.z,
+                    world = location.world,
+                    cause = "plugin"
+                )?.toHostSnapshot()
+            }
+            override fun inventoryItem(name: String, slot: Int): String? = this@GigaStandaloneCore.inventoryItem(name, slot)
+            override fun givePlayerItem(name: String, itemId: String, count: Int): Int {
+                return this@GigaStandaloneCore.givePlayerItem(name, itemId, count)
+            }
+        }
+    }
+
     private fun installStandaloneBridgeAdapters(plugins: List<com.gigasoft.runtime.LoadedPlugin>) {
         plugins.forEach { plugin ->
             try {
@@ -568,5 +644,49 @@ class GigaStandaloneCore(
                 z = z
             )
         )
+    }
+
+    private fun StandaloneEntity.toHostSnapshot(): HostEntitySnapshot {
+        return HostEntitySnapshot(
+            uuid = uuid,
+            type = type,
+            location = HostLocationRef(
+                world = world,
+                x = x,
+                y = y,
+                z = z
+            )
+        )
+    }
+
+    private fun StandaloneWorld.toHostSnapshot(): HostWorldSnapshot {
+        return HostWorldSnapshot(
+            name = name,
+            entityCount = hostState.entityCount(name)
+        )
+    }
+
+    private fun com.gigasoft.host.api.HostServerSnapshot.toApi(): com.gigasoft.api.HostServerSnapshot {
+        return com.gigasoft.api.HostServerSnapshot(
+            name = name,
+            version = version,
+            platformVersion = platformVersion,
+            onlinePlayers = onlinePlayers,
+            maxPlayers = maxPlayers,
+            worldCount = worldCount
+        )
+    }
+
+    private fun com.gigasoft.host.api.HostInventorySnapshot?.toApi(): com.gigasoft.api.HostInventorySnapshot? {
+        val value = this ?: return null
+        return com.gigasoft.api.HostInventorySnapshot(
+            owner = value.owner,
+            size = value.size,
+            nonEmptySlots = value.nonEmptySlots
+        )
+    }
+
+    private fun findPlayer(name: String): HostPlayerSnapshot? {
+        return hostState.findPlayer(name)?.toHostSnapshot()
     }
 }
