@@ -42,6 +42,14 @@ data class StandaloneBlock(
     val blockId: String
 )
 
+data class StandaloneBlockData(
+    val world: String,
+    val x: Int,
+    val y: Int,
+    val z: Int,
+    val data: Map<String, String>
+)
+
 class StandaloneHostState(
     defaultWorld: String = "world"
 ) {
@@ -79,6 +87,7 @@ class StandaloneHostState(
     private val playersByName = LinkedHashMap<String, StandalonePlayer>()
     private val inventoriesByOwner = LinkedHashMap<String, MutableMap<Int, String>>()
     private val blocks = LinkedHashMap<String, StandaloneBlock>()
+    private val blockData = LinkedHashMap<String, MutableMap<String, String>>()
     @Volatile
     private var worldsCache: List<StandaloneWorld> = emptyList()
     @Volatile
@@ -446,7 +455,24 @@ class StandaloneHostState(
                         .thenBy { it.y }
                         .thenBy { it.z }
                         .thenBy { it.x }
-                )
+                ),
+                blockData = blockData.entries
+                    .filter { it.value.isNotEmpty() }
+                    .mapNotNull { (key, values) ->
+                        val parts = key.split(":")
+                        if (parts.size != 4) return@mapNotNull null
+                        val world = parts[0]
+                        val x = parts[1].toIntOrNull() ?: return@mapNotNull null
+                        val y = parts[2].toIntOrNull() ?: return@mapNotNull null
+                        val z = parts[3].toIntOrNull() ?: return@mapNotNull null
+                        StandaloneBlockData(
+                            world = world,
+                            x = x,
+                            y = y,
+                            z = z,
+                            data = values.toSortedMap()
+                        )
+                    }
             )
         }
     }
@@ -459,6 +485,7 @@ class StandaloneHostState(
             playersByName.clear()
             inventoriesByOwner.clear()
             blocks.clear()
+            blockData.clear()
 
             snapshot.worlds.forEach { world ->
                 val name = world.name.trim()
@@ -524,6 +551,24 @@ class StandaloneHostState(
                 val resolvedWorld = createWorldWithStatusUnsafe(worldName, seed = 0L).world.name
                 val resolved = block.copy(world = resolvedWorld, blockId = blockId)
                 blocks[blockKey(resolved.world, resolved.x, resolved.y, resolved.z)] = resolved
+            }
+
+            snapshot.blockData.forEach { entry ->
+                val worldName = entry.world.trim()
+                if (worldName.isEmpty()) return@forEach
+                val key = blockKey(worldName, entry.x, entry.y, entry.z)
+                if (!blocks.containsKey(key)) return@forEach
+                val sanitized = linkedMapOf<String, String>()
+                entry.data.forEach { (k, v) ->
+                    val keyName = k.trim()
+                    val value = v.trim()
+                    if (keyName.isNotEmpty() && value.isNotEmpty()) {
+                        sanitized[keyName] = value
+                    }
+                }
+                if (sanitized.isNotEmpty()) {
+                    blockData[key] = sanitized
+                }
             }
 
             if (worlds.isEmpty()) {
@@ -605,7 +650,12 @@ class StandaloneHostState(
                 z = z,
                 blockId = block
             )
-            blocks[blockKey(resolvedWorld, x, y, z)] = next
+            val key = blockKey(resolvedWorld, x, y, z)
+            val previous = blocks[key]
+            blocks[key] = next
+            if (previous != null && !previous.blockId.equals(next.blockId, ignoreCase = true)) {
+                blockData.remove(key)
+            }
             next
         }
     }
@@ -614,7 +664,42 @@ class StandaloneHostState(
         val worldName = world.trim()
         if (worldName.isEmpty()) return null
         return synchronized(stateLock) {
-            blocks.remove(blockKey(worldName, x, y, z))
+            val key = blockKey(worldName, x, y, z)
+            blockData.remove(key)
+            blocks.remove(key)
+        }
+    }
+
+    fun blockData(world: String, x: Int, y: Int, z: Int): Map<String, String>? {
+        val worldName = world.trim()
+        if (worldName.isEmpty()) return null
+        return synchronized(stateLock) {
+            val key = blockKey(worldName, x, y, z)
+            if (!blocks.containsKey(key)) return@synchronized null
+            blockData[key]?.toMap() ?: emptyMap()
+        }
+    }
+
+    fun setBlockData(world: String, x: Int, y: Int, z: Int, data: Map<String, String>): Map<String, String>? {
+        val worldName = world.trim()
+        if (worldName.isEmpty()) return null
+        return synchronized(stateLock) {
+            val key = blockKey(worldName, x, y, z)
+            if (!blocks.containsKey(key)) return@synchronized null
+            val sanitized = linkedMapOf<String, String>()
+            data.forEach { (k, v) ->
+                val keyName = k.trim()
+                val value = v.trim()
+                if (keyName.isNotEmpty() && value.isNotEmpty()) {
+                    sanitized[keyName] = value
+                }
+            }
+            if (sanitized.isEmpty()) {
+                blockData.remove(key)
+                return@synchronized emptyMap()
+            }
+            blockData[key] = sanitized
+            sanitized.toMap()
         }
     }
 

@@ -69,6 +69,7 @@ Built-in events:
 - `GigaPlayerTeleportEvent`
 - `GigaWorldTimeChangeEvent`
 - `GigaBlockChangeEvent`
+- `GigaBlockDataChangeEvent`
 
 ## HostAccess
 
@@ -83,6 +84,8 @@ Built-in events:
 - `blockAt(world, x, y, z)`
 - `setBlock(world, x, y, z, blockId)`
 - `breakBlock(world, x, y, z, dropLoot)`
+- `blockData(world, x, y, z)`
+- `setBlockData(world, x, y, z, data)`
 - `playerInventory(name)`
 - `setPlayerInventoryItem(name, slot, itemId)`
 - `inventoryItem(name, slot)`
@@ -113,6 +116,8 @@ Host permission enforcement:
   - `host.player.move`
   - `host.block.read`
   - `host.block.write`
+  - `host.block.data.read`
+  - `host.block.data.write`
 
 ## Adapters
 

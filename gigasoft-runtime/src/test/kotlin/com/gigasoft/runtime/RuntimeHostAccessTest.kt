@@ -29,7 +29,9 @@ class RuntimeHostAccessTest {
                 HostPermissions.PLAYER_MOVE,
                 HostPermissions.INVENTORY_WRITE,
                 HostPermissions.BLOCK_READ,
-                HostPermissions.BLOCK_WRITE
+                HostPermissions.BLOCK_WRITE,
+                HostPermissions.BLOCK_DATA_READ,
+                HostPermissions.BLOCK_DATA_WRITE
             ),
             logger = GigaLogger { }
         )
@@ -43,6 +45,8 @@ class RuntimeHostAccessTest {
         assertEquals("stone", access.blockAt("world", 1, 64, 1)?.blockId)
         assertEquals("dirt", access.setBlock("world", 1, 64, 1, "dirt")?.blockId)
         assertTrue(access.breakBlock("world", 1, 64, 1))
+        assertEquals("north", access.blockData("world", 1, 64, 1)?.get("facing"))
+        assertEquals("2", access.setBlockData("world", 1, 64, 1, mapOf("level" to "2"))?.get("level"))
         assertNull(access.findEntity("e1"))
         assertEquals(null, access.inventoryItem("Alex", 0))
     }
@@ -73,5 +77,11 @@ class RuntimeHostAccessTest {
         override fun setBlock(world: String, x: Int, y: Int, z: Int, blockId: String) =
             com.gigasoft.api.HostBlockSnapshot(world = world, x = x, y = y, z = z, blockId = blockId)
         override fun breakBlock(world: String, x: Int, y: Int, z: Int, dropLoot: Boolean): Boolean = true
+        override fun blockData(world: String, x: Int, y: Int, z: Int): Map<String, String>? {
+            return mapOf("facing" to "north")
+        }
+        override fun setBlockData(world: String, x: Int, y: Int, z: Int, data: Map<String, String>): Map<String, String>? {
+            return data
+        }
     }
 }

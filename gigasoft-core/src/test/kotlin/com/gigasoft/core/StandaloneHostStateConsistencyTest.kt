@@ -66,8 +66,11 @@ class StandaloneHostStateConsistencyTest {
         val block = state.setBlock("mod_world", 1, 64, 1, "stone")
         assertNotNull(block)
         assertEquals("stone", state.blockAt("mod_world", 1, 64, 1)?.blockId)
+        assertEquals(emptyMap(), state.blockData("mod_world", 1, 64, 1))
+        assertEquals("2", state.setBlockData("mod_world", 1, 64, 1, mapOf("level" to "2"))?.get("level"))
         val broken = state.breakBlock("mod_world", 1, 64, 1)
         assertNotNull(broken)
         assertEquals(null, state.blockAt("mod_world", 1, 64, 1))
+        assertEquals(null, state.blockData("mod_world", 1, 64, 1))
     }
 }

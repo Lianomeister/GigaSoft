@@ -29,6 +29,8 @@ class HostAccessAdapterTest {
         assertNotNull(block)
         assertEquals("stone", access.blockAt("world", 1, 64, 1)?.blockId)
         assertTrue(access.breakBlock("world", 1, 64, 1, true))
+        assertEquals("north", access.blockData("world", 1, 64, 1)?.get("facing"))
+        assertEquals("3", access.setBlockData("world", 1, 64, 1, mapOf("level" to "3"))?.get("level"))
     }
 
     private class FakeBridge : HostBridgePort {
@@ -90,5 +92,7 @@ class HostAccessAdapterTest {
             return HostBlockSnapshot(world = world, x = x, y = y, z = z, blockId = blockId)
         }
         override fun breakBlock(world: String, x: Int, y: Int, z: Int, dropLoot: Boolean): Boolean = true
+        override fun blockData(world: String, x: Int, y: Int, z: Int): Map<String, String>? = mapOf("facing" to "north")
+        override fun setBlockData(world: String, x: Int, y: Int, z: Int, data: Map<String, String>): Map<String, String>? = data
     }
 }

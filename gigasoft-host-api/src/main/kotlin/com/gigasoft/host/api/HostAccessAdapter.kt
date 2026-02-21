@@ -87,6 +87,14 @@ fun HostBridgePort.asHostAccess(): HostAccess {
     override fun breakBlock(world: String, x: Int, y: Int, z: Int, dropLoot: Boolean): Boolean {
         return bridge.breakBlock(world, x, y, z, dropLoot)
     }
+
+    override fun blockData(world: String, x: Int, y: Int, z: Int): Map<String, String>? {
+        return bridge.blockData(world, x, y, z)
+    }
+
+    override fun setBlockData(world: String, x: Int, y: Int, z: Int, data: Map<String, String>): Map<String, String>? {
+        return bridge.setBlockData(world, x, y, z, data)
+    }
 }
 }
 

@@ -184,4 +184,12 @@ class StandaloneHostBridge(
     override fun breakBlock(world: String, x: Int, y: Int, z: Int, dropLoot: Boolean): Boolean {
         return hostState.breakBlock(world, x, y, z) != null
     }
+
+    override fun blockData(world: String, x: Int, y: Int, z: Int): Map<String, String>? {
+        return hostState.blockData(world, x, y, z)
+    }
+
+    override fun setBlockData(world: String, x: Int, y: Int, z: Int, data: Map<String, String>): Map<String, String>? {
+        return hostState.setBlockData(world, x, y, z, data)
+    }
 }

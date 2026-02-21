@@ -14,7 +14,8 @@ data class StandaloneHostSnapshot(
     val players: List<StandalonePlayer> = emptyList(),
     val entities: List<StandaloneEntity> = emptyList(),
     val inventories: Map<String, Map<Int, String>> = emptyMap(),
-    val blocks: List<StandaloneBlock> = emptyList()
+    val blocks: List<StandaloneBlock> = emptyList(),
+    val blockData: List<StandaloneBlockData> = emptyList()
 )
 
 data class StandaloneStateEnvelope(

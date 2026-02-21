@@ -39,6 +39,8 @@ interface HostAccess {
     fun blockAt(world: String, x: Int, y: Int, z: Int): HostBlockSnapshot? = null
     fun setBlock(world: String, x: Int, y: Int, z: Int, blockId: String): HostBlockSnapshot? = null
     fun breakBlock(world: String, x: Int, y: Int, z: Int, dropLoot: Boolean = true): Boolean = false
+    fun blockData(world: String, x: Int, y: Int, z: Int): Map<String, String>? = null
+    fun setBlockData(world: String, x: Int, y: Int, z: Int, data: Map<String, String>): Map<String, String>? = null
 
     companion object {
         fun unavailable(): HostAccess = object : HostAccess {
@@ -68,6 +70,8 @@ object HostPermissions {
     const val PLAYER_MOVE = "host.player.move"
     const val BLOCK_READ = "host.block.read"
     const val BLOCK_WRITE = "host.block.write"
+    const val BLOCK_DATA_READ = "host.block.data.read"
+    const val BLOCK_DATA_WRITE = "host.block.data.write"
 }
 
 data class HostLocationRef(
@@ -172,6 +176,16 @@ data class GigaBlockChangeEvent(
     val z: Int,
     val previousBlockId: String?,
     val currentBlockId: String?,
+    val cause: String = "plugin"
+)
+
+data class GigaBlockDataChangeEvent(
+    val world: String,
+    val x: Int,
+    val y: Int,
+    val z: Int,
+    val previousData: Map<String, String>,
+    val currentData: Map<String, String>,
     val cause: String = "plugin"
 )
 

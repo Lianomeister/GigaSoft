@@ -113,6 +113,16 @@ internal class RuntimeHostAccess(
         return delegate.breakBlock(world, x, y, z, dropLoot)
     }
 
+    override fun blockData(world: String, x: Int, y: Int, z: Int): Map<String, String>? {
+        if (!allowed(HostPermissions.BLOCK_DATA_READ)) return null
+        return delegate.blockData(world, x, y, z)
+    }
+
+    override fun setBlockData(world: String, x: Int, y: Int, z: Int, data: Map<String, String>): Map<String, String>? {
+        if (!allowed(HostPermissions.BLOCK_DATA_WRITE)) return null
+        return delegate.setBlockData(world, x, y, z, data)
+    }
+
     private fun allowed(permission: String): Boolean {
         if (permission in permissions) return true
         logger.info("Denied host access for plugin '$pluginId': missing permission '$permission'")

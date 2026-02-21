@@ -6,6 +6,7 @@ import com.gigasoft.api.GigaLogger
 import com.gigasoft.api.GigaEntitySpawnEvent
 import com.gigasoft.api.GigaInventoryChangeEvent
 import com.gigasoft.api.GigaBlockChangeEvent
+import com.gigasoft.api.GigaBlockDataChangeEvent
 import com.gigasoft.api.GigaPlayerJoinEvent
 import com.gigasoft.api.GigaPlayerLeaveEvent
 import com.gigasoft.api.GigaPlayerMoveEvent
@@ -409,6 +410,34 @@ class GigaStandaloneCore(
         true
     }
 
+    fun blockData(world: String, x: Int, y: Int, z: Int): Map<String, String>? = hostState.blockData(world, x, y, z)
+
+    fun setBlockData(
+        world: String,
+        x: Int,
+        y: Int,
+        z: Int,
+        data: Map<String, String>,
+        cause: String = "plugin"
+    ): Map<String, String>? = mutate {
+        val previous = hostState.blockData(world, x, y, z) ?: return@mutate null
+        val updated = hostState.setBlockData(world, x, y, z, data) ?: return@mutate null
+        if (previous != updated) {
+            publishEvent(
+                GigaBlockDataChangeEvent(
+                    world = world,
+                    x = x,
+                    y = y,
+                    z = z,
+                    previousData = previous,
+                    currentData = updated,
+                    cause = cause
+                )
+            )
+        }
+        updated
+    }
+
     fun saveState() {
         mutate {
             runCatching {
@@ -587,6 +616,12 @@ class GigaStandaloneCore(
             }
             override fun breakBlock(world: String, x: Int, y: Int, z: Int, dropLoot: Boolean): Boolean {
                 return this@GigaStandaloneCore.breakBlock(world, x, y, z, dropLoot, cause = "plugin")
+            }
+            override fun blockData(world: String, x: Int, y: Int, z: Int): Map<String, String>? {
+                return this@GigaStandaloneCore.blockData(world, x, y, z)
+            }
+            override fun setBlockData(world: String, x: Int, y: Int, z: Int, data: Map<String, String>): Map<String, String>? {
+                return this@GigaStandaloneCore.setBlockData(world, x, y, z, data, cause = "plugin")
             }
         }
     }

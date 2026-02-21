@@ -20,4 +20,6 @@ interface HostBridgePort {
     fun blockAt(world: String, x: Int, y: Int, z: Int): HostBlockSnapshot? = null
     fun setBlock(world: String, x: Int, y: Int, z: Int, blockId: String): HostBlockSnapshot? = null
     fun breakBlock(world: String, x: Int, y: Int, z: Int, dropLoot: Boolean = true): Boolean = false
+    fun blockData(world: String, x: Int, y: Int, z: Int): Map<String, String>? = null
+    fun setBlockData(world: String, x: Int, y: Int, z: Int, data: Map<String, String>): Map<String, String>? = null
 }

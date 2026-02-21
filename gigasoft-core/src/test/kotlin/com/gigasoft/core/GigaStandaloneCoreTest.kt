@@ -248,8 +248,11 @@ class GigaStandaloneCoreTest {
             val block = core.setBlock("adventure", 1, 64, 1, "stone", "test")
             assertNotNull(block)
             assertEquals("stone", core.blockAt("adventure", 1, 64, 1)?.blockId)
+            assertEquals("3", core.setBlockData("adventure", 1, 64, 1, mapOf("level" to "3"), "test")?.get("level"))
+            assertEquals("3", core.blockData("adventure", 1, 64, 1)?.get("level"))
             assertTrue(core.breakBlock("adventure", 1, 64, 1, dropLoot = false, cause = "test"))
             assertEquals(null, core.blockAt("adventure", 1, 64, 1))
+            assertEquals(null, core.blockData("adventure", 1, 64, 1))
         } finally {
             core.stop()
         }
