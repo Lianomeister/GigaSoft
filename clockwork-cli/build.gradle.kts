@@ -116,6 +116,12 @@ tasks.register("windowsCliExeInstaller") {
             ?.firstOrNull { it.exists() }
             ?: throw IllegalStateException("No built app-image found. Run windowsCliImage first.")
         require(appImageDir.exists()) { "Missing app-image directory: ${appImageDir.absolutePath}" }
+        val wixExtensionDll = sequenceOf(
+            moduleDir.resolve(".wix/extensions/WixToolset.Util.wixext/6.0.2/wixext6/WixToolset.Util.wixext.dll"),
+            moduleDir.parentFile.resolve(".wix/extensions/WixToolset.Util.wixext/6.0.2/wixext6/WixToolset.Util.wixext.dll")
+        ).firstOrNull { it.exists() }
+            ?: throw IllegalStateException("Missing WiX extension DLL for jpackage: WixToolset.Util.wixext.dll")
+        wixExtensionDll.copyTo(appImageDir.resolve("WixToolset.Util.wixext"), overwrite = true)
 
         val outputDir = outputDirProvider.get().asFile
         if (outputDir.exists()) outputDir.deleteRecursively()
