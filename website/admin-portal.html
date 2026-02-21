@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Clockwork Marketplace Admin Portal</title>
+  <meta name="description" content="Submit plugin packages, images and metadata to the Clockwork marketplace." />
+  <link rel="icon" type="image/png" href="../logos/logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body class="admin-page">
+  <div class="scroll-progress" aria-hidden="true"></div>
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow-a" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow-b" aria-hidden="true"></div>
+
+  <header class="site-header reveal">
+    <div class="brand">
+      <img class="brand-banner" src="../logos/banner.png" alt="Clockwork banner" />
+    </div>
+    <div class="header-actions">
+      <a class="btn btn-ghost" href="./index.html">Main</a>
+      <a class="btn btn-ghost" href="./marketplace.html">Marketplace</a>
+      <a class="btn btn-primary" href="./documentation.html">Documentation</a>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside class="sidebar reveal">
+      <div class="filter-group">
+        <h3>Admin Navigation</h3>
+      </div>
+      <nav id="docs-nav">
+        <a href="#admin-overview">Overview</a>
+        <a href="#submit">Submit</a>
+        <a href="#queue">Queue</a>
+        <a href="#account">Account</a>
+      </nav>
+    </aside>
+    <div class="content">
+      <section id="admin-overview" class="doc-section reveal">
+        <p class="eyebrow">ADMIN PORTAL</p>
+        <h1>Plugin Submission Console</h1>
+        <p class="lead">Submit plugin metadata, files, screenshots, and release logs for marketplace intake.</p>
+        <div class="admin-toolbar">
+          <span id="admin-user-label" class="pill">Signed in</span>
+          <button id="admin-export-json" class="btn btn-ghost" type="button">Export JSON</button>
+          <button id="admin-logout" class="btn btn-ghost" type="button">Logout</button>
+        </div>
+      </section>
+
+      <section id="submit" class="doc-section reveal">
+        <div class="section-head">
+          <p class="eyebrow">SUBMIT</p>
+          <h2>New Plugin Entry</h2>
+        </div>
+        <form id="admin-submit-form" class="admin-form admin-grid">
+          <label>
+            <span>Plugin Name</span>
+            <input type="text" name="name" required placeholder="Clockwork Machines+" />
+          </label>
+          <label>
+            <span>Plugin ID</span>
+            <input type="text" name="id" required placeholder="clockwork-machines" />
+          </label>
+          <label>
+            <span>Version</span>
+            <input type="text" name="version" required placeholder="1.0.0" />
+          </label>
+          <label>
+            <span>Minecraft Versions</span>
+            <input type="text" name="minecraftVersions" required placeholder="1.21.x,1.20.x" />
+          </label>
+          <label>
+            <span>Categories</span>
+            <input type="text" name="categories" required placeholder="automation,utility" />
+          </label>
+          <label>
+            <span>Download URL</span>
+            <input type="url" name="downloadUrl" required placeholder="https://..." />
+          </label>
+          <label>
+            <span>Source URL</span>
+            <input type="url" name="sourceUrl" placeholder="https://..." />
+          </label>
+          <label class="admin-span-2">
+            <span>Short Description</span>
+            <input type="text" name="summary" required placeholder="Fast machine plugin for Clockwork." />
+          </label>
+          <label class="admin-span-2">
+            <span>Changelog / Release Logs</span>
+            <textarea name="logs" rows="6" required placeholder="- v1.0.0 initial release"></textarea>
+          </label>
+          <label>
+            <span>Release Files (.jar, .zip) / optional source archive</span>
+            <input type="file" name="pluginFiles" multiple />
+          </label>
+          <label>
+            <span>Images / Screenshots</span>
+            <input type="file" name="images" accept="image/*" multiple />
+          </label>
+          <div class="admin-span-2">
+            <button class="btn btn-primary" type="submit">Submit Plugin</button>
+            <p id="admin-submit-status" class="admin-note" aria-live="polite"></p>
+          </div>
+        </form>
+      </section>
+
+      <section id="queue" class="doc-section reveal">
+        <div class="section-head">
+          <p class="eyebrow">QUEUE</p>
+          <h2>Submitted Plugins</h2>
+        </div>
+        <p class="admin-note">Tip: The marketplace installs compiled artifacts (usually `.jar`). `.kt` files are source code and should be shipped as source archives.</p>
+        <div id="admin-submission-list" class="admin-submissions"></div>
+      </section>
+
+      <section id="account" class="doc-section reveal">
+        <div class="section-head">
+          <p class="eyebrow">ACCOUNT</p>
+          <h2>Profile & Security</h2>
+        </div>
+        <form id="admin-profile-form" class="admin-form admin-grid">
+          <label>
+            <span>Display Name</span>
+            <input type="text" name="displayName" placeholder="Clockwork Admin" />
+          </label>
+          <label>
+            <span>Avatar Image</span>
+            <input type="file" name="avatarFile" accept="image/*" />
+          </label>
+          <div class="admin-span-2">
+            <button class="btn btn-primary" type="submit">Save Profile</button>
+            <p id="admin-profile-status" class="admin-note" aria-live="polite"></p>
+          </div>
+        </form>
+        <div class="admin-danger">
+          <h3>Danger Zone</h3>
+          <p class="admin-note">Deletes your auth account and revokes admin access.</p>
+          <button id="admin-delete-account" class="btn btn-ghost" type="button">Delete Account</button>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-footer reveal">
+    <p>Clockwork Marketplace • Admin Submission Portal</p>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./supabase-config.js"></script>
+  <script src="./admin-header.js"></script>
+  <script src="./app.js"></script>
+  <script src="./admin-auth.js"></script>
+</body>
+</html>

@@ -78,7 +78,7 @@
           One wide plugin board with fast search and category filters. Find plugins by name, tags, and descriptions in one place.
         </p>
         <p class="lead" style="font-size:0.95rem;">
-          These cards are wired to the repository folder <code>showcase-plugins/</code> (source + README per plugin).
+          Includes the default <code>Clockwork Plugin Browser</code> recovery entry plus showcase plugin source links.
         </p>
         <div class="pill-row">
           <span class="pill">Unified Catalog</span>
@@ -99,6 +99,30 @@
           </div>
 
           <div class="market-grid" id="market-grid">
+            <article class="market-card" data-name="Clockwork Plugin Browser" data-tags="admin utility ui network devtools" data-description="Default Clockwork plugin browser. Reinstall it from marketplace if it was removed." data-mc-versions="1.21.x" data-rating="5.0">
+              <div class="market-icon">PB</div>
+              <div class="market-main">
+                <div class="market-head">
+                  <h3>Clockwork Plugin Browser</h3>
+                  <span class="market-version">core 1.5.6</span>
+                </div>
+                <p>Built-in marketplace/browser plugin for in-game discovery and install flow. Keep this entry to recover it quickly.</p>
+                <div class="market-tags">
+                  <span>admin</span>
+                  <span>utility</span>
+                  <span>network</span>
+                </div>
+              </div>
+              <div class="market-meta">
+                <strong>Core</strong>
+                <span>Type</span>
+                <strong>5.0</strong>
+                <span>Sample Score</span>
+                <a class="btn btn-primary" href="../clockwork-plugin-browser/src/main/kotlin/com/clockwork/pluginbrowser/ClockworkPluginBrowserPlugin.kt">Source</a>
+                <a class="btn btn-ghost" href="./plugin.html?id=clockwork-plugin-browser">View</a>
+              </div>
+            </article>
+
             <article class="market-card" data-name="Nick" data-tags="social admin utility ui" data-description="Change display name with /nick and assign a skin alias with /nick-skin in showcase mode." data-mc-versions="1.21.x" data-rating="4.7">
               <div class="market-icon">NK</div>
               <div class="market-main">
@@ -119,7 +143,7 @@
                 <strong>4.7</strong>
                 <span>Sample Score</span>
                 <a class="btn btn-primary" href="../showcase-plugins/nick/src/main/kotlin/com/clockwork/showcase/nick/NickPlugin.kt">Source</a>
-                <a class="btn btn-ghost" href="../showcase-plugins/nick/README.md">README</a>
+                <a class="btn btn-ghost" href="./plugin.html?id=showcase-nick">View</a>
               </div>
             </article>
 
@@ -143,7 +167,7 @@
                 <strong>4.8</strong>
                 <span>Sample Score</span>
                 <a class="btn btn-primary" href="../showcase-plugins/godmode/src/main/kotlin/com/clockwork/showcase/godmode/GodmodePlugin.kt">Source</a>
-                <a class="btn btn-ghost" href="../showcase-plugins/godmode/README.md">README</a>
+                <a class="btn btn-ghost" href="./plugin.html?id=showcase-godmode">View</a>
               </div>
             </article>
 
@@ -167,7 +191,7 @@
                 <strong>4.9</strong>
                 <span>Sample Score</span>
                 <a class="btn btn-primary" href="../showcase-plugins/veinminer/src/main/kotlin/com/clockwork/showcase/veinminer/VeinminerPlugin.kt">Source</a>
-                <a class="btn btn-ghost" href="../showcase-plugins/veinminer/README.md">README</a>
+                <a class="btn btn-ghost" href="./plugin.html?id=showcase-veinminer">View</a>
               </div>
             </article>
 
@@ -191,7 +215,7 @@
                 <strong>4.6</strong>
                 <span>Sample Score</span>
                 <a class="btn btn-primary" href="../showcase-plugins/guarded/src/main/kotlin/com/clockwork/showcase/guarded/GuardedPlugin.kt">Source</a>
-                <a class="btn btn-ghost" href="../showcase-plugins/guarded/README.md">README</a>
+                <a class="btn btn-ghost" href="./plugin.html?id=showcase-guarded">View</a>
               </div>
             </article>
 
@@ -215,7 +239,7 @@
                 <strong>4.5</strong>
                 <span>Sample Score</span>
                 <a class="btn btn-primary" href="../showcase-plugins/softanticheat/src/main/kotlin/com/clockwork/showcase/softanticheat/SoftAnticheatPlugin.kt">Source</a>
-                <a class="btn btn-ghost" href="../showcase-plugins/softanticheat/README.md">README</a>
+                <a class="btn btn-ghost" href="./plugin.html?id=showcase-softanticheat">View</a>
               </div>
             </article>
 
@@ -239,7 +263,7 @@
                 <strong>4.4</strong>
                 <span>Sample Score</span>
                 <a class="btn btn-primary" href="../showcase-plugins/restocker/src/main/kotlin/com/clockwork/showcase/restocker/RestockerPlugin.kt">Source</a>
-                <a class="btn btn-ghost" href="../showcase-plugins/restocker/README.md">README</a>
+                <a class="btn btn-ghost" href="./plugin.html?id=showcase-restocker">View</a>
               </div>
             </article>
           </div>
@@ -252,6 +276,9 @@
     <p>Clockwork Marketplace • Preview Layout</p>
   </footer>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./supabase-config.js"></script>
+  <script src="./admin-header.js"></script>
   <script src="./app.js"></script>
 </body>
 </html>

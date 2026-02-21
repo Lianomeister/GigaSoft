@@ -36,12 +36,12 @@ jobs:
           <html lang="en">
           <head>
             <meta charset="utf-8" />
-            <meta http-equiv="refresh" content="0; url=/website/index.html" />
+          <meta http-equiv="refresh" content="0; url=./website/index.html" />
             <meta name="viewport" content="width=device-width, initial-scale=1" />
             <title>Clockwork</title>
           </head>
           <body>
-            <p>Redirecting to <a href="/website/index.html">Clockwork Website</a>...</p>
+            <p>Redirecting to <a href="./website/index.html">Clockwork Website</a>...</p>
           </body>
           </html>
           EOF

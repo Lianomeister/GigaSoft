@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Clockwork Plugin View</title>
+  <meta name="description" content="Clockwork plugin detail page with versions, changelog, screenshots and install details." />
+  <link rel="icon" type="image/png" href="../logos/logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body class="plugin-page">
+  <div class="scroll-progress" aria-hidden="true"></div>
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow-a" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow-b" aria-hidden="true"></div>
+
+  <header class="site-header reveal">
+    <div class="brand">
+      <img class="brand-banner" src="../logos/banner.png" alt="Clockwork banner" />
+    </div>
+    <div class="header-actions">
+      <a class="btn btn-ghost" href="./index.html">Main</a>
+      <a class="btn btn-primary" href="./marketplace.html">Marketplace</a>
+      <a class="btn btn-ghost" href="./documentation.html">Documentation</a>
+    </div>
+  </header>
+
+  <main class="layout">
+    <div class="content">
+      <section class="doc-section reveal plugin-hero">
+        <div class="plugin-hero-head">
+          <div class="plugin-big-icon" id="plugin-view-icon">PL</div>
+          <div>
+            <p class="eyebrow">PLUGIN VIEW</p>
+            <h1 id="plugin-view-name">Plugin</h1>
+            <p class="lead" id="plugin-view-summary">Loading plugin metadata...</p>
+            <div class="pill-row" id="plugin-view-tags"></div>
+          </div>
+        </div>
+        <div class="plugin-hero-actions">
+          <a class="btn btn-primary" id="plugin-view-download" href="#">Download</a>
+          <a class="btn btn-ghost" href="./marketplace.html">Back to Marketplace</a>
+        </div>
+      </section>
+
+      <section class="doc-section reveal">
+        <div class="section-head">
+          <p class="eyebrow">SHOWCASE</p>
+          <h2>Screenshots and Previews</h2>
+        </div>
+        <div class="plugin-gallery" id="plugin-view-gallery"></div>
+      </section>
+
+      <section class="doc-section reveal plugin-detail-grid">
+        <article class="api-card">
+          <div class="section-head">
+            <p class="eyebrow">VERSIONS</p>
+            <h3>Release Matrix</h3>
+          </div>
+          <div class="table-wrap">
+            <table class="comparison-table plugin-version-table">
+              <thead>
+                <tr>
+                  <th>Version</th>
+                  <th>Minecraft</th>
+                  <th>Channel</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="plugin-view-versions"></tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="api-card">
+          <div class="section-head">
+            <p class="eyebrow">CHANGELOG</p>
+            <h3>Recent Logs</h3>
+          </div>
+          <div class="plugin-log-feed" id="plugin-view-logs"></div>
+        </article>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-footer reveal">
+    <p>Clockwork Marketplace • Plugin View</p>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./supabase-config.js"></script>
+  <script src="./admin-header.js"></script>
+  <script src="./app.js"></script>
+  <script src="./plugin-view.js"></script>
+</body>
+</html>

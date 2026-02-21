@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Clockwork Marketplace Admin Login</title>
+  <meta name="description" content="Clockwork marketplace admin login for plugin submissions." />
+  <link rel="icon" type="image/png" href="../logos/logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body class="admin-page admin-login-page">
+  <div class="scroll-progress" aria-hidden="true"></div>
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow-a" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow-b" aria-hidden="true"></div>
+
+  <header class="site-header reveal">
+    <div class="brand">
+      <img class="brand-banner" src="../logos/banner.png" alt="Clockwork banner" />
+    </div>
+    <div class="header-actions">
+      <a class="btn btn-ghost" href="./index.html">Main</a>
+      <a class="btn btn-ghost" href="./marketplace.html">Marketplace</a>
+      <a class="btn btn-primary" href="./documentation.html">Documentation</a>
+    </div>
+  </header>
+
+  <main class="layout">
+    <div class="content">
+      <section class="doc-section reveal admin-login-wrap">
+        <p class="eyebrow">ADMIN</p>
+        <h1>Marketplace Submission Login</h1>
+        <p class="lead">
+          Sign in to access the admin submission portal for plugin uploads, images, files, and release metadata.
+        </p>
+        <p class="admin-note">
+          Configure <code>website/supabase-config.js</code> and run <code>docs/ops/supabase-marketplace.sql</code> first.
+        </p>
+        <form id="admin-login-form" class="admin-form">
+          <label>
+            <span>Display Name (for new account)</span>
+            <input type="text" name="displayName" autocomplete="nickname" placeholder="Clockwork Operator" />
+          </label>
+          <label>
+            <span>Email</span>
+            <input type="email" name="username" required autocomplete="username" placeholder="admin@yourdomain.com" />
+          </label>
+          <label>
+            <span>Password</span>
+            <input type="password" name="password" required autocomplete="current-password" placeholder="********" />
+          </label>
+          <label>
+            <span>Confirm Password (for registration)</span>
+            <input type="password" name="confirmPassword" autocomplete="new-password" placeholder="********" />
+          </label>
+          <div class="admin-row-actions">
+            <button class="btn btn-primary" type="submit">Sign In</button>
+            <button id="admin-register" class="btn btn-ghost" type="button">Register</button>
+          </div>
+          <p class="admin-note">
+            Uses Supabase Auth email/password.
+          </p>
+          <p id="admin-login-error" class="admin-error" aria-live="polite"></p>
+        </form>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-footer reveal">
+    <p>Clockwork Marketplace • Admin Access</p>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./supabase-config.js"></script>
+  <script src="./admin-header.js"></script>
+  <script src="./app.js"></script>
+  <script src="./admin-auth.js"></script>
+</body>
+</html>
