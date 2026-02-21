@@ -109,13 +109,20 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 0.65rem;
+  padding: 0.5rem 0.8rem;
+  border: 1px solid rgba(147, 190, 214, 0.26);
+  border-radius: 0.9rem;
+  background: linear-gradient(130deg, rgba(230, 247, 255, 0.12), rgba(10, 30, 42, 0.52));
+  box-shadow: 0 10px 24px rgba(3, 11, 17, 0.34);
+  backdrop-filter: blur(4px);
 }
 
 .brand-banner {
-  height: 42px;
+  height: 120px;
   width: auto;
   display: block;
   object-fit: contain;
+  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.52)) brightness(1.08) contrast(1.1);
 }
 
 .brand p {
@@ -146,15 +153,95 @@ body {
   align-items: start;
 }
 
+.main-page .site-header,
+.main-page .layout,
+.main-page .site-footer {
+  width: min(1420px, 96vw);
+}
+
+.market-page .site-header,
+.market-page .layout,
+.market-page .site-footer {
+  width: min(1420px, 96vw);
+}
+
+.market-page .layout {
+  grid-template-columns: 300px 1fr;
+}
+
+.market-page .content {
+  grid-template-columns: 1fr;
+}
+
+.main-page .layout {
+  grid-template-columns: 1fr;
+}
+
+.main-page .content {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+}
+
+.main-page #home,
+.main-page #comparison {
+  grid-column: 1 / -1;
+}
+
 .sidebar {
   position: sticky;
-  top: 1rem;
+  top: calc(0.75rem + env(safe-area-inset-top, 0px));
+  max-height: calc(100vh - 1.5rem - env(safe-area-inset-top, 0px));
+  overflow: auto;
   border: 1px solid var(--line);
   border-radius: 1rem;
   background: rgba(16, 38, 53, 0.75);
   padding: 0.9rem;
   backdrop-filter: blur(5px);
   transform: translate3d(calc(var(--parallax-x) * 0.08), calc(var(--parallax-y) * 0.08), 0);
+}
+
+.docs-page .sidebar {
+  position: static;
+  top: auto;
+  max-height: none;
+  overflow: visible;
+}
+
+.market-page .sidebar h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.filter-group {
+  margin-bottom: 0.9rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.filter-label {
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.filter-check {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: #d3e4ef;
+  font-size: 0.9rem;
+}
+
+.filter-check input {
+  accent-color: var(--accent);
+}
+
+.filter-select {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: rgba(7, 19, 27, 0.85);
+  color: var(--ink);
+  border-radius: 0.65rem;
+  padding: 0.52rem 0.6rem;
 }
 
 .search-wrap {
@@ -226,6 +313,10 @@ body {
 
 .doc-section.hidden {
   display: none;
+}
+
+.doc-section.slide-focus {
+  animation: sectionSlideFocus 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .eyebrow {
@@ -423,6 +514,7 @@ a:hover {
   font-size: 0.8rem;
   color: var(--muted);
   background: rgba(7, 19, 27, 0.7);
+  cursor: pointer;
 }
 
 .market-chip.active {
@@ -452,6 +544,10 @@ a:hover {
   transform: translateY(-3px);
   border-color: rgba(0, 208, 132, 0.45);
   box-shadow: 0 14px 26px rgba(0, 0, 0, 0.24);
+}
+
+.market-card.hidden {
+  display: none;
 }
 
 .market-icon {
@@ -645,6 +741,17 @@ code {
   }
 }
 
+@keyframes sectionSlideFocus {
+  0% {
+    transform: translateX(42px);
+    opacity: 0.72;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .bg-glow,
   .reveal,
@@ -662,6 +769,10 @@ code {
 
 @media (max-width: 980px) {
   .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .main-page .content {
     grid-template-columns: 1fr;
   }
 
@@ -690,6 +801,10 @@ code {
 
   .header-actions {
     display: none;
+  }
+
+  .brand-banner {
+    height: 84px;
   }
 
   .bg-glow {

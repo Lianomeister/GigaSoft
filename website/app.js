@@ -30,6 +30,8 @@ const updateScrollProgress = () => {
 updateScrollProgress();
 window.addEventListener("scroll", updateScrollProgress, { passive: true });
 const navActivationOffset = 14;
+const clickedNavLockMs = 520;
+let clickedNavLock = { id: null, until: 0 };
 
 let parallaxX = 0;
 let parallaxY = 0;
@@ -72,6 +74,17 @@ const setActiveNavByScrollTop = () => {
   if (sections.length === 0) return;
   const visibleSections = Array.from(sections).filter((section) => !section.classList.contains("hidden"));
   if (visibleSections.length === 0) return;
+
+  // Keep the clicked target active during smooth anchor travel to prevent flicker.
+  if (clickedNavLock.id && Date.now() < clickedNavLock.until) {
+    const target = visibleSections.find((section) => section.id === clickedNavLock.id);
+    if (target) {
+      setActiveNavLink(target.id);
+      return;
+    }
+  }
+
+  clickedNavLock = { id: null, until: 0 };
 
   const topAligned = visibleSections.filter((section) => section.getBoundingClientRect().top <= navActivationOffset);
   if (topAligned.length > 0) {
@@ -126,7 +139,9 @@ navLinks.forEach((link) => {
       if (searchInput) searchInput.value = "";
     }
 
+    clickedNavLock = { id: target.id, until: Date.now() + clickedNavLockMs };
     setActiveNavLink(target.id);
+    triggerSectionSlide(target);
     scrollToSection(target, "smooth");
     history.replaceState(null, "", href);
   });
@@ -141,6 +156,7 @@ const jumpToHashSection = () => {
     sections.forEach((section) => section.classList.remove("hidden"));
     if (searchInput) searchInput.value = "";
   }
+  triggerSectionSlide(target);
   scrollToSection(target, "auto");
   setActiveNavByScrollTop();
 };
@@ -179,6 +195,83 @@ window.addEventListener("beforeunload", () => {
   if (rafId) cancelAnimationFrame(rafId);
 });
 
+const marketSearchInput = document.querySelector("#market-search-input");
+const marketFilterChips = document.querySelectorAll("#market-filters-sidebar .market-chip");
+const marketCards = document.querySelectorAll("#market-grid .market-card");
+const marketVersionFilters = document.querySelectorAll(".market-version-filter");
+const marketRatingFilter = document.querySelector("#market-rating-filter");
+const marketResetFilters = document.querySelector("#market-reset-filters");
+let activeMarketFilter = "all";
+
+const applyMarketplaceFilters = () => {
+  if (marketCards.length === 0) return;
+  const query = (marketSearchInput?.value || "").trim().toLowerCase();
+  const selectedVersions = Array.from(marketVersionFilters)
+    .filter((input) => input.checked)
+    .map((input) => input.value.toLowerCase());
+  const minRating = Number(marketRatingFilter?.value || 0);
+
+  marketCards.forEach((card) => {
+    const name = (card.getAttribute("data-name") || "").toLowerCase();
+    const tags = (card.getAttribute("data-tags") || "").toLowerCase();
+    const description = (card.getAttribute("data-description") || "").toLowerCase();
+    const versionTrack = (card.getAttribute("data-version-track") || "").toLowerCase();
+    const rating = Number(card.getAttribute("data-rating") || 0);
+    const matchesFilter = activeMarketFilter === "all" || tags.includes(activeMarketFilter);
+    const matchesVersion = selectedVersions.length === 0 || selectedVersions.includes(versionTrack);
+    const matchesRating = rating >= minRating;
+    const searchable = `${name} ${tags} ${description}`;
+    const matchesQuery = query.length === 0 || searchable.includes(query);
+    card.classList.toggle("hidden", !(matchesFilter && matchesVersion && matchesRating && matchesQuery));
+  });
+};
+
+if (marketFilterChips.length > 0) {
+  marketFilterChips.forEach((chip) => {
+    chip.addEventListener("click", () => {
+      const filter = chip.getAttribute("data-filter") || "all";
+      activeMarketFilter = filter;
+      marketFilterChips.forEach((candidate) => {
+        candidate.classList.toggle("active", candidate === chip);
+      });
+      applyMarketplaceFilters();
+    });
+  });
+}
+
+if (marketSearchInput) {
+  marketSearchInput.addEventListener("input", applyMarketplaceFilters);
+}
+
+marketVersionFilters.forEach((input) => {
+  input.addEventListener("change", applyMarketplaceFilters);
+});
+
+if (marketRatingFilter) {
+  marketRatingFilter.addEventListener("change", applyMarketplaceFilters);
+}
+
+if (marketResetFilters) {
+  marketResetFilters.addEventListener("click", () => {
+    activeMarketFilter = "all";
+    marketFilterChips.forEach((chip) => {
+      chip.classList.toggle("active", (chip.getAttribute("data-filter") || "all") === "all");
+    });
+    marketVersionFilters.forEach((input) => {
+      input.checked = false;
+    });
+    if (marketRatingFilter) {
+      marketRatingFilter.value = "0";
+    }
+    if (marketSearchInput) {
+      marketSearchInput.value = "";
+    }
+    applyMarketplaceFilters();
+  });
+}
+
+applyMarketplaceFilters();
+
 function scrollToSection(target, behavior) {
   const offset = navActivationOffset;
   const getTop = () => Math.max(0, window.scrollY + target.getBoundingClientRect().top - offset);
@@ -193,4 +286,12 @@ function scrollToSection(target, behavior) {
     }
     setActiveNavByScrollTop();
   }, behavior === "smooth" ? 320 : 0);
+}
+
+function triggerSectionSlide(section) {
+  if (!section || reducedMotion) return;
+  section.classList.remove("slide-focus");
+  void section.offsetWidth;
+  section.classList.add("slide-focus");
+  window.setTimeout(() => section.classList.remove("slide-focus"), 460);
 }
