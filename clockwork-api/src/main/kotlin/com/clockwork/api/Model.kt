@@ -20,7 +20,17 @@ data class PluginManifest(
     val main: String,
     val apiVersion: String = "1",
     val dependencies: List<DependencySpec> = emptyList(),
-    val permissions: List<String> = emptyList()
+    val permissions: List<String> = emptyList(),
+    val capabilities: List<String> = emptyList(),
+    val isolation: PluginIsolationManifest = PluginIsolationManifest()
+)
+
+data class PluginIsolationManifest(
+    val filesystemAllowlist: List<String> = emptyList(),
+    val networkProtocolAllowlist: List<String> = emptyList(),
+    val networkHostAllowlist: List<String> = emptyList(),
+    val networkPathAllowlist: List<String> = emptyList(),
+    val commandAllowlist: List<String> = emptyList()
 )
 
 data class ItemDefinition(val id: String, val displayName: String)

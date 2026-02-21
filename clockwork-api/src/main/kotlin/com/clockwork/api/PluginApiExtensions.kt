@@ -498,6 +498,194 @@ fun CommandParsedArgs.requiredBoolean(name: String): Boolean {
     return boolean(name) ?: throw IllegalArgumentException("Missing or invalid Boolean argument '$name'")
 }
 
+fun CommandParsedArgs.durationMillis(name: String): Long? {
+    return parseDurationMillisToken(string(name))
+}
+
+fun CommandParsedArgs.requiredDurationMillis(name: String): Long {
+    return durationMillis(name) ?: throw IllegalArgumentException("Missing or invalid duration argument '$name'")
+}
+
+fun String.playerKey(): String = trim().lowercase()
+
+fun CommandSender.playerKey(): String = id.playerKey()
+
+data class PluginKvState(
+    val entries: MutableMap<String, String> = linkedMapOf()
+)
+
+class PluginKvStore internal constructor(
+    private val backing: PersistentStore<PluginKvState>
+) {
+    fun get(key: String): String? {
+        val normalized = normalize(key) ?: return null
+        return load().entries[normalized]
+    }
+
+    fun getOrDefault(key: String, default: String): String {
+        return get(key) ?: default
+    }
+
+    fun getInt(key: String): Int? = get(key)?.toIntOrNull()
+
+    fun getLong(key: String): Long? = get(key)?.toLongOrNull()
+
+    fun getBoolean(key: String): Boolean? {
+        return when (get(key)?.trim()?.lowercase()) {
+            "true", "1", "yes", "y", "on" -> true
+            "false", "0", "no", "n", "off" -> false
+            else -> null
+        }
+    }
+
+    fun put(key: String, value: String): PluginKvStore {
+        val normalized = normalize(key) ?: return this
+        mutate { this[normalized] = value.trim() }
+        return this
+    }
+
+    fun putInt(key: String, value: Int): PluginKvStore = put(key, value.toString())
+
+    fun putLong(key: String, value: Long): PluginKvStore = put(key, value.toString())
+
+    fun putBoolean(key: String, value: Boolean): PluginKvStore = put(key, value.toString())
+
+    fun remove(key: String): Boolean {
+        val normalized = normalize(key) ?: return false
+        var removed = false
+        mutate { removed = remove(normalized) != null }
+        return removed
+    }
+
+    fun increment(key: String, delta: Long = 1L, initial: Long = 0L): Long {
+        val normalized = normalize(key) ?: return initial
+        var next = initial
+        mutate {
+            val current = this[normalized]?.toLongOrNull() ?: initial
+            next = current + delta
+            this[normalized] = next.toString()
+        }
+        return next
+    }
+
+    fun keys(): Set<String> = load().entries.keys.toSet()
+
+    fun snapshot(): Map<String, String> = load().entries.toMap()
+
+    private fun load(): PluginKvState = backing.load() ?: PluginKvState()
+
+    private fun mutate(block: MutableMap<String, String>.() -> Unit) {
+        val current = load()
+        current.entries.block()
+        backing.save(current)
+    }
+
+    private fun normalize(key: String): String? {
+        val normalized = key.trim()
+        return if (normalized.isEmpty()) null else normalized
+    }
+}
+
+fun PluginContext.pluginKv(namespace: String = "default", version: Int = 1): PluginKvStore {
+    val normalizedNamespace = namespace.trim().ifEmpty { "default" }
+    val key = "${manifest.id}:kv:$normalizedNamespace"
+    return PluginKvStore(storage.store(key, PluginKvState::class.java, version))
+}
+
+enum class BridgeRuntime {
+    BUKKIT,
+    SPIGOT,
+    PAPER,
+    FOLIA,
+    PURPUR,
+    SPONGE,
+    UNKNOWN
+}
+
+data class BridgeRuntimeInfo(
+    val runtime: BridgeRuntime,
+    val detectedFrom: String,
+    val serverName: String,
+    val serverVersion: String,
+    val platformVersion: String?,
+    val token: String
+)
+
+enum class BridgeCompatibilityGrade {
+    UNKNOWN,
+    BELOW_MINIMUM,
+    SUPPORTED,
+    RECOMMENDED
+}
+
+fun HostServerSnapshot.detectBridgeRuntime(): BridgeRuntimeInfo {
+    val nameLc = name.trim().lowercase()
+    val versionLc = version.trim().lowercase()
+    val platformLc = platformVersion?.trim()?.lowercase().orEmpty()
+    val token = listOf(nameLc, versionLc, platformLc).joinToString(" ").trim()
+
+    val (runtime, source) = when {
+        "folia" in token -> BridgeRuntime.FOLIA to "name/version/platformVersion"
+        "purpur" in token -> BridgeRuntime.PURPUR to "name/version/platformVersion"
+        "paper" in token -> BridgeRuntime.PAPER to "name/version/platformVersion"
+        "spigot" in token -> BridgeRuntime.SPIGOT to "name/version/platformVersion"
+        "bukkit" in token || "craftbukkit" in token -> BridgeRuntime.BUKKIT to "name/version/platformVersion"
+        "sponge" in token -> BridgeRuntime.SPONGE to "name/version/platformVersion"
+        else -> BridgeRuntime.UNKNOWN to "none"
+    }
+
+    return BridgeRuntimeInfo(
+        runtime = runtime,
+        detectedFrom = source,
+        serverName = name,
+        serverVersion = version,
+        platformVersion = platformVersion,
+        token = token
+    )
+}
+
+fun PluginContext.detectBridgeRuntime(): BridgeRuntimeInfo {
+    val server = host.serverInfo()
+        ?: return BridgeRuntimeInfo(
+            runtime = BridgeRuntime.UNKNOWN,
+            detectedFrom = "host.serverInfo unavailable",
+            serverName = "unknown",
+            serverVersion = "unknown",
+            platformVersion = null,
+            token = ""
+        )
+    return server.detectBridgeRuntime()
+}
+
+fun compareVersionTokens(left: String?, right: String?): Int? {
+    val a = parseVersionToken(left) ?: return null
+    val b = parseVersionToken(right) ?: return null
+    val max = maxOf(a.size, b.size)
+    for (idx in 0 until max) {
+        val av = if (idx < a.size) a[idx] else 0
+        val bv = if (idx < b.size) b[idx] else 0
+        if (av != bv) return av.compareTo(bv)
+    }
+    return 0
+}
+
+fun assessBridgeVersion(
+    version: String?,
+    minimumVersion: String,
+    recommendedVersion: String? = null
+): BridgeCompatibilityGrade {
+    val cmpMin = compareVersionTokens(version, minimumVersion)
+    if (cmpMin == null) return BridgeCompatibilityGrade.UNKNOWN
+    if (cmpMin < 0) return BridgeCompatibilityGrade.BELOW_MINIMUM
+    val cmpRecommended = compareVersionTokens(version, recommendedVersion)
+    if (cmpRecommended == null || cmpRecommended < 0) return BridgeCompatibilityGrade.SUPPORTED
+    return BridgeCompatibilityGrade.RECOMMENDED
+}
+
+fun BridgeCompatibilityGrade.label(): String {
+    return name.lowercase().replace('_', '-')
+}
+
 fun HostLocationRef.distanceTo(other: HostLocationRef): Double {
     if (!world.equals(other.world, ignoreCase = true)) return Double.POSITIVE_INFINITY
     val dx = x - other.x
@@ -606,17 +794,7 @@ fun AdapterInvocation.payloadByPrefix(
 }
 
 fun AdapterInvocation.payloadDurationMillis(key: String): Long? {
-    val raw = payloadTrimmed(key)?.lowercase() ?: return null
-    if (raw.isEmpty()) return null
-    val match = Regex("""^(-?\d+)(ms|s|m|h)?$""").matchEntire(raw) ?: return null
-    val value = match.groupValues[1].toLongOrNull() ?: return null
-    return when (match.groupValues[2]) {
-        "", "ms" -> value
-        "s" -> value * 1_000L
-        "m" -> value * 60_000L
-        "h" -> value * 3_600_000L
-        else -> null
-    }
+    return parseDurationMillisToken(payloadTrimmed(key))
 }
 
 fun AdapterInvocation.payloadMap(
@@ -662,4 +840,32 @@ private fun normalizeCommandToken(command: String): String {
     val normalized = command.trim().lowercase()
     require(normalized.isNotEmpty()) { "Command name must not be blank" }
     return normalized
+}
+
+private fun parseVersionToken(value: String?): List<Int>? {
+    val raw = value?.trim().orEmpty()
+    if (raw.isEmpty()) return null
+    val match = Regex("""(\d+)(?:\.(\d+))?(?:\.(\d+))?(?:\.(\d+))?""").find(raw) ?: return null
+    val groups = match.groupValues.drop(1)
+    val parts = mutableListOf<Int>()
+    groups.forEach { token ->
+        if (token.isNotEmpty()) {
+            parts += token.toIntOrNull() ?: return null
+        }
+    }
+    return if (parts.isEmpty()) null else parts
+}
+
+private fun parseDurationMillisToken(raw: String?): Long? {
+    val token = raw?.trim()?.lowercase() ?: return null
+    if (token.isEmpty()) return null
+    val match = Regex("""^(-?\d+)(ms|s|m|h)?$""").matchEntire(token) ?: return null
+    val value = match.groupValues[1].toLongOrNull() ?: return null
+    return when (match.groupValues[2]) {
+        "", "ms" -> value
+        "s" -> value * 1_000L
+        "m" -> value * 60_000L
+        "h" -> value * 3_600_000L
+        else -> null
+    }
 }

@@ -14,8 +14,10 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-      - name: Release Gate (apiCheck + apiCompatibilityReport + test + performanceBaseline + standaloneReleaseCandidate)
-        run: ./gradlew --no-daemon clean :clockwork-api:apiCheck :clockwork-host-api:apiCheck apiCompatibilityReport test performanceBaseline standaloneReleaseCandidate
+      - name: Release Gate (API freeze + compatibility + tests + perf + RC)
+        run: ./gradlew --no-daemon clean :clockwork-api:apiCheck :clockwork-host-api:apiCheck :clockwork-api:contractTest :clockwork-host-api:contractTest apiContractsFreezeGate apiCompatibilityReport test performanceBaseline standaloneReleaseCandidate
+      - name: Performance Gate v2 (Baseline Regression)
+        run: python3 scripts/perf_v2_gate.py --baseline docs/performance/targets-v2.json --results-root . --report build/reports/performance/perf-v2-report.md
       - name: Integration Smoke Pipeline
         run: ./gradlew --no-daemon integrationSmoke
       - name: Upload API Compatibility Report
@@ -23,3 +25,13 @@ jobs:
         with:
           name: api-compatibility-report
           path: build/reports/api-compatibility/report.md
+      - name: Upload API Freeze Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-freeze-v1.7-report
+          path: build/reports/api-compatibility/v1.7-freeze-report.md
+      - name: Upload Performance Gate Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-gate-v2-report
+          path: build/reports/performance/perf-v2-report.md

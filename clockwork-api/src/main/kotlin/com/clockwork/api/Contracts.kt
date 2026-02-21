@@ -704,6 +704,15 @@ data class GigaAdapterPostInvokeEvent(
     val durationNanos: Long
 )
 
+data class GigaIsolationViolationEvent(
+    val pluginId: String,
+    val capability: String,
+    val action: String,
+    val code: String,
+    val detail: String,
+    val timestampMillis: Long
+)
+
 fun interface GigaLogger {
     fun info(message: String)
 }

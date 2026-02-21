@@ -200,6 +200,84 @@ class PluginApiExtensionsTest {
     }
 
     @Test
+    fun `command parsed args duration helper parses suffix formats`() {
+        val spec = CommandSpec(
+            command = "timer",
+            argsSchema = listOf(
+                CommandArgSpec("a", CommandArgType.STRING),
+                CommandArgSpec("b", CommandArgType.STRING),
+                CommandArgSpec("c", CommandArgType.STRING),
+                CommandArgSpec("d", CommandArgType.STRING)
+            )
+        )
+        val parsed = parseCommandArgs(spec, listOf("1500", "2s", "3m", "1h")).parsed
+        assertEquals(1_500L, parsed.durationMillis("a"))
+        assertEquals(2_000L, parsed.durationMillis("b"))
+        assertEquals(180_000L, parsed.durationMillis("c"))
+        assertEquals(3_600_000L, parsed.requiredDurationMillis("d"))
+        assertNull(parsed.durationMillis("missing"))
+    }
+
+    @Test
+    fun `player key helper normalizes sender and strings`() {
+        assertEquals("alex", "  Alex ".playerKey())
+        assertEquals("player_one", CommandSender.player(" Player_One ").playerKey())
+    }
+
+    @Test
+    fun `plugin kv helper simplifies string and numeric state`() {
+        val ctx = contextWithPermissions(emptyList())
+        val kv = ctx.pluginKv(namespace = "bridged", version = 1)
+
+        assertNull(kv.get("missing"))
+        kv.put("mode", "paper")
+        kv.putBoolean("enabled", true)
+        kv.putInt("checks", 3)
+        assertEquals("paper", kv.get("mode"))
+        assertEquals(true, kv.getBoolean("enabled"))
+        assertEquals(3, kv.getInt("checks"))
+        assertEquals(5L, kv.increment("checks.total", delta = 5L, initial = 0L))
+        assertEquals(7L, kv.increment("checks.total", delta = 2L, initial = 0L))
+        assertTrue(kv.remove("mode"))
+        assertFalse(kv.remove("mode"))
+    }
+
+    @Test
+    fun `bridge version helper returns expected compatibility grade`() {
+        assertEquals(
+            BridgeCompatibilityGrade.BELOW_MINIMUM,
+            assessBridgeVersion("1.20.1", minimumVersion = "1.20.2", recommendedVersion = "1.21.1")
+        )
+        assertEquals(
+            BridgeCompatibilityGrade.SUPPORTED,
+            assessBridgeVersion("1.20.4", minimumVersion = "1.20.2", recommendedVersion = "1.21.1")
+        )
+        assertEquals(
+            BridgeCompatibilityGrade.RECOMMENDED,
+            assessBridgeVersion("1.21.1", minimumVersion = "1.20.2", recommendedVersion = "1.21.1")
+        )
+        assertEquals(
+            BridgeCompatibilityGrade.UNKNOWN,
+            assessBridgeVersion("snapshot-build", minimumVersion = "1.20.2", recommendedVersion = "1.21.1")
+        )
+        assertEquals("below-minimum", BridgeCompatibilityGrade.BELOW_MINIMUM.label())
+    }
+
+    @Test
+    fun `bridge runtime detection maps server snapshot tokens`() {
+        val runtime = HostServerSnapshot(
+            name = "Paper",
+            version = "1.21.1-R0.1-SNAPSHOT",
+            platformVersion = "git-Paper-120",
+            onlinePlayers = 5,
+            maxPlayers = 100,
+            worldCount = 3
+        ).detectBridgeRuntime()
+        assertEquals(BridgeRuntime.PAPER, runtime.runtime)
+        assertTrue(runtime.token.contains("paper"))
+    }
+
+    @Test
     fun `movement distance helpers compute 3d horizontal and vertical distances`() {
         val before = HostPlayerSnapshot(
             uuid = "u1",

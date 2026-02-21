@@ -46,6 +46,7 @@ class GigaRuntime(
     private val maxPluginJarBytes = 64L * 1024L * 1024L
     private val loaded = ConcurrentHashMap<String, LoadedPlugin>()
     private val pluginNetworkHub = RuntimePluginNetworkHub()
+    private val isolationAuditor = RuntimeIsolationAuditor()
     private val metrics = RuntimeMetrics(
         faultBudgetPolicy = faultBudgetPolicy,
         faultBudgetEscalationPolicy = faultBudgetEscalationPolicy,
@@ -368,7 +369,8 @@ class GigaRuntime(
             lastScanApiCompatibility = lastScanApiCompatibility.toMap(),
             lastScanDependencyDiagnostics = lastScanDependencyDiagnostics.toMap(),
             dependencyGraph = graph,
-            pluginPerformance = pluginPerformance
+            pluginPerformance = pluginPerformance,
+            isolationViolations = isolationAuditor.snapshotByPlugin()
         )
     }
 
@@ -585,15 +587,33 @@ class GigaRuntime(
                 }
             )
             val registry = RuntimeRegistry(manifest.id)
-            val commandRegistry = RuntimeCommandRegistry(pluginId = manifest.id)
             val eventBus = RuntimeEventBus(mode = eventDispatchMode)
-            val storage = JsonStorageProvider(dataDirectory.resolve(manifest.id))
             val pluginLogger = GigaLogger { rootLogger.info("[${manifest.id}] $it") }
+            val isolationPolicy = RuntimeIsolationPolicyCompiler.fromManifest(manifest)
+            val commandRegistry = RuntimeIsolatedCommandRegistry(
+                delegate = RuntimeCommandRegistry(pluginId = manifest.id),
+                pluginId = manifest.id,
+                policy = isolationPolicy,
+                logger = pluginLogger,
+                auditor = isolationAuditor,
+                eventBus = eventBus
+            )
+            val storage = RuntimeIsolatedStorageProvider(
+                delegate = JsonStorageProvider(dataDirectory.resolve(manifest.id)),
+                pluginId = manifest.id,
+                policy = isolationPolicy,
+                logger = pluginLogger,
+                auditor = isolationAuditor,
+                eventBus = eventBus
+            )
             val pluginHostAccess = RuntimeHostAccess(
                 delegate = hostAccess,
                 pluginId = manifest.id,
                 rawPermissions = manifest.permissions,
-                logger = pluginLogger
+                logger = pluginLogger,
+                isolationPolicy = isolationPolicy,
+                isolationAuditor = isolationAuditor,
+                eventBus = eventBus
             )
             val adapters = RuntimeModAdapterRegistry(
                 pluginId = manifest.id,
@@ -626,7 +646,14 @@ class GigaRuntime(
                 storage,
                 commandRegistry,
                 eventBus,
-                pluginNetworkHub.viewFor(manifest.id),
+                RuntimeIsolatedPluginNetwork(
+                    delegate = pluginNetworkHub.viewFor(manifest.id),
+                    pluginId = manifest.id,
+                    policy = isolationPolicy,
+                    logger = pluginLogger,
+                    auditor = isolationAuditor,
+                    eventBus = eventBus
+                ),
                 pluginUi,
                 pluginHostAccess
             )

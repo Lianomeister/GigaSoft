@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicLong
 
 class RuntimeCommandRegistry(
     private val pluginId: String = "unknown"
-) : CommandRegistry {
+) : CommandRegistry, RuntimeCommandExecution {
     private data class RegisteredCommand(
         val spec: com.clockwork.api.CommandSpec,
         val middleware: List<com.clockwork.api.CommandMiddlewareBinding>,
@@ -238,7 +238,7 @@ class RuntimeCommandRegistry(
         return count
     }
 
-    fun execute(ctx: PluginContext, sender: com.clockwork.api.CommandSender, commandLine: String): String {
+    override fun execute(ctx: PluginContext, sender: com.clockwork.api.CommandSender, commandLine: String): String {
         val tokens = tokenizeCommand(commandLine)
         if (tokens.isEmpty()) return ""
         val requested = tokens[0].lowercase()

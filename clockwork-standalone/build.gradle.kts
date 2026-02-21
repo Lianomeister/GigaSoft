@@ -61,14 +61,25 @@ tasks.register<Test>("soakTest") {
 }
 
 tasks.named<ProcessResources>("processResources") {
-    dependsOn(":clockwork-plugin-browser:shadowJar")
+    dependsOn(
+        ":clockwork-plugin-browser:shadowJar",
+        ":clockwork-plugin-bridged:shadowJar"
+    )
     val browserJar = project(":clockwork-plugin-browser")
         .layout
         .buildDirectory
         .file("libs/clockwork-plugin-browser-${project.version}.jar")
+    val bridgedJar = project(":clockwork-plugin-bridged")
+        .layout
+        .buildDirectory
+        .file("libs/clockwork-plugin-bridged-${project.version}.jar")
     from(browserJar) {
         into("default-plugins")
         rename { "clockwork-plugin-browser.jar" }
+    }
+    from(bridgedJar) {
+        into("default-plugins")
+        rename { "clockwork-plugin-bridged.jar" }
     }
 }
 

@@ -7,6 +7,15 @@ const state = {
   user: null
 };
 
+const SUBMISSION_STATUSES = ["draft", "review", "approved", "published", "rejected"];
+const ALLOWED_STATUS_TRANSITIONS = {
+  draft: ["review", "rejected"],
+  review: ["approved", "rejected", "draft"],
+  approved: ["published", "rejected", "review"],
+  published: [],
+  rejected: ["draft", "review"]
+};
+
 if (isLoginPage) {
   bootLogin().catch((error) => renderFatalError("admin-login-error", error));
 }
@@ -143,11 +152,16 @@ function initSupabase() {
   state.config = {
     tables: {
       admins: cfg.tables?.admins || "marketplace_admins",
-      submissions: cfg.tables?.submissions || "plugin_submissions"
+      submissions: cfg.tables?.submissions || "plugin_submissions",
+      submissionHistory: cfg.tables?.submissionHistory || "plugin_submission_status_history"
     },
     buckets: {
       images: cfg.buckets?.images || "marketplace-images",
       files: cfg.buckets?.files || "marketplace-files"
+    },
+    rpc: {
+      transitionSubmissionStatus: cfg.rpc?.transitionSubmissionStatus || "transition_plugin_submission_status",
+      validateSubmissionRecord: cfg.rpc?.validateSubmissionRecord || "marketplace_validate_submission_record"
     },
     coreUploaders: {
       ids: normalizeStringList(cfg.coreUploaderIds),
@@ -212,7 +226,7 @@ function wireSubmitForm() {
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
-    status.textContent = "Uploading submission...";
+    status.textContent = "Creating draft submission...";
     status.classList.remove("admin-error");
     try {
       const data = new FormData(form);
@@ -220,7 +234,7 @@ function wireSubmitForm() {
       const { error } = await state.supabase.from(state.config.tables.submissions).insert(payload);
       if (error) throw new Error(error.message);
       form.reset();
-      status.textContent = `Submitted ${payload.name} (${payload.plugin_id})`;
+      status.textContent = `Draft created: ${payload.name} (${payload.plugin_id})`;
       await renderSubmissions();
     } catch (error) {
       status.textContent = error.message || "Submission failed.";
@@ -240,12 +254,33 @@ async function buildSubmissionPayload(formData) {
   const minecraftVersions = splitCsv(String(formData.get("minecraftVersions") || ""));
   const categoriesRaw = splitCsv(String(formData.get("categories") || ""));
   const categories = isCoreUploader(state.user) ? ensureCategory(categoriesRaw, "core") : categoriesRaw;
-  if (!pluginId || !name || !version || !summary || !logs || !downloadUrl) {
-    throw new Error("Missing required fields.");
-  }
+  const validation = validateSubmissionInput({
+    pluginId,
+    name,
+    version,
+    summary,
+    logs,
+    downloadUrl,
+    sourceUrl,
+    minecraftVersions,
+    categories
+  });
+  if (!validation.ok) throw new Error(`Validation failed: ${validation.errors.join(", ")}`);
 
   const imageUrls = await uploadFiles(readFileList(formData.getAll("images")), state.config.buckets.images, `${pluginId}/${version}/images`);
   const artifactUrls = await uploadFiles(readFileList(formData.getAll("pluginFiles")), state.config.buckets.files, `${pluginId}/${version}/artifacts`);
+  const fullValidation = validateSubmissionInput({
+    pluginId,
+    name,
+    version,
+    summary,
+    logs,
+    downloadUrl,
+    sourceUrl,
+    minecraftVersions,
+    categories,
+    artifactUrls
+  });
 
   return {
     plugin_id: pluginId,
@@ -259,8 +294,11 @@ async function buildSubmissionPayload(formData) {
     download_url: downloadUrl,
     image_urls: imageUrls,
     artifact_urls: artifactUrls,
-    status: "review",
-    rejection_reason: null
+    status: "draft",
+    rejection_reason: null,
+    created_by_email: String(state.user?.email || "").trim().toLowerCase() || null,
+    validation_state: fullValidation.ok ? "valid" : "invalid",
+    validation_errors: fullValidation.errors
   };
 }
 
@@ -286,10 +324,30 @@ async function fetchSubmissions() {
   return Array.isArray(data) ? data : [];
 }
 
+async function fetchSubmissionHistory(submissionIds) {
+  if (!Array.isArray(submissionIds) || submissionIds.length === 0) return {};
+  const { data, error } = await state.supabase
+    .from(state.config.tables.submissionHistory)
+    .select("*")
+    .in("submission_id", submissionIds)
+    .order("changed_at", { ascending: false })
+    .limit(1000);
+  if (error) throw new Error(`History load failed: ${error.message}`);
+  const rows = Array.isArray(data) ? data : [];
+  return rows.reduce((acc, row) => {
+    const key = String(row.submission_id || "");
+    if (!key) return acc;
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(row);
+    return acc;
+  }, {});
+}
+
 async function renderSubmissions() {
   const container = document.getElementById("admin-submission-list");
   if (!container) return;
   const rows = await fetchSubmissions();
+  const historyBySubmissionId = await fetchSubmissionHistory(rows.map((row) => row.id).filter(Boolean));
   if (rows.length === 0) {
     container.innerHTML = "<p class=\"lead\">No submissions yet.</p>";
     return;
@@ -299,6 +357,18 @@ async function renderSubmissions() {
     const coreBadge = isCoreSubmission(row) ? "<span class=\"pill pill-core\">Core &#10003;</span>" : "";
     const previews = (row.image_urls || []).slice(0, 3).map((u) => `<img src="${escapeAttr(u)}" alt="preview" />`).join("");
     const artifacts = (row.artifact_urls || []).map((u) => `<li><a href="${escapeAttr(u)}" target="_blank" rel="noopener">${escapeHtml(u)}</a></li>`).join("");
+    const validationErrors = Array.isArray(row.validation_errors) ? row.validation_errors : [];
+    const validationLine = renderValidationLine(row.validation_state, validationErrors);
+    const historyItems = (historyBySubmissionId[row.id] || [])
+      .slice(0, 6)
+      .map((item) => {
+        const reason = item.reason ? ` • ${escapeHtml(item.reason)}` : "";
+        const from = item.from_status ? `${escapeHtml(item.from_status)} -> ` : "";
+        return `<li>${escapeHtml(item.changed_at || "")} • ${from}${escapeHtml(item.to_status || "")}${reason}</li>`;
+      })
+      .join("");
+    const status = normalizeStatus(row.status);
+    const availableTransitions = ALLOWED_STATUS_TRANSITIONS[status] || [];
     const reject = row.status === "rejected" && row.rejection_reason
       ? `<p class="admin-error">Rejected reason: ${escapeHtml(row.rejection_reason)}</p>`
       : "";
@@ -311,30 +381,56 @@ async function renderSubmissions() {
             ${coreBadge}
           </div>
         </div>
-        <p class="admin-note">Status: ${escapeHtml(row.status || "review")} • ${escapeHtml(row.created_at || "")}</p>
+        <p class="admin-note">Status: ${escapeHtml(status)} • ${escapeHtml(row.created_at || "")}</p>
+        ${validationLine}
         ${reject}
         <label><span>Summary</span><input class="admin-edit-summary" type="text" value="${escapeAttr(row.summary || "")}" /></label>
         <label><span>Download URL</span><input class="admin-edit-download" type="url" value="${escapeAttr(row.download_url || "")}" /></label>
         <label><span>Source URL</span><input class="admin-edit-source" type="url" value="${escapeAttr(row.source_url || "")}" /></label>
         <label><span>Status</span>
           <select class="admin-edit-status">
-            ${renderStatusOption(row.status, "review")}
-            ${renderStatusOption(row.status, "approved")}
-            ${renderStatusOption(row.status, "published")}
-            ${renderStatusOption(row.status, "rejected")}
+            ${renderStatusOption(status, "draft")}
+            ${renderStatusOption(status, "review")}
+            ${renderStatusOption(status, "approved")}
+            ${renderStatusOption(status, "published")}
+            ${renderStatusOption(status, "rejected")}
           </select>
         </label>
-        <label><span>Rejection Reason</span><input class="admin-edit-reason" type="text" value="${escapeAttr(row.rejection_reason || "")}" placeholder="Only for rejected status" /></label>
+        <label><span>Rejection Reason</span><input class="admin-edit-reason" type="text" value="${escapeAttr(row.rejection_reason || "")}" placeholder="Required when rejected" /></label>
         <label><span>Logs</span><textarea class="admin-edit-logs" rows="4">${escapeHtml(row.logs || "")}</textarea></label>
+        <p class="admin-note">Allowed next statuses: ${availableTransitions.length ? escapeHtml(availableTransitions.join(", ")) : "none"}</p>
         <div class="admin-row-actions">
           <button class="btn btn-primary admin-save-submission" type="button">Save Changes</button>
+          <button class="btn btn-ghost admin-run-validation" type="button">Run Validation</button>
           <a class="btn btn-ghost" href="${escapeAttr(row.download_url || "#")}" target="_blank" rel="noopener">Open Download</a>
         </div>
         <div class="admin-preview-grid">${previews}</div>
+        ${historyItems ? `<p class="admin-note">Status History</p><ul>${historyItems}</ul>` : "<p class=\"admin-note\">No status history yet.</p>"}
         ${artifacts ? `<ul>${artifacts}</ul>` : "<p class=\"admin-note\">No artifacts uploaded.</p>"}
       </article>
     `;
   }).join("");
+
+  container.querySelectorAll(".admin-run-validation").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const card = btn.closest(".admin-sub-card");
+      if (!card) return;
+      const id = card.getAttribute("data-submission-id");
+      if (!id) return;
+      btn.disabled = true;
+      try {
+        const { error } = await state.supabase.rpc(state.config.rpc.validateSubmissionRecord, {
+          p_id: id
+        });
+        if (error) throw new Error(error.message);
+        await renderSubmissions();
+      } catch (error) {
+        alert(`Validation failed: ${error.message || "unknown error"}`);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  });
 
   container.querySelectorAll(".admin-save-submission").forEach((btn) => {
     btn.addEventListener("click", async () => {
@@ -342,22 +438,74 @@ async function renderSubmissions() {
       if (!card) return;
       const id = card.getAttribute("data-submission-id");
       if (!id) return;
+      const current = rows.find((row) => String(row.id) === String(id));
+      if (!current) return;
       btn.disabled = true;
       const payload = {
         summary: card.querySelector(".admin-edit-summary")?.value?.trim() || "",
         download_url: card.querySelector(".admin-edit-download")?.value?.trim() || "",
         source_url: card.querySelector(".admin-edit-source")?.value?.trim() || null,
-        status: card.querySelector(".admin-edit-status")?.value || "review",
+        status: normalizeStatus(card.querySelector(".admin-edit-status")?.value || "draft"),
         rejection_reason: card.querySelector(".admin-edit-reason")?.value?.trim() || null,
         logs: card.querySelector(".admin-edit-logs")?.value || ""
       };
+      if (payload.status === "rejected" && !payload.rejection_reason) {
+        alert("Rejection reason is required for rejected status.");
+        btn.disabled = false;
+        return;
+      }
+
+      const derived = {
+        pluginId: current.plugin_id,
+        name: current.name,
+        version: current.version,
+        summary: payload.summary,
+        logs: payload.logs,
+        downloadUrl: payload.download_url,
+        sourceUrl: payload.source_url || "",
+        minecraftVersions: toStringList(current.minecraft_versions),
+        categories: toStringList(current.categories),
+        artifactUrls: toStringList(current.artifact_urls)
+      };
+      const validation = validateSubmissionInput(derived);
+      payload.validation_state = validation.ok ? "valid" : "invalid";
+      payload.validation_errors = validation.errors;
       if (payload.status !== "rejected") payload.rejection_reason = null;
-      const { error } = await state.supabase.from(state.config.tables.submissions).update(payload).eq("id", id);
+
+      const { error } = await state.supabase
+        .from(state.config.tables.submissions)
+        .update({
+          summary: payload.summary,
+          download_url: payload.download_url,
+          source_url: payload.source_url,
+          logs: payload.logs,
+          validation_state: payload.validation_state,
+          validation_errors: payload.validation_errors,
+          rejection_reason: payload.status === "rejected" ? payload.rejection_reason : null
+        })
+        .eq("id", id);
+
       btn.disabled = false;
       if (error) {
         alert(`Save failed: ${error.message}`);
         return;
       }
+
+      const fromStatus = normalizeStatus(current.status);
+      const toStatus = normalizeStatus(payload.status);
+      if (toStatus !== fromStatus) {
+        const { error: transitionError } = await state.supabase.rpc(state.config.rpc.transitionSubmissionStatus, {
+          p_submission_id: id,
+          p_next_status: toStatus,
+          p_reason: payload.rejection_reason
+        });
+        if (transitionError) {
+          alert(`Transition failed: ${transitionError.message}`);
+          await renderSubmissions();
+          return;
+        }
+      }
+
       await renderSubmissions();
     });
   });
@@ -433,6 +581,62 @@ function wireDeleteAccount() {
     await state.supabase.auth.signOut();
     window.location.replace("./admin-login.html");
   });
+}
+
+function validateSubmissionInput(input) {
+  const errors = [];
+  if (!String(input.pluginId || "").trim()) errors.push("plugin_id_missing");
+  if (!String(input.name || "").trim()) errors.push("name_missing");
+  const version = String(input.version || "").trim();
+  if (!/^\d+\.\d+\.\d+([-.][0-9A-Za-z.-]+)?$/.test(version)) errors.push("version_invalid_semver");
+  const summary = String(input.summary || "").trim();
+  if (!summary) errors.push("summary_missing");
+  else if (summary.length < 20) errors.push("summary_too_short");
+  const logs = String(input.logs || "").trim();
+  if (!logs) errors.push("logs_missing");
+  else if (logs.length < 12) errors.push("logs_too_short");
+
+  if (!isValidHttpUrl(input.downloadUrl)) errors.push("download_url_invalid");
+  if (String(input.sourceUrl || "").trim() && !isValidHttpUrl(input.sourceUrl)) errors.push("source_url_invalid");
+
+  const minecraftVersions = toStringList(input.minecraftVersions);
+  if (minecraftVersions.length === 0) errors.push("minecraft_versions_missing");
+  if (minecraftVersions.some((value) => !value.trim())) errors.push("minecraft_versions_contains_blank");
+
+  const categories = toStringList(input.categories);
+  if (categories.length === 0) errors.push("categories_missing");
+  if (categories.some((value) => !value.trim())) errors.push("categories_contains_blank");
+
+  return { ok: errors.length === 0, errors };
+}
+
+function isValidHttpUrl(raw) {
+  const value = String(raw || "").trim();
+  if (!value) return false;
+  return /^https?:\/\/.+/i.test(value);
+}
+
+function toStringList(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((value) => String(value || "").trim()).filter((value) => value.length > 0);
+}
+
+function normalizeStatus(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  return SUBMISSION_STATUSES.includes(normalized) ? normalized : "draft";
+}
+
+function renderValidationLine(state, errors) {
+  const normalizedState = String(state || "pending").trim().toLowerCase();
+  const safeErrors = Array.isArray(errors) ? errors : [];
+  if (normalizedState === "valid") {
+    return `<p class="admin-note">Validation: <strong>valid</strong> (no issues)</p>`;
+  }
+  if (safeErrors.length === 0) {
+    return `<p class="admin-note">Validation: <strong>${escapeHtml(normalizedState || "pending")}</strong></p>`;
+  }
+  const list = safeErrors.map((err) => `<li>${escapeHtml(String(err))}</li>`).join("");
+  return `<p class="admin-note">Validation: <strong>${escapeHtml(normalizedState)}</strong></p><ul>${list}</ul>`;
 }
 
 function splitCsv(raw) {

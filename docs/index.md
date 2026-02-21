@@ -28,6 +28,7 @@
 
 - `docs/api/v1.0.0.md`
 - `docs/api/v1.5.0.md`
+- `docs/api/v1.7.0.md`
 - `docs/api/reference-v1.md`
 - `docs/api/review-v1.5.md`
 - `docs/migrations/v1.0.md`

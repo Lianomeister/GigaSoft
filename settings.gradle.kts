@@ -9,5 +9,6 @@ include(
     "clockwork-standalone",
     "clockwork-cli",
     "clockwork-demo-standalone",
-    "clockwork-plugin-browser"
+    "clockwork-plugin-browser",
+    "clockwork-plugin-bridged"
 )

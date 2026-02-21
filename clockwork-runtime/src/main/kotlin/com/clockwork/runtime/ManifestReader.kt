@@ -3,6 +3,7 @@ package com.clockwork.runtime
 import com.clockwork.api.DependencySpec
 import com.clockwork.api.DependencyKind
 import com.clockwork.api.PluginManifest
+import com.clockwork.api.PluginIsolationManifest
 import org.yaml.snakeyaml.Yaml
 import java.io.InputStreamReader
 import java.nio.file.Path
@@ -38,7 +39,9 @@ object ManifestReader {
                     main = data["main"]?.toString() ?: error("Manifest missing main"),
                     apiVersion = data["apiVersion"]?.toString() ?: "1",
                     dependencies = parseDependencies(data["dependencies"], data),
-                    permissions = (data["permissions"] as? List<*>)?.map { it.toString() } ?: emptyList()
+                    permissions = (data["permissions"] as? List<*>)?.map { it.toString() } ?: emptyList(),
+                    capabilities = (data["capabilities"] as? List<*>)?.map { it.toString() } ?: emptyList(),
+                    isolation = parseIsolation(data["isolation"] as? Map<*, *>)
                 )
                 ManifestSecurity.validate(manifest)
                 return ReadResult(
@@ -118,5 +121,17 @@ object ManifestReader {
         val id = match.groupValues[1]
         val tail = match.groupValues[2].trim()
         return if (tail.isBlank()) DependencySpec(id = id, kind = kind) else DependencySpec(id = id, versionRange = tail, kind = kind)
+    }
+
+    private fun parseIsolation(raw: Map<*, *>?): PluginIsolationManifest {
+        if (raw == null) return PluginIsolationManifest()
+        fun list(key: String): List<String> = (raw[key] as? List<*>)?.map { it.toString() } ?: emptyList()
+        return PluginIsolationManifest(
+            filesystemAllowlist = list("filesystemAllowlist"),
+            networkProtocolAllowlist = list("networkProtocolAllowlist"),
+            networkHostAllowlist = list("networkHostAllowlist"),
+            networkPathAllowlist = list("networkPathAllowlist"),
+            commandAllowlist = list("commandAllowlist")
+        )
     }
 }

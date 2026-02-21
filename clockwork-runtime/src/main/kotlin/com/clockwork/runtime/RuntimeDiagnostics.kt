@@ -12,7 +12,8 @@ data class RuntimeDiagnostics(
     val lastScanApiCompatibility: Map<String, String>,
     val lastScanDependencyDiagnostics: Map<String, DependencyDiagnostic> = emptyMap(),
     val dependencyGraph: Map<String, List<String>>,
-    val pluginPerformance: Map<String, PluginPerformanceDiagnostics>
+    val pluginPerformance: Map<String, PluginPerformanceDiagnostics>,
+    val isolationViolations: Map<String, List<RuntimeIsolationViolation>> = emptyMap()
 )
 
 data class PluginPerformanceDiagnostics(

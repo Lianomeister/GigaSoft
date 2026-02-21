@@ -59,6 +59,7 @@ import com.clockwork.runtime.PluginRuntimeProfile
 import com.clockwork.runtime.ReloadReport
 import com.clockwork.runtime.ReloadStatus
 import com.clockwork.runtime.RuntimeCommandRegistry
+import com.clockwork.runtime.RuntimeCommandExecution
 import com.clockwork.runtime.RuntimeDiagnostics
 import com.clockwork.runtime.RuntimeRegistry
 import com.clockwork.runtime.SystemIsolationSnapshot
@@ -208,7 +209,8 @@ class GigaStandaloneCore(
     private val maxPluginDownloadBytes = 64L * 1024L * 1024L
     private val defaultPluginSeedMarker = config.dataDirectory.resolve("bootstrap/default-plugins-seeded.marker")
     private val bundledDefaultPlugins = listOf(
-        "default-plugins/clockwork-plugin-browser.jar"
+        "default-plugins/clockwork-plugin-browser.jar",
+        "default-plugins/clockwork-plugin-bridged.jar"
     )
     private data class TickPluginSnapshot(
         val pluginId: String,
@@ -434,7 +436,7 @@ class GigaStandaloneCore(
         ensureRuntimeInitialized()
         val plugin = runtime.loadedPlugin(pluginId)
             ?: return "Unknown plugin: $pluginId"
-        val registry = plugin.context.commands as? RuntimeCommandRegistry
+        val registry = plugin.context.commands as? RuntimeCommandExecution
             ?: return "Plugin command registry unavailable"
         return registry.execute(plugin.context, sender, commandLine)
     }
@@ -1548,7 +1550,6 @@ class GigaStandaloneCore(
     }
 
     private fun ensureBundledDefaultPlugins() {
-        if (Files.exists(defaultPluginSeedMarker)) return
         Files.createDirectories(config.pluginsDirectory)
         Files.createDirectories(defaultPluginSeedMarker.parent)
 

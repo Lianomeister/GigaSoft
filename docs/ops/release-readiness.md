@@ -54,7 +54,7 @@ Deterministic runtime ordering guarantees:
 ## Pipelines
 
 - Release gate:
-  - `./gradlew --no-daemon clean :clockwork-api:apiCheck :clockwork-host-api:apiCheck apiCompatibilityReport test performanceBaseline standaloneReleaseCandidate`
+  - `./gradlew --no-daemon clean :clockwork-api:apiCheck :clockwork-host-api:apiCheck :clockwork-api:contractTest :clockwork-host-api:contractTest apiContractsFreezeGate apiCompatibilityReport test performanceBaseline standaloneReleaseCandidate`
 - Smoke:
   - `./gradlew --no-daemon integrationSmoke`
 - Soak:
@@ -146,6 +146,9 @@ Validation coverage:
 - `test` green
 - `:clockwork-api:apiCheck` green
 - `:clockwork-host-api:apiCheck` green
+- `:clockwork-api:contractTest` green
+- `:clockwork-host-api:contractTest` green
+- `apiContractsFreezeGate` green (`build/reports/api-compatibility/v1.7-freeze-report.md`)
 - `apiCompatibilityReport` generated (`build/reports/api-compatibility/report.md`)
 - `performanceBaseline` green
 - `standaloneReleaseCandidate` green

@@ -7,3 +7,16 @@ dependencies {
     api(kotlin("stdlib"))
     api(project(":clockwork-api"))
 }
+
+tasks.register<Test>("contractTest") {
+    group = "verification"
+    description = "Runs API contract-focused tests for clockwork-host-api"
+    val testSourceSet = sourceSets["test"]
+    testClassesDirs = testSourceSet.output.classesDirs
+    classpath = testSourceSet.runtimeClasspath
+    useJUnitPlatform()
+    filter {
+        includeTestsMatching("*Contract*")
+        includeTestsMatching("*Contracts*")
+    }
+}

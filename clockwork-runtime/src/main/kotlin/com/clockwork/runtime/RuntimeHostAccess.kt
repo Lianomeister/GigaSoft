@@ -16,12 +16,16 @@ import com.clockwork.api.HostPluginInstallResult
 import com.clockwork.api.HostPlayerStatusSnapshot
 import com.clockwork.api.HostServerSnapshot
 import com.clockwork.api.HostWorldSnapshot
+import com.clockwork.api.EventBus
 
 internal class RuntimeHostAccess(
     private val delegate: HostAccess,
     private val pluginId: String,
     rawPermissions: Collection<String>,
-    private val logger: GigaLogger
+    private val logger: GigaLogger,
+    private val isolationPolicy: RuntimeIsolationPolicy = RuntimeIsolationPolicy.legacy(rawPermissions),
+    private val isolationAuditor: RuntimeIsolationAuditor? = null,
+    private val eventBus: EventBus? = null
 ) : HostAccess {
     private val permissions = rawPermissions.map { it.trim() }.filter { it.isNotEmpty() }.toSet()
 
@@ -91,6 +95,7 @@ internal class RuntimeHostAccess(
     }
 
     override fun spawnEntity(type: String, location: HostLocationRef): HostEntitySnapshot? {
+        if (!capabilityAllowed(RuntimeCapability.WORLD_MUTATION, "host.spawn-entity", IsolationDiagnosticCodes.WORLD_MUTATION_CAPABILITY_REQUIRED, "Missing world-mutation capability")) return null
         if (!allowed(HostPermissions.ENTITY_SPAWN)) return null
         return delegate.spawnEntity(type, location)
     }
@@ -101,11 +106,13 @@ internal class RuntimeHostAccess(
     }
 
     override fun setPlayerInventoryItem(name: String, slot: Int, itemId: String): Boolean {
+        if (!capabilityAllowed(RuntimeCapability.WORLD_MUTATION, "host.set-player-inventory-item", IsolationDiagnosticCodes.WORLD_MUTATION_CAPABILITY_REQUIRED, "Missing world-mutation capability")) return false
         if (!allowed(HostPermissions.INVENTORY_WRITE)) return false
         return delegate.setPlayerInventoryItem(name, slot, itemId)
     }
 
     override fun createWorld(name: String, seed: Long): HostWorldSnapshot? {
+        if (!capabilityAllowed(RuntimeCapability.WORLD_MUTATION, "host.create-world", IsolationDiagnosticCodes.WORLD_MUTATION_CAPABILITY_REQUIRED, "Missing world-mutation capability")) return null
         if (!allowed(HostPermissions.WORLD_WRITE)) return null
         return delegate.createWorld(name, seed)
     }
@@ -116,6 +123,7 @@ internal class RuntimeHostAccess(
     }
 
     override fun setWorldTime(name: String, time: Long): Boolean {
+        if (!capabilityAllowed(RuntimeCapability.WORLD_MUTATION, "host.set-world-time", IsolationDiagnosticCodes.WORLD_MUTATION_CAPABILITY_REQUIRED, "Missing world-mutation capability")) return false
         if (!allowed(HostPermissions.WORLD_WRITE)) return false
         return delegate.setWorldTime(name, time)
     }
@@ -126,6 +134,7 @@ internal class RuntimeHostAccess(
     }
 
     override fun setWorldData(name: String, data: Map<String, String>): Map<String, String>? {
+        if (!capabilityAllowed(RuntimeCapability.WORLD_MUTATION, "host.set-world-data", IsolationDiagnosticCodes.WORLD_MUTATION_CAPABILITY_REQUIRED, "Missing world-mutation capability")) return null
         if (!allowed(HostPermissions.WORLD_DATA_WRITE)) return null
         return delegate.setWorldData(name, data)
     }
@@ -136,6 +145,7 @@ internal class RuntimeHostAccess(
     }
 
     override fun setWorldWeather(name: String, weather: String): Boolean {
+        if (!capabilityAllowed(RuntimeCapability.WORLD_MUTATION, "host.set-world-weather", IsolationDiagnosticCodes.WORLD_MUTATION_CAPABILITY_REQUIRED, "Missing world-mutation capability")) return false
         if (!allowed(HostPermissions.WORLD_WEATHER_WRITE)) return false
         return delegate.setWorldWeather(name, weather)
     }
@@ -146,6 +156,7 @@ internal class RuntimeHostAccess(
     }
 
     override fun removeEntity(uuid: String): Boolean {
+        if (!capabilityAllowed(RuntimeCapability.WORLD_MUTATION, "host.remove-entity", IsolationDiagnosticCodes.WORLD_MUTATION_CAPABILITY_REQUIRED, "Missing world-mutation capability")) return false
         if (!allowed(HostPermissions.ENTITY_REMOVE)) return false
         return delegate.removeEntity(uuid)
     }
@@ -156,11 +167,13 @@ internal class RuntimeHostAccess(
     }
 
     override fun setEntityData(uuid: String, data: Map<String, String>): Map<String, String>? {
+        if (!capabilityAllowed(RuntimeCapability.WORLD_MUTATION, "host.set-entity-data", IsolationDiagnosticCodes.WORLD_MUTATION_CAPABILITY_REQUIRED, "Missing world-mutation capability")) return null
         if (!allowed(HostPermissions.ENTITY_DATA_WRITE)) return null
         return delegate.setEntityData(uuid, data)
     }
 
     override fun movePlayer(name: String, location: HostLocationRef): HostPlayerSnapshot? {
+        if (!capabilityAllowed(RuntimeCapability.WORLD_MUTATION, "host.move-player", IsolationDiagnosticCodes.WORLD_MUTATION_CAPABILITY_REQUIRED, "Missing world-mutation capability")) return null
         if (!allowed(HostPermissions.PLAYER_MOVE)) return null
         return delegate.movePlayer(name, location)
     }
@@ -171,6 +184,7 @@ internal class RuntimeHostAccess(
     }
 
     override fun setPlayerGameMode(name: String, gameMode: String): Boolean {
+        if (!capabilityAllowed(RuntimeCapability.WORLD_MUTATION, "host.set-player-gamemode", IsolationDiagnosticCodes.WORLD_MUTATION_CAPABILITY_REQUIRED, "Missing world-mutation capability")) return false
         if (!allowed(HostPermissions.PLAYER_GAMEMODE_WRITE)) return false
         return delegate.setPlayerGameMode(name, gameMode)
     }
@@ -181,16 +195,19 @@ internal class RuntimeHostAccess(
     }
 
     override fun setPlayerStatus(name: String, status: HostPlayerStatusSnapshot): HostPlayerStatusSnapshot? {
+        if (!capabilityAllowed(RuntimeCapability.WORLD_MUTATION, "host.set-player-status", IsolationDiagnosticCodes.WORLD_MUTATION_CAPABILITY_REQUIRED, "Missing world-mutation capability")) return null
         if (!allowed(HostPermissions.PLAYER_STATUS_WRITE)) return null
         return delegate.setPlayerStatus(name, status)
     }
 
     override fun addPlayerEffect(name: String, effectId: String, durationTicks: Int, amplifier: Int): Boolean {
+        if (!capabilityAllowed(RuntimeCapability.WORLD_MUTATION, "host.add-player-effect", IsolationDiagnosticCodes.WORLD_MUTATION_CAPABILITY_REQUIRED, "Missing world-mutation capability")) return false
         if (!allowed(HostPermissions.PLAYER_EFFECT_WRITE)) return false
         return delegate.addPlayerEffect(name, effectId, durationTicks, amplifier)
     }
 
     override fun removePlayerEffect(name: String, effectId: String): Boolean {
+        if (!capabilityAllowed(RuntimeCapability.WORLD_MUTATION, "host.remove-player-effect", IsolationDiagnosticCodes.WORLD_MUTATION_CAPABILITY_REQUIRED, "Missing world-mutation capability")) return false
         if (!allowed(HostPermissions.PLAYER_EFFECT_WRITE)) return false
         return delegate.removePlayerEffect(name, effectId)
     }
@@ -201,6 +218,7 @@ internal class RuntimeHostAccess(
     }
 
     override fun givePlayerItem(name: String, itemId: String, count: Int): Int {
+        if (!capabilityAllowed(RuntimeCapability.WORLD_MUTATION, "host.give-player-item", IsolationDiagnosticCodes.WORLD_MUTATION_CAPABILITY_REQUIRED, "Missing world-mutation capability")) return 0
         if (!allowed(HostPermissions.INVENTORY_WRITE)) return 0
         return delegate.givePlayerItem(name, itemId, count)
     }
@@ -211,11 +229,13 @@ internal class RuntimeHostAccess(
     }
 
     override fun setBlock(world: String, x: Int, y: Int, z: Int, blockId: String): com.clockwork.api.HostBlockSnapshot? {
+        if (!capabilityAllowed(RuntimeCapability.WORLD_MUTATION, "host.set-block", IsolationDiagnosticCodes.WORLD_MUTATION_CAPABILITY_REQUIRED, "Missing world-mutation capability")) return null
         if (!allowed(HostPermissions.BLOCK_WRITE)) return null
         return delegate.setBlock(world, x, y, z, blockId)
     }
 
     override fun breakBlock(world: String, x: Int, y: Int, z: Int, dropLoot: Boolean): Boolean {
+        if (!capabilityAllowed(RuntimeCapability.WORLD_MUTATION, "host.break-block", IsolationDiagnosticCodes.WORLD_MUTATION_CAPABILITY_REQUIRED, "Missing world-mutation capability")) return false
         if (!allowed(HostPermissions.BLOCK_WRITE)) return false
         return delegate.breakBlock(world, x, y, z, dropLoot)
     }
@@ -226,6 +246,7 @@ internal class RuntimeHostAccess(
     }
 
     override fun setBlockData(world: String, x: Int, y: Int, z: Int, data: Map<String, String>): Map<String, String>? {
+        if (!capabilityAllowed(RuntimeCapability.WORLD_MUTATION, "host.set-block-data", IsolationDiagnosticCodes.WORLD_MUTATION_CAPABILITY_REQUIRED, "Missing world-mutation capability")) return null
         if (!allowed(HostPermissions.BLOCK_DATA_WRITE)) return null
         return delegate.setBlockData(world, x, y, z, data)
     }
@@ -236,6 +257,19 @@ internal class RuntimeHostAccess(
         readTimeoutMillis: Int,
         maxBodyChars: Int
     ): HostHttpResponse? {
+        if (!capabilityAllowed(RuntimeCapability.NETWORK, "host.http-get", IsolationDiagnosticCodes.NETWORK_CAPABILITY_REQUIRED, "Missing network capability")) return null
+        if (isolationPolicy.enabled) {
+            val urlValidation = isolationPolicy.validateUrl(url)
+            if (!urlValidation.ok) {
+                recordViolation(
+                    capability = RuntimeCapability.NETWORK,
+                    action = "host.http-get",
+                    code = urlValidation.code ?: IsolationDiagnosticCodes.NETWORK_PATH_DENIED,
+                    detail = urlValidation.detail ?: "URL denied"
+                )
+                return null
+            }
+        }
         if (!allowed(HostPermissions.INTERNET_HTTP_GET)) return null
         return delegate.httpGet(
             url = url,
@@ -246,6 +280,26 @@ internal class RuntimeHostAccess(
     }
 
     override fun installPluginFromUrl(url: String, fileName: String?, loadNow: Boolean): HostPluginInstallResult {
+        if (!capabilityAllowed(RuntimeCapability.NETWORK, "host.install-plugin", IsolationDiagnosticCodes.NETWORK_CAPABILITY_REQUIRED, "Missing network capability")) {
+            return HostPluginInstallResult(
+                success = false,
+                loaded = false,
+                message = "[${IsolationDiagnosticCodes.NETWORK_CAPABILITY_REQUIRED}] Missing network capability"
+            )
+        }
+        if (isolationPolicy.enabled) {
+            val urlValidation = isolationPolicy.validateUrl(url)
+            if (!urlValidation.ok) {
+                val code = urlValidation.code ?: IsolationDiagnosticCodes.NETWORK_PATH_DENIED
+                val detail = urlValidation.detail ?: "URL denied"
+                recordViolation(RuntimeCapability.NETWORK, "host.install-plugin", code, detail)
+                return HostPluginInstallResult(
+                    success = false,
+                    loaded = false,
+                    message = "[$code] $detail"
+                )
+            }
+        }
         if (!allowed(HostPermissions.PLUGIN_INSTALL)) {
             return HostPluginInstallResult(
                 success = false,
@@ -261,6 +315,15 @@ internal class RuntimeHostAccess(
     }
 
     override fun applyMutationBatch(batch: HostMutationBatch): HostMutationBatchResult {
+        if (!capabilityAllowed(RuntimeCapability.WORLD_MUTATION, "host.apply-mutation-batch", IsolationDiagnosticCodes.WORLD_MUTATION_CAPABILITY_REQUIRED, "Missing world-mutation capability")) {
+            return HostMutationBatchResult(
+                batchId = batch.id,
+                success = false,
+                appliedOperations = 0,
+                rolledBack = false,
+                error = "[${IsolationDiagnosticCodes.WORLD_MUTATION_CAPABILITY_REQUIRED}] Missing world-mutation capability"
+            )
+        }
         if (!allowed(HostPermissions.MUTATION_BATCH)) {
             return HostMutationBatchResult(
                 batchId = batch.id,
@@ -311,5 +374,24 @@ internal class RuntimeHostAccess(
         if (permission in permissions) return true
         logger.info("Denied host access for plugin '$pluginId': missing permission '$permission'")
         return false
+    }
+
+    private fun capabilityAllowed(capability: RuntimeCapability, action: String, code: String, detail: String): Boolean {
+        if (!isolationPolicy.enabled) return true
+        if (isolationPolicy.hasCapability(capability)) return true
+        recordViolation(capability = capability, action = action, code = code, detail = detail)
+        return false
+    }
+
+    private fun recordViolation(capability: RuntimeCapability, action: String, code: String, detail: String) {
+        isolationAuditor?.record(
+            pluginId = pluginId,
+            capability = capability,
+            action = action,
+            code = code,
+            detail = detail,
+            logger = logger,
+            eventBus = eventBus
+        )
     }
 }

@@ -9,11 +9,13 @@ import com.clockwork.net.StandaloneNetServer
 import com.clockwork.net.StandaloneSessionHandler
 import com.clockwork.runtime.ReloadStatus
 import org.junit.jupiter.api.Tag
+import java.lang.management.ManagementFactory
 import java.net.Socket
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.jar.JarEntry
 import java.util.jar.JarOutputStream
+import kotlin.system.measureNanoTime
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -208,6 +210,97 @@ class StandaloneOpsSoakTest {
         } finally {
             core.stop()
         }
+    }
+
+    @Test
+    fun `latency and memory drift stay bounded over soak windows`() {
+        val root = Files.createTempDirectory("clockwork-standalone-ops-soak-drift")
+        val core = GigaStandaloneCore(
+            config = StandaloneCoreConfig(
+                pluginsDirectory = root.resolve("plugins"),
+                dataDirectory = root.resolve("data"),
+                tickPeriodMillis = 1L,
+                autoSaveEveryTicks = 0L
+            ),
+            logger = {}
+        )
+        core.start()
+        val net = StandaloneNetServer(
+            config = StandaloneNetConfig(
+                host = "127.0.0.1",
+                port = 0,
+                authRequired = false,
+                maxRequestsPerMinutePerConnection = 40_000,
+                maxRequestsPerMinutePerIp = 40_000
+            ),
+            logger = {},
+            handler = object : StandaloneSessionHandler {
+                override fun join(name: String, world: String, x: Double, y: Double, z: Double): SessionActionResult = SessionActionResult(true, "JOINED", "ok")
+                override fun leave(name: String): SessionActionResult = SessionActionResult(true, "LEFT", "ok")
+                override fun move(name: String, x: Double, y: Double, z: Double, world: String?): SessionActionResult = SessionActionResult(true, "MOVED", "ok")
+                override fun lookup(name: String): SessionActionResult = SessionActionResult(true, "FOUND", "ok")
+                override fun who(name: String?): SessionActionResult = SessionActionResult(true, "WHOAMI", "ok")
+                override fun worldCreate(name: String, seed: Long): SessionActionResult = SessionActionResult(true, "WORLD_CREATED", "ok")
+                override fun entitySpawn(type: String, world: String, x: Double, y: Double, z: Double): SessionActionResult = SessionActionResult(true, "ENTITY_SPAWNED", "ok")
+                override fun inventorySet(owner: String, slot: Int, itemId: String): SessionActionResult = SessionActionResult(true, "INVENTORY_UPDATED", "ok")
+            }
+        )
+        net.start()
+        try {
+            val port = waitForPort(net)
+            val windows = 8
+            val requestsPerWindow = 800
+            val latencyMicros = DoubleArray(windows)
+            val usedHeap = LongArray(windows)
+
+            Socket("127.0.0.1", port).use { socket ->
+                val reader = socket.getInputStream().bufferedReader()
+                val writer = socket.getOutputStream().bufferedWriter()
+                repeat(windows) { window ->
+                    val nanos = measureNanoTime {
+                        repeat(requestsPerWindow) { idx ->
+                            val response = sendJson(reader, writer, "ping", "drift-${window}_$idx")
+                            assertTrue(response.path("success").asBoolean())
+                        }
+                    }
+                    latencyMicros[window] = (nanos / requestsPerWindow) / 1_000.0
+                    usedHeap[window] = ManagementFactory.getMemoryMXBean().heapMemoryUsage.used
+                    Thread.sleep(25)
+                }
+            }
+
+            val firstWindowAvg = (latencyMicros[0] + latencyMicros[1]) / 2.0
+            val tailWindowAvg = (latencyMicros[windows - 2] + latencyMicros[windows - 1]) / 2.0
+            val firstHeap = usedHeap[0]
+            val maxHeap = usedHeap.maxOrNull() ?: firstHeap
+            val heapGrowthBytes = maxHeap - firstHeap
+
+            assertTrue(tailWindowAvg < firstWindowAvg * 2.5 + 250.0, "Latency drift regression: start=${firstWindowAvg}us tail=${tailWindowAvg}us")
+            assertTrue(heapGrowthBytes < 96L * 1024L * 1024L, "Heap drift regression: growth=${heapGrowthBytes} bytes")
+            assertTrue(core.status().running)
+        } finally {
+            net.stop()
+            core.stop()
+        }
+    }
+
+    private fun sendJson(
+        reader: java.io.BufferedReader,
+        writer: java.io.BufferedWriter,
+        action: String,
+        requestId: String
+    ): com.fasterxml.jackson.databind.JsonNode {
+        val request = mapOf(
+            "protocol" to "clockwork-standalone-net",
+            "version" to 1,
+            "requestId" to requestId,
+            "action" to action,
+            "payload" to emptyMap<String, String>()
+        )
+        writer.write(mapper.writeValueAsString(request))
+        writer.newLine()
+        writer.flush()
+        return mapper.readTree(reader.readLine())
     }
 
     private fun writeDemoManifestJar(

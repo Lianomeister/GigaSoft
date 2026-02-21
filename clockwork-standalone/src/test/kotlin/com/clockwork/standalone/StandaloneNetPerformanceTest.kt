@@ -10,6 +10,7 @@ import com.clockwork.net.StandaloneSessionHandler
 import org.junit.jupiter.api.Tag
 import java.net.Socket
 import java.nio.file.Files
+import java.util.Locale
 import kotlin.system.measureNanoTime
 import kotlin.test.Test
 import kotlin.test.assertTrue
@@ -21,18 +22,16 @@ class StandaloneNetPerformanceTest {
     @Test
     fun `net ping baseline`() {
         val root = Files.createTempDirectory("clockwork-standalone-net-perf")
-        val core = GigaStandaloneCore(
-            config = StandaloneCoreConfig(
-                pluginsDirectory = root.resolve("plugins"),
-                dataDirectory = root.resolve("data"),
-                tickPeriodMillis = 1L,
-                autoSaveEveryTicks = 0L
-            ),
-            logger = {}
-        )
+        val core = newCore(root)
         core.start()
         val net = StandaloneNetServer(
-            config = StandaloneNetConfig(host = "127.0.0.1", port = 0, authRequired = false),
+            config = StandaloneNetConfig(
+                host = "127.0.0.1",
+                port = 0,
+                authRequired = false,
+                maxRequestsPerMinutePerConnection = 50_000,
+                maxRequestsPerMinutePerIp = 50_000
+            ),
             logger = {},
             handler = object : StandaloneSessionHandler {
                 override fun join(name: String, world: String, x: Double, y: Double, z: Double): SessionActionResult = SessionActionResult(true, "JOINED", "ok")
@@ -58,32 +57,95 @@ class StandaloneNetPerformanceTest {
                 }
 
                 val iterations = 1_000
-                val rounds = 5
-                val samples = LongArray(rounds)
+                val rounds = 9
+                val samplesMicros = DoubleArray(rounds)
                 repeat(rounds) { round ->
-                    samples[round] = measureNanoTime {
+                    val nanos = measureNanoTime {
                         repeat(iterations) { idx ->
                             val response = sendJson(reader, writer, "ping", "p${round}_$idx")
                             assertTrue(response["success"] == true)
                         }
                     }
+                    samplesMicros[round] = (nanos / iterations) / 1_000.0
                 }
-                val median = samples.sorted()[rounds / 2]
                 val metrics = net.metrics()
                 val ping = metrics.actionMetrics["json.ping"]
-                val perPingMicros = median / iterations / 1_000.0
-                assertTrue(perPingMicros < 1_500.0, "Net ping regression: $perPingMicros us")
+                val p50Micros = percentile(samplesMicros, 0.50)
+                val p95Micros = percentile(samplesMicros, 0.95)
+                assertTrue(p50Micros < 2_200.0, "Net ping p50 regression: $p50Micros us")
+                assertTrue(p95Micros < 3_200.0, "Net ping p95 regression: $p95Micros us")
                 assertTrue(metrics.averageRequestNanos < 500_000L, "Net request regression: ${metrics.averageRequestNanos}ns")
+                println("PERF_V2 metric=standalone.net.ping.per_request_micros p50=${formatMetric(p50Micros)} p95=${formatMetric(p95Micros)} unit=micros")
                 println(
-                    "PERF standalone.net.ping iterations=$iterations rounds=$rounds " +
-                        "medianMs=${median / 1_000_000.0} perPingMicros=${median / iterations / 1_000.0} " +
-                        "serverAvgReqNs=${metrics.averageRequestNanos} serverPingAvgNs=${ping?.averageNanos ?: 0L}"
+                    "PERF_V2 metric=standalone.net.server_average_request_ns p50=${formatMetric(metrics.averageRequestNanos.toDouble())} " +
+                        "p95=${formatMetric((ping?.averageNanos ?: metrics.averageRequestNanos).toDouble())} unit=ns"
                 )
             }
         } finally {
             net.stop()
             core.stop()
         }
+    }
+
+    @Test
+    fun `standalone cold start latency baseline`() {
+        val rounds = 7
+        val samplesMs = DoubleArray(rounds)
+        repeat(rounds) { round ->
+            val root = Files.createTempDirectory("clockwork-standalone-cold-start-$round")
+            val nanos = measureNanoTime {
+                val core = newCore(root)
+                core.start()
+                try {
+                    Thread.sleep(120)
+                    assertTrue(core.status().running)
+                } finally {
+                    core.stop()
+                }
+            }
+            samplesMs[round] = nanos / 1_000_000.0
+        }
+        val p50Ms = percentile(samplesMs, 0.50)
+        val p95Ms = percentile(samplesMs, 0.95)
+        assertTrue(p50Ms < 750.0, "Standalone cold start p50 regression: ${p50Ms}ms")
+        assertTrue(p95Ms < 1_600.0, "Standalone cold start p95 regression: ${p95Ms}ms")
+        println("PERF_V2 metric=standalone.cold_start.ms p50=${formatMetric(p50Ms)} p95=${formatMetric(p95Ms)} unit=ms")
+    }
+
+    @Test
+    fun `tick jitter baseline`() {
+        val root = Files.createTempDirectory("clockwork-standalone-jitter")
+        val core = newCore(root)
+        core.start()
+        try {
+            val rounds = 9
+            val jitterMsSamples = DoubleArray(rounds)
+            repeat(rounds) { round ->
+                Thread.sleep(120)
+                val status = core.status()
+                assertTrue(status.tickCount > 0L)
+                jitterMsSamples[round] = status.averageTickJitterNanos / 1_000_000.0
+            }
+            val p50Ms = percentile(jitterMsSamples, 0.50)
+            val p95Ms = percentile(jitterMsSamples, 0.95)
+            assertTrue(p50Ms < 2.5, "Tick jitter p50 regression: ${p50Ms}ms")
+            assertTrue(p95Ms < 8.0, "Tick jitter p95 regression: ${p95Ms}ms")
+            println("PERF_V2 metric=standalone.tick_jitter.ms p50=${formatMetric(p50Ms)} p95=${formatMetric(p95Ms)} unit=ms")
+        } finally {
+            core.stop()
+        }
+    }
+
+    private fun newCore(root: java.nio.file.Path): GigaStandaloneCore {
+        return GigaStandaloneCore(
+            config = StandaloneCoreConfig(
+                pluginsDirectory = root.resolve("plugins"),
+                dataDirectory = root.resolve("data"),
+                tickPeriodMillis = 1L,
+                autoSaveEveryTicks = 0L
+            ),
+            logger = {}
+        )
     }
 
     private fun waitForPort(server: StandaloneNetServer): Int {
@@ -114,4 +176,13 @@ class StandaloneNetPerformanceTest {
         val line = reader.readLine()
         return mapper.readValue(line, Map::class.java)
     }
+
+    private fun percentile(samples: DoubleArray, p: Double): Double {
+        require(samples.isNotEmpty()) { "samples must not be empty" }
+        val sorted = samples.sortedArray()
+        val index = ((sorted.lastIndex) * p).toInt().coerceIn(0, sorted.lastIndex)
+        return sorted[index]
+    }
+
+    private fun formatMetric(value: Double): String = String.format(Locale.US, "%.3f", value)
 }

@@ -1,0 +1,46 @@
+{
+  "version": "v2",
+  "generatedAt": "2026-02-21",
+  "metrics": {
+    "runtime.adapter.invoke.per_invoke_micros": {
+      "p50_max": 500.0,
+      "p95_max": 700.0
+    },
+    "runtime.reload.latency_ms": {
+      "p50_max": 250.0,
+      "p95_max": 650.0
+    },
+    "core.hoststate.join_ms": {
+      "p50_max": 250.0,
+      "p95_max": 350.0
+    },
+    "core.hoststate.move_ms": {
+      "p50_max": 150.0,
+      "p95_max": 250.0
+    },
+    "core.hoststate.spawn_ms": {
+      "p50_max": 350.0,
+      "p95_max": 500.0
+    },
+    "core.chunk.write_ms": {
+      "p50_max": 500.0,
+      "p95_max": 750.0
+    },
+    "core.chunk.read_ms": {
+      "p50_max": 300.0,
+      "p95_max": 450.0
+    },
+    "standalone.net.ping.per_request_micros": {
+      "p50_max": 2200.0,
+      "p95_max": 3200.0
+    },
+    "standalone.cold_start.ms": {
+      "p50_max": 750.0,
+      "p95_max": 1600.0
+    },
+    "standalone.tick_jitter.ms": {
+      "p50_max": 2.5,
+      "p95_max": 8.0
+    }
+  }
+}

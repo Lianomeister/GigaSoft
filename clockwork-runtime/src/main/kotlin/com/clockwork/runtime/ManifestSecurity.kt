@@ -11,8 +11,12 @@ object ManifestSecurity {
     private val permissionRegex = Regex("^[a-z0-9._-]{2,80}$")
     private val apiVersionRegex = Regex("^\\d+(\\.\\d+)?$")
     private val versionRangeRegex = Regex("^[<>=0-9.\\s-]+$")
+    private val capabilityRegex = Regex("^[a-z][a-z0-9-]{1,31}$")
     private const val maxDependencies = 32
     private const val maxPermissions = 64
+    private const val maxCapabilities = 16
+    private const val maxIsolationEntriesPerList = 64
+    private const val maxIsolationEntryLength = 180
     private const val maxVersionRangeLength = 64
 
     fun validate(manifest: PluginManifest) {
@@ -32,7 +36,34 @@ object ManifestSecurity {
             require(permissionRegex.matches(permission)) { "Invalid permission '$permission'" }
             require(seenPermissions.add(permission)) { "Duplicate permission '$permission'" }
         }
+        require(manifest.capabilities.size <= maxCapabilities) {
+            "Too many capabilities (${manifest.capabilities.size} > $maxCapabilities)"
+        }
+        val seenCapabilities = mutableSetOf<String>()
+        manifest.capabilities.forEach { capability ->
+            val normalized = capability.trim().lowercase()
+            require(capabilityRegex.matches(normalized)) { "Invalid capability '$capability'" }
+            require(seenCapabilities.add(normalized)) { "Duplicate capability '$capability'" }
+        }
+        validateIsolationList("filesystemAllowlist", manifest.isolation.filesystemAllowlist)
+        validateIsolationList("networkProtocolAllowlist", manifest.isolation.networkProtocolAllowlist)
+        validateIsolationList("networkHostAllowlist", manifest.isolation.networkHostAllowlist)
+        validateIsolationList("networkPathAllowlist", manifest.isolation.networkPathAllowlist)
+        validateIsolationList("commandAllowlist", manifest.isolation.commandAllowlist)
         validateDependencies(manifest.id, manifest.dependencies)
+    }
+
+    private fun validateIsolationList(name: String, values: List<String>) {
+        require(values.size <= maxIsolationEntriesPerList) {
+            "$name has too many entries (${values.size} > $maxIsolationEntriesPerList)"
+        }
+        values.forEach { raw ->
+            val value = raw.trim()
+            require(value.isNotEmpty()) { "$name contains blank entry" }
+            require(value.length <= maxIsolationEntryLength) {
+                "$name entry exceeds max length ($maxIsolationEntryLength): '$value'"
+            }
+        }
     }
 
     private fun validateDependencies(pluginId: String, dependencies: List<DependencySpec>) {
