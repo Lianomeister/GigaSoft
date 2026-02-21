@@ -7,6 +7,13 @@
 - Default standalone server version moved to `1.1.0-SNAPSHOT`.
 - DSL default plugin version moved to `1.1.0-SNAPSHOT` for active development.
 
+### Added
+- Plugin API ergonomic helpers:
+  - reified `EventBus.subscribe<T>`,
+  - reified `StorageProvider.store<T>`,
+  - simplified command registration helpers without explicit `PluginContext` argument,
+  - `PluginContext.hasPermission(...)` and `PluginContext.requirePermission(...)`.
+
 ### Planned
 - Network v1.1 improvements (session throughput and backpressure tuning).
 - Core host consistency/performance expansion for production gameplay scenarios.

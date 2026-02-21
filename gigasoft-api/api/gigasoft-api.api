@@ -453,6 +453,15 @@ public abstract interface class com/gigasoft/api/PersistentStore {
 	public abstract fun save (Ljava/lang/Object;)V
 }
 
+public final class com/gigasoft/api/PluginApiExtensionsKt {
+	public static final fun hasPermission (Lcom/gigasoft/api/PluginContext;Ljava/lang/String;)Z
+	public static final fun register (Lcom/gigasoft/api/CommandRegistry;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function2;)V
+	public static synthetic fun register$default (Lcom/gigasoft/api/CommandRegistry;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function2;ILjava/lang/Object;)V
+	public static final fun registerOrReplace (Lcom/gigasoft/api/CommandRegistry;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function2;)V
+	public static synthetic fun registerOrReplace$default (Lcom/gigasoft/api/CommandRegistry;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function2;ILjava/lang/Object;)V
+	public static final fun requirePermission (Lcom/gigasoft/api/PluginContext;Ljava/lang/String;)V
+}
+
 public abstract interface class com/gigasoft/api/PluginContext {
 	public abstract fun getAdapters ()Lcom/gigasoft/api/ModAdapterRegistry;
 	public abstract fun getCommands ()Lcom/gigasoft/api/CommandRegistry;

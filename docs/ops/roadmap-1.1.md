@@ -2,29 +2,26 @@
 
 ## Scope
 
-- Keep API 1.x compatibility stable while improving runtime and standalone behavior.
-- Focus on production readiness for plugin-heavy deployments.
+- Keep API 1.x compatibility stable while expanding plugin author ergonomics.
+- 1.1 is primarily focused on Plugin API improvements and plugin developer workflows.
 
 ## Workstreams
 
-### 1) Network
-- Improve request pipeline throughput under sustained load.
-- Add stricter backpressure behavior for overloaded connections.
-- Extend performance and abuse tests with reproducible scenarios.
+### 1) Plugin API (Primary)
+- Add ergonomic, non-breaking API helpers for common plugin tasks.
+- Improve event/command/storage APIs for less boilerplate and safer defaults.
+- Expand API reference and migration notes with plugin-first examples.
 
-### 2) Core Gameplay Host
-- Harden atomic updates for worlds/entities/inventories under concurrent mutation pressure.
-- Reduce tick-loop overhead in high-entity simulations.
-- Add deterministic restore tests for larger snapshots.
+### 2) Runtime/Plugin Execution
+- Improve diagnostics around slow systems/adapters from plugin perspective.
+- Tighten plugin fault isolation behavior in long-running sessions.
 
-### 3) Runtime/Plugin Execution
-- Optimize event dispatch and adapter invoke hotpaths further.
-- Improve runtime diagnostics for slow systems/adapters.
-- Tighten plugin fault-isolation behavior in long-running sessions.
+### 3) Host and Network (Secondary)
+- Keep throughput and backpressure improvements as secondary scope.
+- Prioritize changes that directly improve plugin-facing behavior/contracts.
 
 ### 4) DX and Operations
-- Expand docs with scenario-based troubleshooting.
-- Improve CLI/operator workflows for smoke/soak/perf runs.
+- Expand docs with scenario-based troubleshooting for plugin authors.
 - Keep CI release gates strict: `apiCheck`, `test`, `performanceBaseline`, `standaloneReleaseCandidate`, `smokeTest`, `soakTest`.
 
 ## Definition of Done for 1.1

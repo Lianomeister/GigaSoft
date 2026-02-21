@@ -49,6 +49,7 @@ Read views:
 
 - `subscribe(eventType, listener)`
 - `publish(event)`
+- 1.1 helper: `subscribe<T> { ... }` (reified typed subscription)
 
 Dispatch mode:
 
@@ -118,6 +119,10 @@ Runtime policies:
 
 `StorageProvider.store(key, type, version)` returns `PersistentStore<T>`
 
+1.1 helper:
+
+- `store<T>(key, version)` (reified typed store lookup)
+
 - `load()`
 - `save(value)`
 - `migrate(fromVersion, migration)`
@@ -139,6 +144,18 @@ Additional lifecycle-safe operations:
 Action signature:
 
 - `(ctx, sender, args) -> String`
+
+1.1 helpers:
+
+- `register(command, description) { sender, args -> ... }`
+- `registerOrReplace(command, description) { sender, args -> ... }`
+
+## Plugin Permission Helpers
+
+1.1 helpers on `PluginContext`:
+
+- `hasPermission(permission)`
+- `requirePermission(permission)`
 
 ## DSL Entry
 
