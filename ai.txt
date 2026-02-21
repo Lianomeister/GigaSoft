@@ -1,17 +1,17 @@
-# GigaSoft AI Handover
+# Clockwork AI Handover
 
 ## Projektstatus
-GigaSoft ist standalone-first. Der aktive Release-Pfad ist rein standalone.
+Clockwork ist standalone-first. Der aktive Release-Pfad ist rein standalone.
 
 ## Aktive Module
-- `gigasoft-api`
-- `gigasoft-host-api`
-- `gigasoft-net`
-- `gigasoft-runtime`
-- `gigasoft-core`
-- `gigasoft-standalone`
-- `gigasoft-cli`
-- `gigasoft-demo-standalone`
+- `clockwork-api`
+- `clockwork-host-api`
+- `clockwork-net`
+- `clockwork-runtime`
+- `clockwork-core`
+- `clockwork-standalone`
+- `clockwork-cli`
+- `clockwork-demo-standalone`
 
 ## Build- und Release-Pfad
 - `gradlew test`

@@ -1,4 +1,4 @@
-# GigaSoft 1.0.0 Release Notes
+# Clockwork 1.0.0 Release Notes
 
 ## Highlights
 
@@ -36,13 +36,13 @@
 Release gate remains:
 
 ```bash
-./gradlew --no-daemon clean :gigasoft-api:apiCheck test performanceBaseline standaloneReleaseCandidate
+./gradlew --no-daemon clean :clockwork-api:apiCheck test performanceBaseline standaloneReleaseCandidate
 ```
 
 Additional API compatibility gate is active via:
 
 ```bash
-./gradlew --no-daemon :gigasoft-api:apiCheck
+./gradlew --no-daemon :clockwork-api:apiCheck
 ```
 
 Performance baseline evidence:

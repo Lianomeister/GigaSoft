@@ -1,0 +1,102 @@
+{
+  "name": "clockwork-vscode",
+  "displayName": "Clockwork Plugin Tools",
+  "description": "VS Code support for Clockwork plugin development.",
+  "version": "0.5.0",
+  "publisher": "lianomeister",
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Linters"
+  ],
+  "activationEvents": [
+    "onLanguage:yaml",
+    "onLanguage:kotlin",
+    "onCommand:clockwork.createPluginTemplate",
+    "onCommand:clockwork.createAssetTemplate",
+    "onCommand:clockwork.validateManifest",
+    "onCommand:clockwork.checkForUpdates",
+    "workspaceContains:**/gigaplugin.yml"
+  ],
+  "main": "./src/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "clockwork.createPluginTemplate",
+        "title": "Clockwork: Create Plugin Template"
+      },
+      {
+        "command": "clockwork.createAssetTemplate",
+        "title": "Clockwork: Create Texture/Model Asset Template"
+      },
+      {
+        "command": "clockwork.validateManifest",
+        "title": "Clockwork: Validate gigaplugin.yml"
+      },
+      {
+        "command": "clockwork.checkForUpdates",
+        "title": "Clockwork: Check Extension Updates"
+      }
+    ],
+    "configuration": {
+      "title": "Clockwork",
+      "properties": {
+        "clockwork.plugin.defaultId": {
+          "type": "string",
+          "default": "my-plugin",
+          "description": "Default plugin id used by template generation."
+        },
+        "clockwork.plugin.defaultMainClass": {
+          "type": "string",
+          "default": "plugin.MainPlugin",
+          "description": "Default fully qualified main class for gigaplugin.yml."
+        },
+        "clockwork.plugin.defaultVersion": {
+          "type": "string",
+          "default": "1.5.0-rc.2",
+          "description": "Default plugin version used in templates."
+        },
+        "clockwork.update.checkOwner": {
+          "type": "string",
+          "default": "Lianomeister",
+          "description": "GitHub owner used for release checks."
+        },
+        "clockwork.update.checkRepo": {
+          "type": "string",
+          "default": "Clockwork",
+          "description": "GitHub repository used for release checks."
+        }
+      }
+    },
+    "snippets": [
+      {
+        "language": "kotlin",
+        "path": "./snippets/kotlin.code-snippets"
+      },
+      {
+        "language": "yaml",
+        "path": "./snippets/yaml.code-snippets"
+      }
+    ]
+  },
+  "scripts": {
+    "lint": "echo \"No lint configured\"",
+    "test": "echo \"No tests configured\"",
+    "package": "npx @vscode/vsce package --no-dependencies",
+    "package:pre": "npx @vscode/vsce package --pre-release --no-dependencies",
+    "publish:check": "npx @vscode/vsce package --no-dependencies && echo \"VSIX package created successfully\""
+  },
+  "devDependencies": {
+    "@vscode/vsce": "^3.6.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Lianomeister/Clockwork"
+  },
+  "license": "SEE LICENSE IN ../../LICENSE"
+}
+
+

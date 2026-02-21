@@ -5,13 +5,13 @@
 - Gradle 8.10+
 
 ## Local flow
-1. `./gradlew --no-daemon :gigasoft-api:apiCheck`
+1. `./gradlew --no-daemon :clockwork-api:apiCheck`
 2. `./gradlew --no-daemon test`
 3. `./gradlew --no-daemon performanceBaseline`
 4. `./gradlew --no-daemon standaloneReleaseCandidate`
 5. `./gradlew --no-daemon smokeTest`
 6. Optional before release: `./gradlew --no-daemon soakTest`
-7. Start `gigasoft-standalone` and use standalone console commands (`scan`, `reload`, `status --json`, `doctor --json`, `profile <id> --json`)
+7. Start `clockwork-standalone` and use standalone console commands (`scan`, `reload`, `status --json`, `doctor --json`, `profile <id> --json`)
 
 ## Coding rules
 - Keep API module stable and backwards compatible.

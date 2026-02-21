@@ -1,7 +1,7 @@
 # Visual Studio / VS Code Integrations
 
-This folder contains editor tooling for GigaSoft development.
+This folder contains editor tooling for Clockwork development.
 
 ## Included
 
-- `gigasoft-vscode/`: VS Code extension scaffold for GigaSoft plugin development.
+- `clockwork-vscode/`: VS Code extension scaffold for Clockwork plugin development.

@@ -1,12 +1,12 @@
-rootProject.name = "gigasoft"
+rootProject.name = "clockwork"
 
 include(
-    "gigasoft-api",
-    "gigasoft-host-api",
-    "gigasoft-net",
-    "gigasoft-runtime",
-    "gigasoft-core",
-    "gigasoft-standalone",
-    "gigasoft-cli",
-    "gigasoft-demo-standalone"
+    "clockwork-api",
+    "clockwork-host-api",
+    "clockwork-net",
+    "clockwork-runtime",
+    "clockwork-core",
+    "clockwork-standalone",
+    "clockwork-cli",
+    "clockwork-demo-standalone"
 )

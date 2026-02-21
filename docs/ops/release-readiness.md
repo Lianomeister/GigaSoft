@@ -5,8 +5,8 @@
 Standalone console diagnostics are expected to be machine-readable:
 
 - `status --json`
-- `doctor --json`
-- `profile <id> --json`
+- `doctor --json [--pretty|--compact]`
+- `profile <id> --json [--pretty|--compact]`
 
 `profile <id> --json` returns:
 
@@ -17,7 +17,9 @@ Standalone console diagnostics are expected to be machine-readable:
   - `adapterHotspots`
   - `isolatedSystems`
   - `faultBudget`
-  - recommendation lines for plugin-focused remediation steps
+  - `recommendations[].code` (automation-friendly)
+  - `recommendations[].severity`
+  - `recommendations[].message`
 
 `doctor --json` includes cross-plugin hotspot overview:
 
@@ -25,14 +27,16 @@ Standalone console diagnostics are expected to be machine-readable:
 - `diagnostics.pluginPerformance.<pluginId>.adapterHotspots`
 - `diagnostics.pluginPerformance.<pluginId>.isolatedSystems`
 - `diagnostics.pluginPerformance.<pluginId>.faultBudget`
-- `recommendations.<pluginId>[]`
+- `recommendations.<pluginId>[].code`
+- `recommendations.<pluginId>[].severity`
+- `recommendations.<pluginId>[].message`
 
 ## Pipelines
 
 - Release gate:
-  - `./gradlew --no-daemon clean :gigasoft-api:apiCheck test performanceBaseline standaloneReleaseCandidate`
+  - `./gradlew --no-daemon clean :clockwork-api:apiCheck test performanceBaseline standaloneReleaseCandidate`
 - Smoke:
-  - `./gradlew --no-daemon smokeTest`
+  - `./gradlew --no-daemon integrationSmoke`
 - Soak:
   - `./gradlew --no-daemon soakTest`
 
@@ -48,14 +52,23 @@ Standalone console diagnostics are expected to be machine-readable:
 
 - `.github/workflows/ci.yml`
   - release gate command
-  - smoke pipeline
+  - integration smoke pipeline (`integrationSmoke`)
 - `.github/workflows/soak.yml`
   - scheduled + manual soak run
+- `.github/workflows/release-assets.yml`
+  - builds standalone release bundle and uploads:
+    - standalone jar
+    - cli jar
+    - demo jar
+  - auto-generates:
+    - `ARTIFACTS.txt`
+    - `ARTIFACTS.json`
+    - `SHA256SUMS.txt`
 
 ## Definition of Done
 
 - `test` green
-- `:gigasoft-api:apiCheck` green
+- `:clockwork-api:apiCheck` green
 - `performanceBaseline` green
 - `standaloneReleaseCandidate` green
 - smoke pipeline green

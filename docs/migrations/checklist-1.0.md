@@ -1,6 +1,6 @@
 # Migration Checklist for 1.0
 
-Use this checklist for each plugin before shipping on GigaSoft 1.0.
+Use this checklist for each plugin before shipping on Clockwork 1.0.
 
 ## 1. Manifest
 
@@ -57,6 +57,6 @@ Run and verify:
 
 ## 8. Final Release Checks
 
-- [ ] API compatibility gate passes (`:gigasoft-api:apiCheck`).
+- [ ] API compatibility gate passes (`:clockwork-api:apiCheck`).
 - [ ] Changelog entry is complete.
 - [ ] `RELEASE_NOTES_1.0.md` reviewed.

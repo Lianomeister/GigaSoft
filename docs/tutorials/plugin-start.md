@@ -13,9 +13,9 @@ Goal: build and run a plugin without any hidden assumptions.
 ```kotlin
 package demo
 
-import com.gigasoft.api.GigaPlugin
-import com.gigasoft.api.PluginContext
-import com.gigasoft.api.gigaPlugin
+import com.clockwork.api.GigaPlugin
+import com.clockwork.api.PluginContext
+import com.clockwork.api.gigaPlugin
 
 class DemoPlugin : GigaPlugin {
     private val plugin = gigaPlugin(

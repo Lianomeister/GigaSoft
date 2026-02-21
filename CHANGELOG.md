@@ -113,10 +113,54 @@
 - Core host consistency/performance expansion for production gameplay scenarios.
 - Plugin DX and ops tooling enhancements for faster troubleshooting.
 
+## 1.5.0-rc.2 - 2026-02-21
+
+### Added
+- Standalone maturity + parity hardening:
+  - integration smoke parity for `scan/reload/doctor/profile`,
+  - deterministic reload/tick-loop smoke coverage.
+- Configurable, schema-versioned security thresholds:
+  - adapter timeout/rate/payload limits,
+  - fault budget thresholds,
+  - validated fallback to safe defaults on invalid/unsupported config.
+- Expanded command-level integration tests:
+  - adapter list/invoke JSON schema checks,
+  - positive/negative permission gate scenarios.
+- Metrics + audit stability:
+  - bounded in-memory adapter audit retention model,
+  - adapter counters + audit snapshots in `profile --json` and `doctor --json`.
+- Host API extraction (first cut):
+  - explicit `host-api` domain ports for player/world/entity contracts,
+  - host access adapter contract coverage tests.
+- Release artifact hardening:
+  - strict release bundle set (standalone + cli + demo),
+  - generated `ARTIFACTS.txt`, `ARTIFACTS.json`, `SHA256SUMS.txt`,
+  - release CI auto-generates and uploads artifact/checksum manifests.
+- Operator UX improvements:
+  - `doctor/profile` output modes: `--pretty` and `--compact`,
+  - structured recommendation objects with automation-friendly codes/severity.
+
+### Changed
+- Standalone command surface now supports:
+  - `doctor [--json] [--pretty|--compact]`
+  - `profile <id> [--json] [--pretty|--compact]`
+- Recommendation payloads changed from plain strings to structured objects:
+  - `code`, `severity`, `message`.
+
+### Migration Deltas (v1.5.0-rc.1 -> rc.2)
+- Diagnostics automation consumers should migrate recommendation parsing:
+  - old: string lines,
+  - new: structured recommendation objects with stable codes.
+- Operator scripts can now choose JSON rendering mode:
+  - `--pretty` for readable logs,
+  - `--compact` for machine/pipe workflows.
+- Security tuning should move to schema-backed config keys (see standalone config + docs) instead of implicit defaults.
+- Release automation should consume generated release manifests/checksums rather than deriving asset lists ad hoc.
+
 ## 1.0.0 - 2026-02-20
 
 ### Added
-- API freeze marker and constants in `gigasoft-api` (`GigaApiVersion`).
+- API freeze marker and constants in `clockwork-api` (`GigaApiVersion`).
 - Versioned API documentation for frozen contracts:
   - `docs/api/v1.0.0.md`
   - `docs/migrations/v1.0.md`
@@ -141,7 +185,7 @@
   - net hotpath reductions (fast JSON detection + prebuilt rate-limit response),
   - explicit v1 performance target document (`docs/performance/targets-v1.md`),
   - CI split with dedicated `performanceBaseline` gate step.
-- API compatibility gate added to release flow via `:gigasoft-api:apiCheck`.
+- API compatibility gate added to release flow via `:clockwork-api:apiCheck`.
 
 ### Removed
 - `HostServerSnapshot.bukkitVersion` removed from API/host models.

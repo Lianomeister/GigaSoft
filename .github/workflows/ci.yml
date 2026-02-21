@@ -15,6 +15,6 @@ jobs:
           distribution: temurin
           java-version: '21'
       - name: Release Gate (apiCheck + test + performanceBaseline + standaloneReleaseCandidate)
-        run: ./gradlew --no-daemon clean :gigasoft-api:apiCheck test performanceBaseline standaloneReleaseCandidate
-      - name: Smoke Pipeline
-        run: ./gradlew --no-daemon smokeTest
+        run: ./gradlew --no-daemon clean :clockwork-api:apiCheck test performanceBaseline standaloneReleaseCandidate
+      - name: Integration Smoke Pipeline
+        run: ./gradlew --no-daemon integrationSmoke

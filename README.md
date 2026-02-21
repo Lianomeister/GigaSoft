@@ -1,16 +1,23 @@
-# GigaSoft V1
+# Clockwork V1
 
 Standalone-first Minecraft server runtime focused on easy, powerful plugins with a Kotlin DSL.
 
+## Standalone RC Support
+- Standalone is an officially supported RC path in `v1.5.x`.
+- CI runs standalone release gate plus integration smoke for:
+  - boot + demo plugin flow
+  - parity checks for `scan/reload/doctor/profile`
+  - deterministic tick-loop and reload behavior
+
 ## Modules
-- `gigasoft-api`: public API + DSL
-- `gigasoft-host-api`: host abstraction contracts + shared host adapter ids
-- `gigasoft-net`: native standalone session/network layer
-- `gigasoft-runtime`: loader, lifecycle, scheduler, storage
-- `gigasoft-core`: standalone core runtime loop
-- `gigasoft-standalone`: executable standalone server process
-- `gigasoft-cli`: local developer CLI
-- `gigasoft-demo-standalone`: standalone reference GigaPlugin
+- `clockwork-api`: public API + DSL
+- `clockwork-host-api`: host abstraction contracts (server + player/world/entity domain ports) + shared host adapter ids
+- `clockwork-net`: native standalone session/network layer
+- `clockwork-runtime`: loader, lifecycle, scheduler, storage
+- `clockwork-core`: standalone core runtime loop
+- `clockwork-standalone`: executable standalone server process
+- `clockwork-cli`: local developer CLI
+- `clockwork-demo-standalone`: standalone reference GigaPlugin
 
 ## API Docs
 - Frozen baseline API contract: `docs/api/v1.0.0.md`
@@ -35,7 +42,7 @@ Standalone-first Minecraft server runtime focused on easy, powerful plugins with
 
 ## Build
 ```bash
-./gradlew --no-daemon :gigasoft-api:apiCheck
+./gradlew --no-daemon :clockwork-api:apiCheck
 ./gradlew --no-daemon test
 ./gradlew --no-daemon performanceBaseline
 ./gradlew --no-daemon standaloneReleaseCandidate
@@ -43,12 +50,12 @@ Standalone-first Minecraft server runtime focused on easy, powerful plugins with
 
 ## Standalone Run
 ```bash
-java -jar gigasoft-standalone/build/libs/gigasoft-standalone-1.5.0-SNAPSHOT.jar
+java -jar clockwork-standalone/build/libs/clockwork-standalone-1.5.0-rc.2.jar
 ```
 
 Optional config file (`.properties`):
 ```bash
-java -jar gigasoft-standalone/build/libs/gigasoft-standalone-1.5.0-SNAPSHOT.jar --config gigasoft-standalone/standalone.example.properties
+java -jar clockwork-standalone/build/libs/clockwork-standalone-1.5.0-rc.2.jar --config clockwork-standalone/standalone.example.properties
 ```
 
 ## Standalone Commands
@@ -73,8 +80,8 @@ java -jar gigasoft-standalone/build/libs/gigasoft-standalone-1.5.0-SNAPSHOT.jar 
 - `inventory set <player> <slot> <itemId|air>`
 - `scan`
 - `reload <id|all>`
-- `doctor [--json]`
-- `profile <id> [--json]`
+- `doctor [--json] [--pretty|--compact]`
+- `profile <id> [--json] [--pretty|--compact]`
 - `run <plugin> <command...>`
 - `adapters <plugin> [--json]`
 - `adapter invoke <plugin> <adapterId> <action> [k=v ...] [--json]`
@@ -94,8 +101,28 @@ java -jar gigasoft-standalone/build/libs/gigasoft-standalone-1.5.0-SNAPSHOT.jar 
 - Optional per-adapter concurrency cap
 - Invocation timeout
 - Audit logs (`[adapter-audit]`)
-- Outcome counters in profile
+- Outcome counters in `profile --json` and `doctor --json` diagnostics snapshots
+- Bounded in-memory adapter audit retention (per-plugin, per-adapter, max-age)
 - Configurable via standalone CLI flags or `standalone.example.properties`
+- Security thresholds config is schema-versioned (`securityConfigSchemaVersion=1`)
+- Invalid/unsupported threshold values are validated and auto-fallback to safe defaults with startup warnings
+- New threshold keys:
+  - `adapterTimeoutMillis`
+  - `adapterRateLimitPerMinute`
+  - `adapterRateLimitPerMinutePerPlugin`
+  - `adapterMaxPayloadEntries`
+  - `adapterMaxPayloadTotalChars`
+  - `adapterMaxPayloadKeyChars`
+  - `adapterMaxPayloadValueChars`
+  - `adapterAuditRetentionMaxEntriesPerPlugin`
+  - `adapterAuditRetentionMaxEntriesPerAdapter`
+  - `adapterAuditRetentionMaxAgeMillis`
+  - `faultBudgetMaxFaultsPerWindow`
+  - `faultBudgetWindowMillis`
+- CLI overrides:
+  - `--security-config-schema-version`
+  - `--fault-budget-max-faults`
+  - `--fault-budget-window-ms`
 - Security matrix + abuse tests: `docs/security/hardening-matrix.md`
 
 ## Host Access In PluginContext
@@ -114,7 +141,7 @@ if (info != null) {
 - `giga server logs --follow`
 
 ## Ops Pipelines
-- Release gate: `./gradlew --no-daemon clean :gigasoft-api:apiCheck test performanceBaseline standaloneReleaseCandidate`
+- Release gate: `./gradlew --no-daemon clean :clockwork-api:apiCheck test performanceBaseline standaloneReleaseCandidate`
 - Smoke: `./gradlew --no-daemon smokeTest`
 - Soak: `./gradlew --no-daemon soakTest`
 
@@ -144,3 +171,4 @@ Event dispatch mode:
 
 - default: `exact`
 - optional: `polymorphic` via config `eventDispatchMode=polymorphic` or CLI `--event-dispatch-mode polymorphic`
+

@@ -1,16 +1,16 @@
-# GigaSoft Software Setup AI Blueprint
+# Clockwork Software Setup AI Blueprint
 
 ## Zweck
-Umsetzungsplan fuer die standalone-first Weiterentwicklung von GigaSoft.
+Umsetzungsplan fuer die standalone-first Weiterentwicklung von Clockwork.
 
 ## Aktive Zielarchitektur
-- `gigasoft-api`
-- `gigasoft-host-api`
-- `gigasoft-net`
-- `gigasoft-runtime`
-- `gigasoft-core`
-- `gigasoft-standalone`
-- `gigasoft-demo-standalone`
+- `clockwork-api`
+- `clockwork-host-api`
+- `clockwork-net`
+- `clockwork-runtime`
+- `clockwork-core`
+- `clockwork-standalone`
+- `clockwork-demo-standalone`
 
 ## Leitprinzipien
 1. Standalone zuerst.

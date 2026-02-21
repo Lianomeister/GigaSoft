@@ -1,0 +1,2443 @@
+public final class com/clockwork/api/AdapterDsl {
+	public fun <init> ()V
+	public final fun adapter (Lcom/clockwork/api/ModAdapter;)V
+	public final fun adapter (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/Set;Lkotlin/jvm/functions/Function1;)V
+	public static synthetic fun adapter$default (Lcom/clockwork/api/AdapterDsl;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/Set;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
+}
+
+public final class com/clockwork/api/AdapterInvocation {
+	public fun <init> (Ljava/lang/String;Ljava/util/Map;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/util/Map;
+	public final fun copy (Ljava/lang/String;Ljava/util/Map;)Lcom/clockwork/api/AdapterInvocation;
+	public static synthetic fun copy$default (Lcom/clockwork/api/AdapterInvocation;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)Lcom/clockwork/api/AdapterInvocation;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAction ()Ljava/lang/String;
+	public final fun getPayload ()Ljava/util/Map;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/AdapterResponse {
+	public fun <init> (ZLjava/util/Map;Ljava/lang/String;)V
+	public synthetic fun <init> (ZLjava/util/Map;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Z
+	public final fun component2 ()Ljava/util/Map;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun copy (ZLjava/util/Map;Ljava/lang/String;)Lcom/clockwork/api/AdapterResponse;
+	public static synthetic fun copy$default (Lcom/clockwork/api/AdapterResponse;ZLjava/util/Map;Ljava/lang/String;ILjava/lang/Object;)Lcom/clockwork/api/AdapterResponse;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getMessage ()Ljava/lang/String;
+	public final fun getPayload ()Ljava/util/Map;
+	public final fun getSuccess ()Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/AnimationDefinition {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Z)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Z
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Z)Lcom/clockwork/api/AnimationDefinition;
+	public static synthetic fun copy$default (Lcom/clockwork/api/AnimationDefinition;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZILjava/lang/Object;)Lcom/clockwork/api/AnimationDefinition;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getId ()Ljava/lang/String;
+	public final fun getLoop ()Z
+	public final fun getPath ()Ljava/lang/String;
+	public final fun getTargetModelId ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/AnimationDsl {
+	public fun <init> ()V
+	public final fun animation (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Z)V
+	public static synthetic fun animation$default (Lcom/clockwork/api/AnimationDsl;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZILjava/lang/Object;)V
+}
+
+public final class com/clockwork/api/AssetValidationIssue {
+	public fun <init> (Lcom/clockwork/api/AssetValidationSeverity;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public synthetic fun <init> (Lcom/clockwork/api/AssetValidationSeverity;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/clockwork/api/AssetValidationSeverity;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun copy (Lcom/clockwork/api/AssetValidationSeverity;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lcom/clockwork/api/AssetValidationIssue;
+	public static synthetic fun copy$default (Lcom/clockwork/api/AssetValidationIssue;Lcom/clockwork/api/AssetValidationSeverity;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/clockwork/api/AssetValidationIssue;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAssetId ()Ljava/lang/String;
+	public final fun getCode ()Ljava/lang/String;
+	public final fun getMessage ()Ljava/lang/String;
+	public final fun getSeverity ()Lcom/clockwork/api/AssetValidationSeverity;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/AssetValidationResult {
+	public fun <init> (ZLjava/util/List;)V
+	public synthetic fun <init> (ZLjava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Z
+	public final fun component2 ()Ljava/util/List;
+	public final fun copy (ZLjava/util/List;)Lcom/clockwork/api/AssetValidationResult;
+	public static synthetic fun copy$default (Lcom/clockwork/api/AssetValidationResult;ZLjava/util/List;ILjava/lang/Object;)Lcom/clockwork/api/AssetValidationResult;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getIssues ()Ljava/util/List;
+	public final fun getValid ()Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/AssetValidationSeverity : java/lang/Enum {
+	public static final field ERROR Lcom/clockwork/api/AssetValidationSeverity;
+	public static final field WARNING Lcom/clockwork/api/AssetValidationSeverity;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/clockwork/api/AssetValidationSeverity;
+	public static fun values ()[Lcom/clockwork/api/AssetValidationSeverity;
+}
+
+public final class com/clockwork/api/BlockDefinition {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;)Lcom/clockwork/api/BlockDefinition;
+	public static synthetic fun copy$default (Lcom/clockwork/api/BlockDefinition;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/clockwork/api/BlockDefinition;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDisplayName ()Ljava/lang/String;
+	public final fun getId ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/BlockDsl {
+	public fun <init> ()V
+	public final fun block (Ljava/lang/String;Ljava/lang/String;)V
+}
+
+public final class com/clockwork/api/CommandArgSpec {
+	public fun <init> (Ljava/lang/String;Lcom/clockwork/api/CommandArgType;ZLjava/lang/String;Ljava/util/List;)V
+	public synthetic fun <init> (Ljava/lang/String;Lcom/clockwork/api/CommandArgType;ZLjava/lang/String;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Lcom/clockwork/api/CommandArgType;
+	public final fun component3 ()Z
+	public final fun component4 ()Ljava/lang/String;
+	public final fun component5 ()Ljava/util/List;
+	public final fun copy (Ljava/lang/String;Lcom/clockwork/api/CommandArgType;ZLjava/lang/String;Ljava/util/List;)Lcom/clockwork/api/CommandArgSpec;
+	public static synthetic fun copy$default (Lcom/clockwork/api/CommandArgSpec;Ljava/lang/String;Lcom/clockwork/api/CommandArgType;ZLjava/lang/String;Ljava/util/List;ILjava/lang/Object;)Lcom/clockwork/api/CommandArgSpec;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDescription ()Ljava/lang/String;
+	public final fun getEnumValues ()Ljava/util/List;
+	public final fun getName ()Ljava/lang/String;
+	public final fun getRequired ()Z
+	public final fun getType ()Lcom/clockwork/api/CommandArgType;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/CommandArgType : java/lang/Enum {
+	public static final field BOOLEAN Lcom/clockwork/api/CommandArgType;
+	public static final field DOUBLE Lcom/clockwork/api/CommandArgType;
+	public static final field ENUM Lcom/clockwork/api/CommandArgType;
+	public static final field INT Lcom/clockwork/api/CommandArgType;
+	public static final field LONG Lcom/clockwork/api/CommandArgType;
+	public static final field STRING Lcom/clockwork/api/CommandArgType;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/clockwork/api/CommandArgType;
+	public static fun values ()[Lcom/clockwork/api/CommandArgType;
+}
+
+public final class com/clockwork/api/CommandCompletion {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;)Lcom/clockwork/api/CommandCompletion;
+	public static synthetic fun copy$default (Lcom/clockwork/api/CommandCompletion;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/clockwork/api/CommandCompletion;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDescription ()Ljava/lang/String;
+	public final fun getValue ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class com/clockwork/api/CommandCompletionAsyncContract {
+	public abstract fun suggestAsync (Lcom/clockwork/api/PluginContext;Lcom/clockwork/api/CommandSender;Lcom/clockwork/api/CommandSpec;Ljava/util/List;)Ljava/util/concurrent/CompletableFuture;
+}
+
+public final class com/clockwork/api/CommandCompletionCatalog {
+	public static final field INSTANCE Lcom/clockwork/api/CommandCompletionCatalog;
+	public final fun register (Ljava/lang/String;Lcom/clockwork/api/CommandCompletionContract;Lcom/clockwork/api/CommandCompletionAsyncContract;Lcom/clockwork/api/CommandSpec;)V
+	public final fun suggest (Ljava/lang/String;Lcom/clockwork/api/PluginContext;Lcom/clockwork/api/CommandSender;Ljava/util/List;)Ljava/util/List;
+	public final fun suggestAsync (Ljava/lang/String;Lcom/clockwork/api/PluginContext;Lcom/clockwork/api/CommandSender;Ljava/util/List;)Ljava/util/concurrent/CompletableFuture;
+	public final fun unregister (Ljava/lang/String;)Z
+}
+
+public abstract interface class com/clockwork/api/CommandCompletionContract {
+	public abstract fun suggest (Lcom/clockwork/api/PluginContext;Lcom/clockwork/api/CommandSender;Lcom/clockwork/api/CommandSpec;Ljava/util/List;)Ljava/util/List;
+}
+
+public final class com/clockwork/api/CommandDsl {
+	public fun <init> ()V
+	public final fun command (Lcom/clockwork/api/CommandSpec;Ljava/util/List;Lcom/clockwork/api/CommandCompletionContract;Lkotlin/jvm/functions/Function1;)V
+	public final fun command (Lcom/clockwork/api/CommandSpec;Ljava/util/List;Lcom/clockwork/api/CommandCompletionContract;Lkotlin/jvm/functions/Function2;)V
+	public static synthetic fun command$default (Lcom/clockwork/api/CommandDsl;Lcom/clockwork/api/CommandSpec;Ljava/util/List;Lcom/clockwork/api/CommandCompletionContract;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
+	public static synthetic fun command$default (Lcom/clockwork/api/CommandDsl;Lcom/clockwork/api/CommandSpec;Ljava/util/List;Lcom/clockwork/api/CommandCompletionContract;Lkotlin/jvm/functions/Function2;ILjava/lang/Object;)V
+	public final fun spec (Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/lang/String;Ljava/util/List;JILjava/lang/String;Ljava/lang/String;Ljava/util/List;Lcom/clockwork/api/CommandCompletionContract;Lkotlin/jvm/functions/Function1;)V
+	public static synthetic fun spec$default (Lcom/clockwork/api/CommandDsl;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/lang/String;Ljava/util/List;JILjava/lang/String;Ljava/lang/String;Ljava/util/List;Lcom/clockwork/api/CommandCompletionContract;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
+}
+
+public final class com/clockwork/api/CommandError {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lcom/clockwork/api/CommandError;
+	public static synthetic fun copy$default (Lcom/clockwork/api/CommandError;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/clockwork/api/CommandError;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCode ()Ljava/lang/String;
+	public final fun getField ()Ljava/lang/String;
+	public final fun getHint ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/CommandErrorCount {
+	public fun <init> (Ljava/lang/String;J)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()J
+	public final fun copy (Ljava/lang/String;J)Lcom/clockwork/api/CommandErrorCount;
+	public static synthetic fun copy$default (Lcom/clockwork/api/CommandErrorCount;Ljava/lang/String;JILjava/lang/Object;)Lcom/clockwork/api/CommandErrorCount;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCode ()Ljava/lang/String;
+	public final fun getCount ()J
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/CommandInvocationContext {
+	public fun <init> (Lcom/clockwork/api/PluginContext;Lcom/clockwork/api/CommandSender;Ljava/util/List;Lcom/clockwork/api/CommandSpec;Lcom/clockwork/api/CommandParsedArgs;)V
+	public final fun component1 ()Lcom/clockwork/api/PluginContext;
+	public final fun component2 ()Lcom/clockwork/api/CommandSender;
+	public final fun component3 ()Ljava/util/List;
+	public final fun component4 ()Lcom/clockwork/api/CommandSpec;
+	public final fun component5 ()Lcom/clockwork/api/CommandParsedArgs;
+	public final fun copy (Lcom/clockwork/api/PluginContext;Lcom/clockwork/api/CommandSender;Ljava/util/List;Lcom/clockwork/api/CommandSpec;Lcom/clockwork/api/CommandParsedArgs;)Lcom/clockwork/api/CommandInvocationContext;
+	public static synthetic fun copy$default (Lcom/clockwork/api/CommandInvocationContext;Lcom/clockwork/api/PluginContext;Lcom/clockwork/api/CommandSender;Ljava/util/List;Lcom/clockwork/api/CommandSpec;Lcom/clockwork/api/CommandParsedArgs;ILjava/lang/Object;)Lcom/clockwork/api/CommandInvocationContext;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getParsedArgs ()Lcom/clockwork/api/CommandParsedArgs;
+	public final fun getPluginContext ()Lcom/clockwork/api/PluginContext;
+	public final fun getRawArgs ()Ljava/util/List;
+	public final fun getSender ()Lcom/clockwork/api/CommandSender;
+	public final fun getSpec ()Lcom/clockwork/api/CommandSpec;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class com/clockwork/api/CommandMiddleware {
+	public abstract fun invoke (Lcom/clockwork/api/CommandInvocationContext;Lkotlin/jvm/functions/Function0;)Lcom/clockwork/api/CommandResult;
+}
+
+public final class com/clockwork/api/CommandMiddlewareBinding {
+	public fun <init> (Ljava/lang/String;Lcom/clockwork/api/CommandMiddlewarePhase;ILcom/clockwork/api/CommandMiddleware;)V
+	public synthetic fun <init> (Ljava/lang/String;Lcom/clockwork/api/CommandMiddlewarePhase;ILcom/clockwork/api/CommandMiddleware;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Lcom/clockwork/api/CommandMiddlewarePhase;
+	public final fun component3 ()I
+	public final fun component4 ()Lcom/clockwork/api/CommandMiddleware;
+	public final fun copy (Ljava/lang/String;Lcom/clockwork/api/CommandMiddlewarePhase;ILcom/clockwork/api/CommandMiddleware;)Lcom/clockwork/api/CommandMiddlewareBinding;
+	public static synthetic fun copy$default (Lcom/clockwork/api/CommandMiddlewareBinding;Ljava/lang/String;Lcom/clockwork/api/CommandMiddlewarePhase;ILcom/clockwork/api/CommandMiddleware;ILjava/lang/Object;)Lcom/clockwork/api/CommandMiddlewareBinding;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getId ()Ljava/lang/String;
+	public final fun getMiddleware ()Lcom/clockwork/api/CommandMiddleware;
+	public final fun getOrder ()I
+	public final fun getPhase ()Lcom/clockwork/api/CommandMiddlewarePhase;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/CommandMiddlewarePhase : java/lang/Enum {
+	public static final field AUDIT Lcom/clockwork/api/CommandMiddlewarePhase;
+	public static final field AUTH Lcom/clockwork/api/CommandMiddlewarePhase;
+	public static final field VALIDATION Lcom/clockwork/api/CommandMiddlewarePhase;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/clockwork/api/CommandMiddlewarePhase;
+	public static fun values ()[Lcom/clockwork/api/CommandMiddlewarePhase;
+}
+
+public final class com/clockwork/api/CommandParseResult {
+	public fun <init> (Lcom/clockwork/api/CommandParsedArgs;Lcom/clockwork/api/CommandResult;)V
+	public synthetic fun <init> (Lcom/clockwork/api/CommandParsedArgs;Lcom/clockwork/api/CommandResult;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/clockwork/api/CommandParsedArgs;
+	public final fun component2 ()Lcom/clockwork/api/CommandResult;
+	public final fun copy (Lcom/clockwork/api/CommandParsedArgs;Lcom/clockwork/api/CommandResult;)Lcom/clockwork/api/CommandParseResult;
+	public static synthetic fun copy$default (Lcom/clockwork/api/CommandParseResult;Lcom/clockwork/api/CommandParsedArgs;Lcom/clockwork/api/CommandResult;ILjava/lang/Object;)Lcom/clockwork/api/CommandParseResult;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getError ()Lcom/clockwork/api/CommandResult;
+	public final fun getParsed ()Lcom/clockwork/api/CommandParsedArgs;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/CommandParsedArgs {
+	public final fun boolean (Ljava/lang/String;)Ljava/lang/Boolean;
+	public final fun double (Ljava/lang/String;)Ljava/lang/Double;
+	public final fun enum (Ljava/lang/String;)Ljava/lang/String;
+	public final fun int (Ljava/lang/String;)Ljava/lang/Integer;
+	public final fun long (Ljava/lang/String;)Ljava/lang/Long;
+	public final fun raw (Ljava/lang/String;)Ljava/lang/String;
+	public final fun requiredString (Ljava/lang/String;)Ljava/lang/String;
+	public final fun string (Ljava/lang/String;)Ljava/lang/String;
+}
+
+public final class com/clockwork/api/CommandPolicyProfile {
+	public fun <init> ()V
+	public fun <init> (Ljava/lang/String;JI)V
+	public synthetic fun <init> (Ljava/lang/String;JIILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()J
+	public final fun component3 ()I
+	public final fun copy (Ljava/lang/String;JI)Lcom/clockwork/api/CommandPolicyProfile;
+	public static synthetic fun copy$default (Lcom/clockwork/api/CommandPolicyProfile;Ljava/lang/String;JIILjava/lang/Object;)Lcom/clockwork/api/CommandPolicyProfile;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDefaultCooldownMillis ()J
+	public final fun getDefaultRateLimitPerMinute ()I
+	public final fun getPermissionPrefix ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/CommandPolicyProfiles {
+	public static final field INSTANCE Lcom/clockwork/api/CommandPolicyProfiles;
+	public final fun clear (Ljava/lang/String;)Z
+	public final fun forPlugin (Ljava/lang/String;)Lcom/clockwork/api/CommandPolicyProfile;
+	public final fun set (Ljava/lang/String;Lcom/clockwork/api/CommandPolicyProfile;)V
+}
+
+public abstract interface class com/clockwork/api/CommandRegistry {
+	public abstract fun commandTelemetry ()Ljava/util/Map;
+	public abstract fun commandTelemetry (Ljava/lang/String;)Lcom/clockwork/api/CommandTelemetrySnapshot;
+	public abstract fun registerAlias (Ljava/lang/String;Ljava/lang/String;)Z
+	public abstract fun registerOrReplaceSpec (Lcom/clockwork/api/CommandSpec;Ljava/util/List;Lcom/clockwork/api/CommandCompletionContract;Lcom/clockwork/api/CommandCompletionAsyncContract;Lcom/clockwork/api/CommandPolicyProfile;Lkotlin/jvm/functions/Function1;)V
+	public abstract fun registerSpec (Lcom/clockwork/api/CommandSpec;Ljava/util/List;Lcom/clockwork/api/CommandCompletionContract;Lcom/clockwork/api/CommandCompletionAsyncContract;Lcom/clockwork/api/CommandPolicyProfile;Lkotlin/jvm/functions/Function1;)V
+	public abstract fun registeredCommands ()Ljava/util/Map;
+	public abstract fun resolve (Ljava/lang/String;)Ljava/lang/String;
+	public abstract fun unregister (Ljava/lang/String;)Z
+	public abstract fun unregisterAlias (Ljava/lang/String;)Z
+}
+
+public final class com/clockwork/api/CommandRegistry$DefaultImpls {
+	public static fun commandTelemetry (Lcom/clockwork/api/CommandRegistry;)Ljava/util/Map;
+	public static fun commandTelemetry (Lcom/clockwork/api/CommandRegistry;Ljava/lang/String;)Lcom/clockwork/api/CommandTelemetrySnapshot;
+	public static fun registerAlias (Lcom/clockwork/api/CommandRegistry;Ljava/lang/String;Ljava/lang/String;)Z
+	public static fun registerOrReplaceSpec (Lcom/clockwork/api/CommandRegistry;Lcom/clockwork/api/CommandSpec;Ljava/util/List;Lcom/clockwork/api/CommandCompletionContract;Lcom/clockwork/api/CommandCompletionAsyncContract;Lcom/clockwork/api/CommandPolicyProfile;Lkotlin/jvm/functions/Function1;)V
+	public static synthetic fun registerOrReplaceSpec$default (Lcom/clockwork/api/CommandRegistry;Lcom/clockwork/api/CommandSpec;Ljava/util/List;Lcom/clockwork/api/CommandCompletionContract;Lcom/clockwork/api/CommandCompletionAsyncContract;Lcom/clockwork/api/CommandPolicyProfile;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
+	public static synthetic fun registerSpec$default (Lcom/clockwork/api/CommandRegistry;Lcom/clockwork/api/CommandSpec;Ljava/util/List;Lcom/clockwork/api/CommandCompletionContract;Lcom/clockwork/api/CommandCompletionAsyncContract;Lcom/clockwork/api/CommandPolicyProfile;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
+	public static fun registeredCommands (Lcom/clockwork/api/CommandRegistry;)Ljava/util/Map;
+	public static fun resolve (Lcom/clockwork/api/CommandRegistry;Ljava/lang/String;)Ljava/lang/String;
+	public static fun unregister (Lcom/clockwork/api/CommandRegistry;Ljava/lang/String;)Z
+	public static fun unregisterAlias (Lcom/clockwork/api/CommandRegistry;Ljava/lang/String;)Z
+}
+
+public final class com/clockwork/api/CommandResult {
+	public static final field Companion Lcom/clockwork/api/CommandResult$Companion;
+	public fun <init> (ZLjava/lang/String;Ljava/lang/String;Lcom/clockwork/api/CommandError;)V
+	public synthetic fun <init> (ZLjava/lang/String;Ljava/lang/String;Lcom/clockwork/api/CommandError;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Z
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Lcom/clockwork/api/CommandError;
+	public final fun copy (ZLjava/lang/String;Ljava/lang/String;Lcom/clockwork/api/CommandError;)Lcom/clockwork/api/CommandResult;
+	public static synthetic fun copy$default (Lcom/clockwork/api/CommandResult;ZLjava/lang/String;Ljava/lang/String;Lcom/clockwork/api/CommandError;ILjava/lang/Object;)Lcom/clockwork/api/CommandResult;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCode ()Ljava/lang/String;
+	public final fun getError ()Lcom/clockwork/api/CommandError;
+	public final fun getMessage ()Ljava/lang/String;
+	public final fun getSuccess ()Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/CommandResult$Companion {
+	public final fun error (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lcom/clockwork/api/CommandResult;
+	public static synthetic fun error$default (Lcom/clockwork/api/CommandResult$Companion;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/clockwork/api/CommandResult;
+	public final fun ok (Ljava/lang/String;Ljava/lang/String;)Lcom/clockwork/api/CommandResult;
+	public static synthetic fun ok$default (Lcom/clockwork/api/CommandResult$Companion;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/clockwork/api/CommandResult;
+}
+
+public final class com/clockwork/api/CommandSender {
+	public static final field Companion Lcom/clockwork/api/CommandSender$Companion;
+	public fun <init> (Ljava/lang/String;Lcom/clockwork/api/CommandSenderType;)V
+	public synthetic fun <init> (Ljava/lang/String;Lcom/clockwork/api/CommandSenderType;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Lcom/clockwork/api/CommandSenderType;
+	public final fun copy (Ljava/lang/String;Lcom/clockwork/api/CommandSenderType;)Lcom/clockwork/api/CommandSender;
+	public static synthetic fun copy$default (Lcom/clockwork/api/CommandSender;Ljava/lang/String;Lcom/clockwork/api/CommandSenderType;ILjava/lang/Object;)Lcom/clockwork/api/CommandSender;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getId ()Ljava/lang/String;
+	public final fun getType ()Lcom/clockwork/api/CommandSenderType;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/CommandSender$Companion {
+	public final fun console (Ljava/lang/String;)Lcom/clockwork/api/CommandSender;
+	public static synthetic fun console$default (Lcom/clockwork/api/CommandSender$Companion;Ljava/lang/String;ILjava/lang/Object;)Lcom/clockwork/api/CommandSender;
+	public final fun player (Ljava/lang/String;)Lcom/clockwork/api/CommandSender;
+	public final fun system (Ljava/lang/String;)Lcom/clockwork/api/CommandSender;
+}
+
+public final class com/clockwork/api/CommandSenderType : java/lang/Enum {
+	public static final field CONSOLE Lcom/clockwork/api/CommandSenderType;
+	public static final field PLAYER Lcom/clockwork/api/CommandSenderType;
+	public static final field SYSTEM Lcom/clockwork/api/CommandSenderType;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/clockwork/api/CommandSenderType;
+	public static fun values ()[Lcom/clockwork/api/CommandSenderType;
+}
+
+public final class com/clockwork/api/CommandSpec {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/lang/String;Ljava/util/List;JILjava/lang/String;Ljava/lang/String;Ljava/util/List;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/lang/String;Ljava/util/List;JILjava/lang/String;Ljava/lang/String;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component10 ()Ljava/util/List;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/util/List;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun component5 ()Ljava/util/List;
+	public final fun component6 ()J
+	public final fun component7 ()I
+	public final fun component8 ()Ljava/lang/String;
+	public final fun component9 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/lang/String;Ljava/util/List;JILjava/lang/String;Ljava/lang/String;Ljava/util/List;)Lcom/clockwork/api/CommandSpec;
+	public static synthetic fun copy$default (Lcom/clockwork/api/CommandSpec;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/lang/String;Ljava/util/List;JILjava/lang/String;Ljava/lang/String;Ljava/util/List;ILjava/lang/Object;)Lcom/clockwork/api/CommandSpec;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAliases ()Ljava/util/List;
+	public final fun getArgsSchema ()Ljava/util/List;
+	public final fun getCommand ()Ljava/lang/String;
+	public final fun getCooldownMillis ()J
+	public final fun getDescription ()Ljava/lang/String;
+	public final fun getHelp ()Ljava/lang/String;
+	public final fun getPermission ()Ljava/lang/String;
+	public final fun getRateLimitPerMinute ()I
+	public final fun getSubcommands ()Ljava/util/List;
+	public final fun getUsage ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/CommandSpecKt {
+	public static final fun auditMiddleware (Ljava/lang/String;ILkotlin/jvm/functions/Function2;)Lcom/clockwork/api/CommandMiddlewareBinding;
+	public static synthetic fun auditMiddleware$default (Ljava/lang/String;ILkotlin/jvm/functions/Function2;ILjava/lang/Object;)Lcom/clockwork/api/CommandMiddlewareBinding;
+	public static final fun authMiddleware (Ljava/lang/String;ILkotlin/jvm/functions/Function1;)Lcom/clockwork/api/CommandMiddlewareBinding;
+	public static synthetic fun authMiddleware$default (Ljava/lang/String;ILkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/clockwork/api/CommandMiddlewareBinding;
+	public static final fun defaultCompletions (Lcom/clockwork/api/CommandSpec;Ljava/util/List;)Ljava/util/List;
+	public static final fun helpText (Lcom/clockwork/api/CommandSpec;)Ljava/lang/String;
+	public static final fun parseCommandArgs (Lcom/clockwork/api/CommandSpec;Ljava/util/List;)Lcom/clockwork/api/CommandParseResult;
+	public static final fun resolveCommandRoute (Lcom/clockwork/api/CommandSpec;Ljava/util/List;)Lcom/clockwork/api/ResolvedCommandRoute;
+	public static final fun telemetryMiddleware (Ljava/lang/String;ILkotlin/jvm/functions/Function3;)Lcom/clockwork/api/CommandMiddlewareBinding;
+	public static synthetic fun telemetryMiddleware$default (Ljava/lang/String;ILkotlin/jvm/functions/Function3;ILjava/lang/Object;)Lcom/clockwork/api/CommandMiddlewareBinding;
+	public static final fun usageLine (Lcom/clockwork/api/CommandSpec;)Ljava/lang/String;
+	public static final fun validationMiddleware (Ljava/lang/String;ILkotlin/jvm/functions/Function1;)Lcom/clockwork/api/CommandMiddlewareBinding;
+	public static synthetic fun validationMiddleware$default (Ljava/lang/String;ILkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/clockwork/api/CommandMiddlewareBinding;
+}
+
+public final class com/clockwork/api/CommandTelemetrySnapshot {
+	public fun <init> (Ljava/lang/String;JJDJJLjava/util/List;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()J
+	public final fun component3 ()J
+	public final fun component4 ()D
+	public final fun component5 ()J
+	public final fun component6 ()J
+	public final fun component7 ()Ljava/util/List;
+	public final fun copy (Ljava/lang/String;JJDJJLjava/util/List;)Lcom/clockwork/api/CommandTelemetrySnapshot;
+	public static synthetic fun copy$default (Lcom/clockwork/api/CommandTelemetrySnapshot;Ljava/lang/String;JJDJJLjava/util/List;ILjava/lang/Object;)Lcom/clockwork/api/CommandTelemetrySnapshot;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCommand ()Ljava/lang/String;
+	public final fun getFailRate ()D
+	public final fun getFailures ()J
+	public final fun getP50Nanos ()J
+	public final fun getP95Nanos ()J
+	public final fun getTopErrors ()Ljava/util/List;
+	public final fun getTotalRuns ()J
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/DependencySpec {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;)Lcom/clockwork/api/DependencySpec;
+	public static synthetic fun copy$default (Lcom/clockwork/api/DependencySpec;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/clockwork/api/DependencySpec;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getId ()Ljava/lang/String;
+	public final fun getVersionRange ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/DslGigaPlugin : com/clockwork/api/GigaPlugin {
+	public fun <init> (Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function1;)V
+	public final fun manifest ()Lcom/clockwork/api/PluginManifest;
+	public fun onDisable (Lcom/clockwork/api/PluginContext;)V
+	public fun onEnable (Lcom/clockwork/api/PluginContext;)V
+	public fun onReload (Lcom/clockwork/api/PluginContext;)V
+}
+
+public final class com/clockwork/api/DslKt {
+	public static final fun dependency (Ljava/lang/String;Ljava/lang/String;)Lcom/clockwork/api/DependencySpec;
+	public static synthetic fun dependency$default (Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/clockwork/api/DependencySpec;
+	public static final fun gigaPlugin (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Lkotlin/jvm/functions/Function1;)Lcom/clockwork/api/DslGigaPlugin;
+	public static synthetic fun gigaPlugin$default (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/clockwork/api/DslGigaPlugin;
+}
+
+public abstract interface class com/clockwork/api/EventBus {
+	public abstract fun eventTraceSnapshot ()Lcom/clockwork/api/EventTraceSnapshot;
+	public abstract fun publish (Ljava/lang/Object;)V
+	public abstract fun publishAsync (Ljava/lang/Object;)Ljava/util/concurrent/CompletableFuture;
+	public abstract fun resetEventTrace ()V
+	public abstract fun setTracingEnabled (Z)Z
+	public abstract fun subscribe (Ljava/lang/Class;Lcom/clockwork/api/EventSubscriptionOptions;Lkotlin/jvm/functions/Function1;)V
+	public abstract fun subscribe (Ljava/lang/Class;Lkotlin/jvm/functions/Function1;)V
+	public abstract fun unsubscribe (Ljava/lang/Class;Lkotlin/jvm/functions/Function1;)Z
+}
+
+public final class com/clockwork/api/EventBus$DefaultImpls {
+	public static fun eventTraceSnapshot (Lcom/clockwork/api/EventBus;)Lcom/clockwork/api/EventTraceSnapshot;
+	public static fun publishAsync (Lcom/clockwork/api/EventBus;Ljava/lang/Object;)Ljava/util/concurrent/CompletableFuture;
+	public static fun resetEventTrace (Lcom/clockwork/api/EventBus;)V
+	public static fun setTracingEnabled (Lcom/clockwork/api/EventBus;Z)Z
+	public static fun subscribe (Lcom/clockwork/api/EventBus;Ljava/lang/Class;Lcom/clockwork/api/EventSubscriptionOptions;Lkotlin/jvm/functions/Function1;)V
+	public static fun unsubscribe (Lcom/clockwork/api/EventBus;Ljava/lang/Class;Lkotlin/jvm/functions/Function1;)Z
+}
+
+public final class com/clockwork/api/EventPriority : java/lang/Enum {
+	public static final field HIGH Lcom/clockwork/api/EventPriority;
+	public static final field HIGHEST Lcom/clockwork/api/EventPriority;
+	public static final field LOW Lcom/clockwork/api/EventPriority;
+	public static final field LOWEST Lcom/clockwork/api/EventPriority;
+	public static final field NORMAL Lcom/clockwork/api/EventPriority;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/clockwork/api/EventPriority;
+	public static fun values ()[Lcom/clockwork/api/EventPriority;
+}
+
+public final class com/clockwork/api/EventSubscriptionOptions {
+	public fun <init> ()V
+	public fun <init> (Lcom/clockwork/api/EventPriority;ZZ)V
+	public synthetic fun <init> (Lcom/clockwork/api/EventPriority;ZZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/clockwork/api/EventPriority;
+	public final fun component2 ()Z
+	public final fun component3 ()Z
+	public final fun copy (Lcom/clockwork/api/EventPriority;ZZ)Lcom/clockwork/api/EventSubscriptionOptions;
+	public static synthetic fun copy$default (Lcom/clockwork/api/EventSubscriptionOptions;Lcom/clockwork/api/EventPriority;ZZILjava/lang/Object;)Lcom/clockwork/api/EventSubscriptionOptions;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getIgnoreCancelled ()Z
+	public final fun getMainThreadOnly ()Z
+	public final fun getPriority ()Lcom/clockwork/api/EventPriority;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/EventTraceSnapshot {
+	public fun <init> ()V
+	public fun <init> (ZJJJLjava/util/List;)V
+	public synthetic fun <init> (ZJJJLjava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Z
+	public final fun component2 ()J
+	public final fun component3 ()J
+	public final fun component4 ()J
+	public final fun component5 ()Ljava/util/List;
+	public final fun copy (ZJJJLjava/util/List;)Lcom/clockwork/api/EventTraceSnapshot;
+	public static synthetic fun copy$default (Lcom/clockwork/api/EventTraceSnapshot;ZJJJLjava/util/List;ILjava/lang/Object;)Lcom/clockwork/api/EventTraceSnapshot;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getEnabled ()Z
+	public final fun getEventTypes ()Ljava/util/List;
+	public final fun getTotalErrors ()J
+	public final fun getTotalEvents ()J
+	public final fun getTotalListenerCalls ()J
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/EventTypeTraceSnapshot {
+	public fun <init> (Ljava/lang/String;JJJJJJLjava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;JJJJJJLjava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()J
+	public final fun component3 ()J
+	public final fun component4 ()J
+	public final fun component5 ()J
+	public final fun component6 ()J
+	public final fun component7 ()J
+	public final fun component8 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;JJJJJJLjava/lang/String;)Lcom/clockwork/api/EventTypeTraceSnapshot;
+	public static synthetic fun copy$default (Lcom/clockwork/api/EventTypeTraceSnapshot;Ljava/lang/String;JJJJJJLjava/lang/String;ILjava/lang/Object;)Lcom/clockwork/api/EventTypeTraceSnapshot;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAverageNanos ()J
+	public final fun getErrors ()J
+	public final fun getEventType ()Ljava/lang/String;
+	public final fun getEvents ()J
+	public final fun getLastDurationNanos ()J
+	public final fun getLastThread ()Ljava/lang/String;
+	public final fun getListenerCalls ()J
+	public final fun getMaxNanos ()J
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/GigaAdapterPostInvokeEvent {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;Lcom/clockwork/api/AdapterResponse;Ljava/lang/String;J)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ljava/util/Map;
+	public final fun component5 ()Lcom/clockwork/api/AdapterResponse;
+	public final fun component6 ()Ljava/lang/String;
+	public final fun component7 ()J
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;Lcom/clockwork/api/AdapterResponse;Ljava/lang/String;J)Lcom/clockwork/api/GigaAdapterPostInvokeEvent;
+	public static synthetic fun copy$default (Lcom/clockwork/api/GigaAdapterPostInvokeEvent;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;Lcom/clockwork/api/AdapterResponse;Ljava/lang/String;JILjava/lang/Object;)Lcom/clockwork/api/GigaAdapterPostInvokeEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAction ()Ljava/lang/String;
+	public final fun getAdapterId ()Ljava/lang/String;
+	public final fun getDurationNanos ()J
+	public final fun getOutcome ()Ljava/lang/String;
+	public final fun getPayload ()Ljava/util/Map;
+	public final fun getPluginId ()Ljava/lang/String;
+	public final fun getResponse ()Lcom/clockwork/api/AdapterResponse;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/GigaAdapterPreInvokeEvent {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;)V
+	public final fun getAction ()Ljava/lang/String;
+	public final fun getAdapterId ()Ljava/lang/String;
+	public final fun getCancelReason ()Ljava/lang/String;
+	public final fun getCancelled ()Z
+	public final fun getOverrideResponse ()Lcom/clockwork/api/AdapterResponse;
+	public final fun getPayload ()Ljava/util/Map;
+	public final fun getPluginId ()Ljava/lang/String;
+	public final fun setCancelReason (Ljava/lang/String;)V
+	public final fun setCancelled (Z)V
+	public final fun setOverrideResponse (Lcom/clockwork/api/AdapterResponse;)V
+}
+
+public final class com/clockwork/api/GigaAnimationRegisteredEvent {
+	public fun <init> (Lcom/clockwork/api/AnimationDefinition;)V
+	public final fun component1 ()Lcom/clockwork/api/AnimationDefinition;
+	public final fun copy (Lcom/clockwork/api/AnimationDefinition;)Lcom/clockwork/api/GigaAnimationRegisteredEvent;
+	public static synthetic fun copy$default (Lcom/clockwork/api/GigaAnimationRegisteredEvent;Lcom/clockwork/api/AnimationDefinition;ILjava/lang/Object;)Lcom/clockwork/api/GigaAnimationRegisteredEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAnimation ()Lcom/clockwork/api/AnimationDefinition;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/GigaApiVersion {
+	public static final field CONTRACTS_FROZEN Z
+	public static final field CONTRACT_VERSION Ljava/lang/String;
+	public static final field INSTANCE Lcom/clockwork/api/GigaApiVersion;
+	public static final field MANIFEST_API_VERSION Ljava/lang/String;
+}
+
+public final class com/clockwork/api/GigaBlockBreakPostEvent {
+	public fun <init> (Ljava/lang/String;IIIZLjava/lang/String;Ljava/lang/String;ZZJLjava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;IIIZLjava/lang/String;Ljava/lang/String;ZZJLjava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component10 ()J
+	public final fun component11 ()Ljava/lang/String;
+	public final fun component2 ()I
+	public final fun component3 ()I
+	public final fun component4 ()I
+	public final fun component5 ()Z
+	public final fun component6 ()Ljava/lang/String;
+	public final fun component7 ()Ljava/lang/String;
+	public final fun component8 ()Z
+	public final fun component9 ()Z
+	public final fun copy (Ljava/lang/String;IIIZLjava/lang/String;Ljava/lang/String;ZZJLjava/lang/String;)Lcom/clockwork/api/GigaBlockBreakPostEvent;
+	public static synthetic fun copy$default (Lcom/clockwork/api/GigaBlockBreakPostEvent;Ljava/lang/String;IIIZLjava/lang/String;Ljava/lang/String;ZZJLjava/lang/String;ILjava/lang/Object;)Lcom/clockwork/api/GigaBlockBreakPostEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCancelled ()Z
+	public final fun getCause ()Ljava/lang/String;
+	public final fun getDropLoot ()Z
+	public final fun getDurationNanos ()J
+	public final fun getError ()Ljava/lang/String;
+	public final fun getPreviousBlockId ()Ljava/lang/String;
+	public final fun getSuccess ()Z
+	public final fun getWorld ()Ljava/lang/String;
+	public final fun getX ()I
+	public final fun getY ()I
+	public final fun getZ ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/GigaBlockBreakPreEvent {
+	public fun <init> (Ljava/lang/String;IIIZLjava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;IIIZLjava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getCancelReason ()Ljava/lang/String;
+	public final fun getCancelled ()Z
+	public final fun getCause ()Ljava/lang/String;
+	public final fun getDropLoot ()Z
+	public final fun getWorld ()Ljava/lang/String;
+	public final fun getX ()I
+	public final fun getY ()I
+	public final fun getZ ()I
+	public final fun setCancelReason (Ljava/lang/String;)V
+	public final fun setCancelled (Z)V
+	public final fun setCause (Ljava/lang/String;)V
+	public final fun setDropLoot (Z)V
+	public final fun setWorld (Ljava/lang/String;)V
+	public final fun setX (I)V
+	public final fun setY (I)V
+	public final fun setZ (I)V
+}
+
+public final class com/clockwork/api/GigaBlockChangeEvent {
+	public fun <init> (Ljava/lang/String;IIILjava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;IIILjava/lang/String;Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()I
+	public final fun component3 ()I
+	public final fun component4 ()I
+	public final fun component5 ()Ljava/lang/String;
+	public final fun component6 ()Ljava/lang/String;
+	public final fun component7 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;IIILjava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lcom/clockwork/api/GigaBlockChangeEvent;
+	public static synthetic fun copy$default (Lcom/clockwork/api/GigaBlockChangeEvent;Ljava/lang/String;IIILjava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/clockwork/api/GigaBlockChangeEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCause ()Ljava/lang/String;
+	public final fun getCurrentBlockId ()Ljava/lang/String;
+	public final fun getPreviousBlockId ()Ljava/lang/String;
+	public final fun getWorld ()Ljava/lang/String;
+	public final fun getX ()I
+	public final fun getY ()I
+	public final fun getZ ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/GigaBlockDataChangeEvent {
+	public fun <init> (Ljava/lang/String;IIILjava/util/Map;Ljava/util/Map;Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;IIILjava/util/Map;Ljava/util/Map;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()I
+	public final fun component3 ()I
+	public final fun component4 ()I
+	public final fun component5 ()Ljava/util/Map;
+	public final fun component6 ()Ljava/util/Map;
+	public final fun component7 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;IIILjava/util/Map;Ljava/util/Map;Ljava/lang/String;)Lcom/clockwork/api/GigaBlockDataChangeEvent;
+	public static synthetic fun copy$default (Lcom/clockwork/api/GigaBlockDataChangeEvent;Ljava/lang/String;IIILjava/util/Map;Ljava/util/Map;Ljava/lang/String;ILjava/lang/Object;)Lcom/clockwork/api/GigaBlockDataChangeEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCause ()Ljava/lang/String;
+	public final fun getCurrentData ()Ljava/util/Map;
+	public final fun getPreviousData ()Ljava/util/Map;
+	public final fun getWorld ()Ljava/lang/String;
+	public final fun getX ()I
+	public final fun getY ()I
+	public final fun getZ ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/GigaCommandPostExecuteEvent {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Lcom/clockwork/api/CommandSender;Ljava/util/List;Ljava/lang/String;Lcom/clockwork/api/CommandResult;ZJLcom/clockwork/api/CommandError;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lcom/clockwork/api/CommandSender;Ljava/util/List;Ljava/lang/String;Lcom/clockwork/api/CommandResult;ZJLcom/clockwork/api/CommandError;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Lcom/clockwork/api/CommandSender;
+	public final fun component4 ()Ljava/util/List;
+	public final fun component5 ()Ljava/lang/String;
+	public final fun component6 ()Lcom/clockwork/api/CommandResult;
+	public final fun component7 ()Z
+	public final fun component8 ()J
+	public final fun component9 ()Lcom/clockwork/api/CommandError;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Lcom/clockwork/api/CommandSender;Ljava/util/List;Ljava/lang/String;Lcom/clockwork/api/CommandResult;ZJLcom/clockwork/api/CommandError;)Lcom/clockwork/api/GigaCommandPostExecuteEvent;
+	public static synthetic fun copy$default (Lcom/clockwork/api/GigaCommandPostExecuteEvent;Ljava/lang/String;Ljava/lang/String;Lcom/clockwork/api/CommandSender;Ljava/util/List;Ljava/lang/String;Lcom/clockwork/api/CommandResult;ZJLcom/clockwork/api/CommandError;ILjava/lang/Object;)Lcom/clockwork/api/GigaCommandPostExecuteEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getArgs ()Ljava/util/List;
+	public final fun getCommand ()Ljava/lang/String;
+	public final fun getDurationNanos ()J
+	public final fun getError ()Lcom/clockwork/api/CommandError;
+	public final fun getPluginId ()Ljava/lang/String;
+	public final fun getRawCommandLine ()Ljava/lang/String;
+	public final fun getResponse ()Lcom/clockwork/api/CommandResult;
+	public final fun getSender ()Lcom/clockwork/api/CommandSender;
+	public final fun getSuccess ()Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/GigaCommandPreExecuteEvent {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Lcom/clockwork/api/CommandSender;Ljava/util/List;Ljava/lang/String;)V
+	public final fun getArgs ()Ljava/util/List;
+	public final fun getCancelReason ()Ljava/lang/String;
+	public final fun getCancelled ()Z
+	public final fun getCommand ()Ljava/lang/String;
+	public final fun getOverrideResponse ()Lcom/clockwork/api/CommandResult;
+	public final fun getPluginId ()Ljava/lang/String;
+	public final fun getRawCommandLine ()Ljava/lang/String;
+	public final fun getSender ()Lcom/clockwork/api/CommandSender;
+	public final fun setCancelReason (Ljava/lang/String;)V
+	public final fun setCancelled (Z)V
+	public final fun setOverrideResponse (Lcom/clockwork/api/CommandResult;)V
+}
+
+public final class com/clockwork/api/GigaEntityDataChangeEvent {
+	public fun <init> (Lcom/clockwork/api/HostEntitySnapshot;Ljava/util/Map;Ljava/util/Map;Ljava/lang/String;)V
+	public synthetic fun <init> (Lcom/clockwork/api/HostEntitySnapshot;Ljava/util/Map;Ljava/util/Map;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/clockwork/api/HostEntitySnapshot;
+	public final fun component2 ()Ljava/util/Map;
+	public final fun component3 ()Ljava/util/Map;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun copy (Lcom/clockwork/api/HostEntitySnapshot;Ljava/util/Map;Ljava/util/Map;Ljava/lang/String;)Lcom/clockwork/api/GigaEntityDataChangeEvent;
+	public static synthetic fun copy$default (Lcom/clockwork/api/GigaEntityDataChangeEvent;Lcom/clockwork/api/HostEntitySnapshot;Ljava/util/Map;Ljava/util/Map;Ljava/lang/String;ILjava/lang/Object;)Lcom/clockwork/api/GigaEntityDataChangeEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCause ()Ljava/lang/String;
+	public final fun getCurrentData ()Ljava/util/Map;
+	public final fun getEntity ()Lcom/clockwork/api/HostEntitySnapshot;
+	public final fun getPreviousData ()Ljava/util/Map;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/GigaEntityRemoveEvent {
+	public fun <init> (Lcom/clockwork/api/HostEntitySnapshot;Ljava/lang/String;)V
+	public synthetic fun <init> (Lcom/clockwork/api/HostEntitySnapshot;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/clockwork/api/HostEntitySnapshot;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy (Lcom/clockwork/api/HostEntitySnapshot;Ljava/lang/String;)Lcom/clockwork/api/GigaEntityRemoveEvent;
+	public static synthetic fun copy$default (Lcom/clockwork/api/GigaEntityRemoveEvent;Lcom/clockwork/api/HostEntitySnapshot;Ljava/lang/String;ILjava/lang/Object;)Lcom/clockwork/api/GigaEntityRemoveEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getEntity ()Lcom/clockwork/api/HostEntitySnapshot;
+	public final fun getReason ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/GigaEntitySpawnEvent {
+	public fun <init> (Lcom/clockwork/api/HostEntitySnapshot;)V
+	public final fun component1 ()Lcom/clockwork/api/HostEntitySnapshot;
+	public final fun copy (Lcom/clockwork/api/HostEntitySnapshot;)Lcom/clockwork/api/GigaEntitySpawnEvent;
+	public static synthetic fun copy$default (Lcom/clockwork/api/GigaEntitySpawnEvent;Lcom/clockwork/api/HostEntitySnapshot;ILjava/lang/Object;)Lcom/clockwork/api/GigaEntitySpawnEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getEntity ()Lcom/clockwork/api/HostEntitySnapshot;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/GigaEntitySpawnPostEvent {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;DDDLjava/lang/String;Lcom/clockwork/api/HostEntitySnapshot;ZZJLjava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;DDDLjava/lang/String;Lcom/clockwork/api/HostEntitySnapshot;ZZJLjava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component10 ()J
+	public final fun component11 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()D
+	public final fun component4 ()D
+	public final fun component5 ()D
+	public final fun component6 ()Ljava/lang/String;
+	public final fun component7 ()Lcom/clockwork/api/HostEntitySnapshot;
+	public final fun component8 ()Z
+	public final fun component9 ()Z
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;DDDLjava/lang/String;Lcom/clockwork/api/HostEntitySnapshot;ZZJLjava/lang/String;)Lcom/clockwork/api/GigaEntitySpawnPostEvent;
+	public static synthetic fun copy$default (Lcom/clockwork/api/GigaEntitySpawnPostEvent;Ljava/lang/String;Ljava/lang/String;DDDLjava/lang/String;Lcom/clockwork/api/HostEntitySnapshot;ZZJLjava/lang/String;ILjava/lang/Object;)Lcom/clockwork/api/GigaEntitySpawnPostEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCancelled ()Z
+	public final fun getCause ()Ljava/lang/String;
+	public final fun getDurationNanos ()J
+	public final fun getEntity ()Lcom/clockwork/api/HostEntitySnapshot;
+	public final fun getEntityType ()Ljava/lang/String;
+	public final fun getError ()Ljava/lang/String;
+	public final fun getSuccess ()Z
+	public final fun getWorld ()Ljava/lang/String;
+	public final fun getX ()D
+	public final fun getY ()D
+	public final fun getZ ()D
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/GigaEntitySpawnPreEvent {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;DDDLjava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;DDDLjava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getCancelReason ()Ljava/lang/String;
+	public final fun getCancelled ()Z
+	public final fun getCause ()Ljava/lang/String;
+	public final fun getEntityType ()Ljava/lang/String;
+	public final fun getWorld ()Ljava/lang/String;
+	public final fun getX ()D
+	public final fun getY ()D
+	public final fun getZ ()D
+	public final fun setCancelReason (Ljava/lang/String;)V
+	public final fun setCancelled (Z)V
+	public final fun setCause (Ljava/lang/String;)V
+	public final fun setEntityType (Ljava/lang/String;)V
+	public final fun setWorld (Ljava/lang/String;)V
+	public final fun setX (D)V
+	public final fun setY (D)V
+	public final fun setZ (D)V
+}
+
+public final class com/clockwork/api/GigaInventoryChangeEvent {
+	public fun <init> (Ljava/lang/String;ILjava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()I
+	public final fun component3 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;ILjava/lang/String;)Lcom/clockwork/api/GigaInventoryChangeEvent;
+	public static synthetic fun copy$default (Lcom/clockwork/api/GigaInventoryChangeEvent;Ljava/lang/String;ILjava/lang/String;ILjava/lang/Object;)Lcom/clockwork/api/GigaInventoryChangeEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getItemId ()Ljava/lang/String;
+	public final fun getOwner ()Ljava/lang/String;
+	public final fun getSlot ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class com/clockwork/api/GigaLogger {
+	public abstract fun info (Ljava/lang/String;)V
+}
+
+public final class com/clockwork/api/GigaModelRegisteredEvent {
+	public fun <init> (Lcom/clockwork/api/ModelDefinition;)V
+	public final fun component1 ()Lcom/clockwork/api/ModelDefinition;
+	public final fun copy (Lcom/clockwork/api/ModelDefinition;)Lcom/clockwork/api/GigaModelRegisteredEvent;
+	public static synthetic fun copy$default (Lcom/clockwork/api/GigaModelRegisteredEvent;Lcom/clockwork/api/ModelDefinition;ILjava/lang/Object;)Lcom/clockwork/api/GigaModelRegisteredEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getModel ()Lcom/clockwork/api/ModelDefinition;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/GigaPlayerEffectChangeEvent {
+	public fun <init> (Lcom/clockwork/api/HostPlayerSnapshot;Ljava/lang/String;Ljava/lang/Integer;Ljava/lang/Integer;Ljava/lang/String;)V
+	public synthetic fun <init> (Lcom/clockwork/api/HostPlayerSnapshot;Ljava/lang/String;Ljava/lang/Integer;Ljava/lang/Integer;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/clockwork/api/HostPlayerSnapshot;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/Integer;
+	public final fun component4 ()Ljava/lang/Integer;
+	public final fun component5 ()Ljava/lang/String;
+	public final fun copy (Lcom/clockwork/api/HostPlayerSnapshot;Ljava/lang/String;Ljava/lang/Integer;Ljava/lang/Integer;Ljava/lang/String;)Lcom/clockwork/api/GigaPlayerEffectChangeEvent;
+	public static synthetic fun copy$default (Lcom/clockwork/api/GigaPlayerEffectChangeEvent;Lcom/clockwork/api/HostPlayerSnapshot;Ljava/lang/String;Ljava/lang/Integer;Ljava/lang/Integer;Ljava/lang/String;ILjava/lang/Object;)Lcom/clockwork/api/GigaPlayerEffectChangeEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCause ()Ljava/lang/String;
+	public final fun getCurrentDurationTicks ()Ljava/lang/Integer;
+	public final fun getEffectId ()Ljava/lang/String;
+	public final fun getPlayer ()Lcom/clockwork/api/HostPlayerSnapshot;
+	public final fun getPreviousDurationTicks ()Ljava/lang/Integer;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/GigaPlayerGameModeChangeEvent {
+	public fun <init> (Lcom/clockwork/api/HostPlayerSnapshot;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public synthetic fun <init> (Lcom/clockwork/api/HostPlayerSnapshot;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/clockwork/api/HostPlayerSnapshot;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun copy (Lcom/clockwork/api/HostPlayerSnapshot;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lcom/clockwork/api/GigaPlayerGameModeChangeEvent;
+	public static synthetic fun copy$default (Lcom/clockwork/api/GigaPlayerGameModeChangeEvent;Lcom/clockwork/api/HostPlayerSnapshot;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/clockwork/api/GigaPlayerGameModeChangeEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCause ()Ljava/lang/String;
+	public final fun getCurrentGameMode ()Ljava/lang/String;
+	public final fun getPlayer ()Lcom/clockwork/api/HostPlayerSnapshot;
+	public final fun getPreviousGameMode ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/GigaPlayerJoinEvent {
+	public fun <init> (Lcom/clockwork/api/HostPlayerSnapshot;)V
+	public final fun component1 ()Lcom/clockwork/api/HostPlayerSnapshot;
+	public final fun copy (Lcom/clockwork/api/HostPlayerSnapshot;)Lcom/clockwork/api/GigaPlayerJoinEvent;
+	public static synthetic fun copy$default (Lcom/clockwork/api/GigaPlayerJoinEvent;Lcom/clockwork/api/HostPlayerSnapshot;ILjava/lang/Object;)Lcom/clockwork/api/GigaPlayerJoinEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getPlayer ()Lcom/clockwork/api/HostPlayerSnapshot;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/GigaPlayerKickEvent {
+	public fun <init> (Lcom/clockwork/api/HostPlayerSnapshot;Ljava/lang/String;Ljava/lang/String;)V
+	public synthetic fun <init> (Lcom/clockwork/api/HostPlayerSnapshot;Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/clockwork/api/HostPlayerSnapshot;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun copy (Lcom/clockwork/api/HostPlayerSnapshot;Ljava/lang/String;Ljava/lang/String;)Lcom/clockwork/api/GigaPlayerKickEvent;
+	public static synthetic fun copy$default (Lcom/clockwork/api/GigaPlayerKickEvent;Lcom/clockwork/api/HostPlayerSnapshot;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/clockwork/api/GigaPlayerKickEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCause ()Ljava/lang/String;
+	public final fun getPlayer ()Lcom/clockwork/api/HostPlayerSnapshot;
+	public final fun getReason ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/GigaPlayerLeaveEvent {
+	public fun <init> (Lcom/clockwork/api/HostPlayerSnapshot;)V
+	public final fun component1 ()Lcom/clockwork/api/HostPlayerSnapshot;
+	public final fun copy (Lcom/clockwork/api/HostPlayerSnapshot;)Lcom/clockwork/api/GigaPlayerLeaveEvent;
+	public static synthetic fun copy$default (Lcom/clockwork/api/GigaPlayerLeaveEvent;Lcom/clockwork/api/HostPlayerSnapshot;ILjava/lang/Object;)Lcom/clockwork/api/GigaPlayerLeaveEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getPlayer ()Lcom/clockwork/api/HostPlayerSnapshot;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/GigaPlayerMessageEvent {
+	public fun <init> (Lcom/clockwork/api/HostPlayerSnapshot;Ljava/lang/String;Ljava/lang/String;)V
+	public synthetic fun <init> (Lcom/clockwork/api/HostPlayerSnapshot;Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/clockwork/api/HostPlayerSnapshot;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun copy (Lcom/clockwork/api/HostPlayerSnapshot;Ljava/lang/String;Ljava/lang/String;)Lcom/clockwork/api/GigaPlayerMessageEvent;
+	public static synthetic fun copy$default (Lcom/clockwork/api/GigaPlayerMessageEvent;Lcom/clockwork/api/HostPlayerSnapshot;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/clockwork/api/GigaPlayerMessageEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCause ()Ljava/lang/String;
+	public final fun getMessage ()Ljava/lang/String;
+	public final fun getPlayer ()Lcom/clockwork/api/HostPlayerSnapshot;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/GigaPlayerMoveEvent {
+	public fun <init> (Lcom/clockwork/api/HostPlayerSnapshot;Lcom/clockwork/api/HostPlayerSnapshot;)V
+	public final fun component1 ()Lcom/clockwork/api/HostPlayerSnapshot;
+	public final fun component2 ()Lcom/clockwork/api/HostPlayerSnapshot;
+	public final fun copy (Lcom/clockwork/api/HostPlayerSnapshot;Lcom/clockwork/api/HostPlayerSnapshot;)Lcom/clockwork/api/GigaPlayerMoveEvent;
+	public static synthetic fun copy$default (Lcom/clockwork/api/GigaPlayerMoveEvent;Lcom/clockwork/api/HostPlayerSnapshot;Lcom/clockwork/api/HostPlayerSnapshot;ILjava/lang/Object;)Lcom/clockwork/api/GigaPlayerMoveEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCurrent ()Lcom/clockwork/api/HostPlayerSnapshot;
+	public final fun getPrevious ()Lcom/clockwork/api/HostPlayerSnapshot;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/GigaPlayerMovePostEvent {
+	public fun <init> (Lcom/clockwork/api/HostPlayerSnapshot;Lcom/clockwork/api/HostPlayerSnapshot;Lcom/clockwork/api/HostPlayerSnapshot;Ljava/lang/String;DDDLjava/lang/String;ZZJLjava/lang/String;)V
+	public synthetic fun <init> (Lcom/clockwork/api/HostPlayerSnapshot;Lcom/clockwork/api/HostPlayerSnapshot;Lcom/clockwork/api/HostPlayerSnapshot;Ljava/lang/String;DDDLjava/lang/String;ZZJLjava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/clockwork/api/HostPlayerSnapshot;
+	public final fun component10 ()Z
+	public final fun component11 ()J
+	public final fun component12 ()Ljava/lang/String;
+	public final fun component2 ()Lcom/clockwork/api/HostPlayerSnapshot;
+	public final fun component3 ()Lcom/clockwork/api/HostPlayerSnapshot;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun component5 ()D
+	public final fun component6 ()D
+	public final fun component7 ()D
+	public final fun component8 ()Ljava/lang/String;
+	public final fun component9 ()Z
+	public final fun copy (Lcom/clockwork/api/HostPlayerSnapshot;Lcom/clockwork/api/HostPlayerSnapshot;Lcom/clockwork/api/HostPlayerSnapshot;Ljava/lang/String;DDDLjava/lang/String;ZZJLjava/lang/String;)Lcom/clockwork/api/GigaPlayerMovePostEvent;
+	public static synthetic fun copy$default (Lcom/clockwork/api/GigaPlayerMovePostEvent;Lcom/clockwork/api/HostPlayerSnapshot;Lcom/clockwork/api/HostPlayerSnapshot;Lcom/clockwork/api/HostPlayerSnapshot;Ljava/lang/String;DDDLjava/lang/String;ZZJLjava/lang/String;ILjava/lang/Object;)Lcom/clockwork/api/GigaPlayerMovePostEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCancelled ()Z
+	public final fun getCause ()Ljava/lang/String;
+	public final fun getCurrent ()Lcom/clockwork/api/HostPlayerSnapshot;
+	public final fun getDurationNanos ()J
+	public final fun getError ()Ljava/lang/String;
+	public final fun getPlayer ()Lcom/clockwork/api/HostPlayerSnapshot;
+	public final fun getPrevious ()Lcom/clockwork/api/HostPlayerSnapshot;
+	public final fun getSuccess ()Z
+	public final fun getTargetWorld ()Ljava/lang/String;
+	public final fun getTargetX ()D
+	public final fun getTargetY ()D
+	public final fun getTargetZ ()D
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/GigaPlayerMovePreEvent {
+	public fun <init> (Lcom/clockwork/api/HostPlayerSnapshot;Ljava/lang/String;DDDLjava/lang/String;)V
+	public synthetic fun <init> (Lcom/clockwork/api/HostPlayerSnapshot;Ljava/lang/String;DDDLjava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getCancelReason ()Ljava/lang/String;
+	public final fun getCancelled ()Z
+	public final fun getCause ()Ljava/lang/String;
+	public final fun getPlayer ()Lcom/clockwork/api/HostPlayerSnapshot;
+	public final fun getTargetWorld ()Ljava/lang/String;
+	public final fun getTargetX ()D
+	public final fun getTargetY ()D
+	public final fun getTargetZ ()D
+	public final fun setCancelReason (Ljava/lang/String;)V
+	public final fun setCancelled (Z)V
+	public final fun setCause (Ljava/lang/String;)V
+	public final fun setTargetWorld (Ljava/lang/String;)V
+	public final fun setTargetX (D)V
+	public final fun setTargetY (D)V
+	public final fun setTargetZ (D)V
+}
+
+public final class com/clockwork/api/GigaPlayerOpChangeEvent {
+	public fun <init> (Lcom/clockwork/api/HostPlayerSnapshot;ZZLjava/lang/String;)V
+	public synthetic fun <init> (Lcom/clockwork/api/HostPlayerSnapshot;ZZLjava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/clockwork/api/HostPlayerSnapshot;
+	public final fun component2 ()Z
+	public final fun component3 ()Z
+	public final fun component4 ()Ljava/lang/String;
+	public final fun copy (Lcom/clockwork/api/HostPlayerSnapshot;ZZLjava/lang/String;)Lcom/clockwork/api/GigaPlayerOpChangeEvent;
+	public static synthetic fun copy$default (Lcom/clockwork/api/GigaPlayerOpChangeEvent;Lcom/clockwork/api/HostPlayerSnapshot;ZZLjava/lang/String;ILjava/lang/Object;)Lcom/clockwork/api/GigaPlayerOpChangeEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCause ()Ljava/lang/String;
+	public final fun getCurrentOp ()Z
+	public final fun getPlayer ()Lcom/clockwork/api/HostPlayerSnapshot;
+	public final fun getPreviousOp ()Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/GigaPlayerPermissionChangeEvent {
+	public fun <init> (Lcom/clockwork/api/HostPlayerSnapshot;Ljava/lang/String;ZLjava/lang/String;)V
+	public synthetic fun <init> (Lcom/clockwork/api/HostPlayerSnapshot;Ljava/lang/String;ZLjava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/clockwork/api/HostPlayerSnapshot;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Z
+	public final fun component4 ()Ljava/lang/String;
+	public final fun copy (Lcom/clockwork/api/HostPlayerSnapshot;Ljava/lang/String;ZLjava/lang/String;)Lcom/clockwork/api/GigaPlayerPermissionChangeEvent;
+	public static synthetic fun copy$default (Lcom/clockwork/api/GigaPlayerPermissionChangeEvent;Lcom/clockwork/api/HostPlayerSnapshot;Ljava/lang/String;ZLjava/lang/String;ILjava/lang/Object;)Lcom/clockwork/api/GigaPlayerPermissionChangeEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCause ()Ljava/lang/String;
+	public final fun getGranted ()Z
+	public final fun getPermission ()Ljava/lang/String;
+	public final fun getPlayer ()Lcom/clockwork/api/HostPlayerSnapshot;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/GigaPlayerStatusChangeEvent {
+	public fun <init> (Lcom/clockwork/api/HostPlayerSnapshot;Lcom/clockwork/api/HostPlayerStatusSnapshot;Lcom/clockwork/api/HostPlayerStatusSnapshot;Ljava/lang/String;)V
+	public synthetic fun <init> (Lcom/clockwork/api/HostPlayerSnapshot;Lcom/clockwork/api/HostPlayerStatusSnapshot;Lcom/clockwork/api/HostPlayerStatusSnapshot;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/clockwork/api/HostPlayerSnapshot;
+	public final fun component2 ()Lcom/clockwork/api/HostPlayerStatusSnapshot;
+	public final fun component3 ()Lcom/clockwork/api/HostPlayerStatusSnapshot;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun copy (Lcom/clockwork/api/HostPlayerSnapshot;Lcom/clockwork/api/HostPlayerStatusSnapshot;Lcom/clockwork/api/HostPlayerStatusSnapshot;Ljava/lang/String;)Lcom/clockwork/api/GigaPlayerStatusChangeEvent;
+	public static synthetic fun copy$default (Lcom/clockwork/api/GigaPlayerStatusChangeEvent;Lcom/clockwork/api/HostPlayerSnapshot;Lcom/clockwork/api/HostPlayerStatusSnapshot;Lcom/clockwork/api/HostPlayerStatusSnapshot;Ljava/lang/String;ILjava/lang/Object;)Lcom/clockwork/api/GigaPlayerStatusChangeEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCause ()Ljava/lang/String;
+	public final fun getCurrent ()Lcom/clockwork/api/HostPlayerStatusSnapshot;
+	public final fun getPlayer ()Lcom/clockwork/api/HostPlayerSnapshot;
+	public final fun getPrevious ()Lcom/clockwork/api/HostPlayerStatusSnapshot;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/GigaPlayerTeleportEvent {
+	public fun <init> (Lcom/clockwork/api/HostPlayerSnapshot;Lcom/clockwork/api/HostPlayerSnapshot;Ljava/lang/String;)V
+	public synthetic fun <init> (Lcom/clockwork/api/HostPlayerSnapshot;Lcom/clockwork/api/HostPlayerSnapshot;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/clockwork/api/HostPlayerSnapshot;
+	public final fun component2 ()Lcom/clockwork/api/HostPlayerSnapshot;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun copy (Lcom/clockwork/api/HostPlayerSnapshot;Lcom/clockwork/api/HostPlayerSnapshot;Ljava/lang/String;)Lcom/clockwork/api/GigaPlayerTeleportEvent;
+	public static synthetic fun copy$default (Lcom/clockwork/api/GigaPlayerTeleportEvent;Lcom/clockwork/api/HostPlayerSnapshot;Lcom/clockwork/api/HostPlayerSnapshot;Ljava/lang/String;ILjava/lang/Object;)Lcom/clockwork/api/GigaPlayerTeleportEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCause ()Ljava/lang/String;
+	public final fun getCurrent ()Lcom/clockwork/api/HostPlayerSnapshot;
+	public final fun getPrevious ()Lcom/clockwork/api/HostPlayerSnapshot;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class com/clockwork/api/GigaPlugin {
+	public abstract fun onDisable (Lcom/clockwork/api/PluginContext;)V
+	public abstract fun onEnable (Lcom/clockwork/api/PluginContext;)V
+	public abstract fun onReload (Lcom/clockwork/api/PluginContext;)V
+}
+
+public final class com/clockwork/api/GigaPlugin$DefaultImpls {
+	public static fun onReload (Lcom/clockwork/api/GigaPlugin;Lcom/clockwork/api/PluginContext;)V
+}
+
+public final class com/clockwork/api/GigaPluginDsl {
+	public fun <init> (Lcom/clockwork/api/PluginContext;)V
+	public final fun adapters (Lkotlin/jvm/functions/Function1;)V
+	public final fun animations (Lkotlin/jvm/functions/Function1;)V
+	public final fun blocks (Lkotlin/jvm/functions/Function1;)V
+	public final fun commands (Lkotlin/jvm/functions/Function1;)V
+	public final fun install ()V
+	public final fun items (Lkotlin/jvm/functions/Function1;)V
+	public final fun machines (Lkotlin/jvm/functions/Function1;)V
+	public final fun models (Lkotlin/jvm/functions/Function1;)V
+	public final fun recipes (Lkotlin/jvm/functions/Function1;)V
+	public final fun sounds (Lkotlin/jvm/functions/Function1;)V
+	public final fun systems (Lkotlin/jvm/functions/Function1;)V
+	public final fun textures (Lkotlin/jvm/functions/Function1;)V
+}
+
+public final class com/clockwork/api/GigaResourcePackBundleEvent {
+	public fun <init> (Lcom/clockwork/api/ResourcePackBundle;Lcom/clockwork/api/AssetValidationResult;)V
+	public final fun component1 ()Lcom/clockwork/api/ResourcePackBundle;
+	public final fun component2 ()Lcom/clockwork/api/AssetValidationResult;
+	public final fun copy (Lcom/clockwork/api/ResourcePackBundle;Lcom/clockwork/api/AssetValidationResult;)Lcom/clockwork/api/GigaResourcePackBundleEvent;
+	public static synthetic fun copy$default (Lcom/clockwork/api/GigaResourcePackBundleEvent;Lcom/clockwork/api/ResourcePackBundle;Lcom/clockwork/api/AssetValidationResult;ILjava/lang/Object;)Lcom/clockwork/api/GigaResourcePackBundleEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBundle ()Lcom/clockwork/api/ResourcePackBundle;
+	public final fun getValidation ()Lcom/clockwork/api/AssetValidationResult;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/GigaSoundRegisteredEvent {
+	public fun <init> (Lcom/clockwork/api/SoundDefinition;)V
+	public final fun component1 ()Lcom/clockwork/api/SoundDefinition;
+	public final fun copy (Lcom/clockwork/api/SoundDefinition;)Lcom/clockwork/api/GigaSoundRegisteredEvent;
+	public static synthetic fun copy$default (Lcom/clockwork/api/GigaSoundRegisteredEvent;Lcom/clockwork/api/SoundDefinition;ILjava/lang/Object;)Lcom/clockwork/api/GigaSoundRegisteredEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getSound ()Lcom/clockwork/api/SoundDefinition;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/GigaTextureRegisteredEvent {
+	public fun <init> (Lcom/clockwork/api/TextureDefinition;)V
+	public final fun component1 ()Lcom/clockwork/api/TextureDefinition;
+	public final fun copy (Lcom/clockwork/api/TextureDefinition;)Lcom/clockwork/api/GigaTextureRegisteredEvent;
+	public static synthetic fun copy$default (Lcom/clockwork/api/GigaTextureRegisteredEvent;Lcom/clockwork/api/TextureDefinition;ILjava/lang/Object;)Lcom/clockwork/api/GigaTextureRegisteredEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getTexture ()Lcom/clockwork/api/TextureDefinition;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/GigaTickEvent {
+	public fun <init> (J)V
+	public final fun component1 ()J
+	public final fun copy (J)Lcom/clockwork/api/GigaTickEvent;
+	public static synthetic fun copy$default (Lcom/clockwork/api/GigaTickEvent;JILjava/lang/Object;)Lcom/clockwork/api/GigaTickEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getTick ()J
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/GigaUiActionBarEvent {
+	public fun <init> (Lcom/clockwork/api/HostPlayerSnapshot;Ljava/lang/String;I)V
+	public final fun component1 ()Lcom/clockwork/api/HostPlayerSnapshot;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()I
+	public final fun copy (Lcom/clockwork/api/HostPlayerSnapshot;Ljava/lang/String;I)Lcom/clockwork/api/GigaUiActionBarEvent;
+	public static synthetic fun copy$default (Lcom/clockwork/api/GigaUiActionBarEvent;Lcom/clockwork/api/HostPlayerSnapshot;Ljava/lang/String;IILjava/lang/Object;)Lcom/clockwork/api/GigaUiActionBarEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDurationTicks ()I
+	public final fun getMessage ()Ljava/lang/String;
+	public final fun getPlayer ()Lcom/clockwork/api/HostPlayerSnapshot;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/GigaUiDialogOpenEvent {
+	public fun <init> (Lcom/clockwork/api/HostPlayerSnapshot;Ljava/lang/String;Ljava/lang/String;I)V
+	public final fun component1 ()Lcom/clockwork/api/HostPlayerSnapshot;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()I
+	public final fun copy (Lcom/clockwork/api/HostPlayerSnapshot;Ljava/lang/String;Ljava/lang/String;I)Lcom/clockwork/api/GigaUiDialogOpenEvent;
+	public static synthetic fun copy$default (Lcom/clockwork/api/GigaUiDialogOpenEvent;Lcom/clockwork/api/HostPlayerSnapshot;Ljava/lang/String;Ljava/lang/String;IILjava/lang/Object;)Lcom/clockwork/api/GigaUiDialogOpenEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDialogId ()Ljava/lang/String;
+	public final fun getFieldCount ()I
+	public final fun getPlayer ()Lcom/clockwork/api/HostPlayerSnapshot;
+	public final fun getTitle ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/GigaUiMenuOpenEvent {
+	public fun <init> (Lcom/clockwork/api/HostPlayerSnapshot;Ljava/lang/String;Ljava/lang/String;I)V
+	public final fun component1 ()Lcom/clockwork/api/HostPlayerSnapshot;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()I
+	public final fun copy (Lcom/clockwork/api/HostPlayerSnapshot;Ljava/lang/String;Ljava/lang/String;I)Lcom/clockwork/api/GigaUiMenuOpenEvent;
+	public static synthetic fun copy$default (Lcom/clockwork/api/GigaUiMenuOpenEvent;Lcom/clockwork/api/HostPlayerSnapshot;Ljava/lang/String;Ljava/lang/String;IILjava/lang/Object;)Lcom/clockwork/api/GigaUiMenuOpenEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getItemCount ()I
+	public final fun getMenuId ()Ljava/lang/String;
+	public final fun getPlayer ()Lcom/clockwork/api/HostPlayerSnapshot;
+	public final fun getTitle ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/GigaUiNoticeEvent {
+	public fun <init> (Lcom/clockwork/api/HostPlayerSnapshot;Ljava/lang/String;Ljava/lang/String;Lcom/clockwork/api/UiLevel;J)V
+	public final fun component1 ()Lcom/clockwork/api/HostPlayerSnapshot;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Lcom/clockwork/api/UiLevel;
+	public final fun component5 ()J
+	public final fun copy (Lcom/clockwork/api/HostPlayerSnapshot;Ljava/lang/String;Ljava/lang/String;Lcom/clockwork/api/UiLevel;J)Lcom/clockwork/api/GigaUiNoticeEvent;
+	public static synthetic fun copy$default (Lcom/clockwork/api/GigaUiNoticeEvent;Lcom/clockwork/api/HostPlayerSnapshot;Ljava/lang/String;Ljava/lang/String;Lcom/clockwork/api/UiLevel;JILjava/lang/Object;)Lcom/clockwork/api/GigaUiNoticeEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDurationMillis ()J
+	public final fun getLevel ()Lcom/clockwork/api/UiLevel;
+	public final fun getMessage ()Ljava/lang/String;
+	public final fun getPlayer ()Lcom/clockwork/api/HostPlayerSnapshot;
+	public final fun getTitle ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/GigaWorldCreatedEvent {
+	public fun <init> (Lcom/clockwork/api/HostWorldSnapshot;)V
+	public final fun component1 ()Lcom/clockwork/api/HostWorldSnapshot;
+	public final fun copy (Lcom/clockwork/api/HostWorldSnapshot;)Lcom/clockwork/api/GigaWorldCreatedEvent;
+	public static synthetic fun copy$default (Lcom/clockwork/api/GigaWorldCreatedEvent;Lcom/clockwork/api/HostWorldSnapshot;ILjava/lang/Object;)Lcom/clockwork/api/GigaWorldCreatedEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getWorld ()Lcom/clockwork/api/HostWorldSnapshot;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/GigaWorldDataChangeEvent {
+	public fun <init> (Ljava/lang/String;Ljava/util/Map;Ljava/util/Map;Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/util/Map;Ljava/util/Map;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/util/Map;
+	public final fun component3 ()Ljava/util/Map;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/util/Map;Ljava/util/Map;Ljava/lang/String;)Lcom/clockwork/api/GigaWorldDataChangeEvent;
+	public static synthetic fun copy$default (Lcom/clockwork/api/GigaWorldDataChangeEvent;Ljava/lang/String;Ljava/util/Map;Ljava/util/Map;Ljava/lang/String;ILjava/lang/Object;)Lcom/clockwork/api/GigaWorldDataChangeEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCause ()Ljava/lang/String;
+	public final fun getCurrentData ()Ljava/util/Map;
+	public final fun getPreviousData ()Ljava/util/Map;
+	public final fun getWorld ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/GigaWorldTimeChangeEvent {
+	public fun <init> (Ljava/lang/String;JJ)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()J
+	public final fun component3 ()J
+	public final fun copy (Ljava/lang/String;JJ)Lcom/clockwork/api/GigaWorldTimeChangeEvent;
+	public static synthetic fun copy$default (Lcom/clockwork/api/GigaWorldTimeChangeEvent;Ljava/lang/String;JJILjava/lang/Object;)Lcom/clockwork/api/GigaWorldTimeChangeEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCurrentTime ()J
+	public final fun getPreviousTime ()J
+	public final fun getWorld ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/GigaWorldWeatherChangeEvent {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lcom/clockwork/api/GigaWorldWeatherChangeEvent;
+	public static synthetic fun copy$default (Lcom/clockwork/api/GigaWorldWeatherChangeEvent;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/clockwork/api/GigaWorldWeatherChangeEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCause ()Ljava/lang/String;
+	public final fun getCurrentWeather ()Ljava/lang/String;
+	public final fun getPreviousWeather ()Ljava/lang/String;
+	public final fun getWorld ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class com/clockwork/api/HostAccess {
+	public static final field Companion Lcom/clockwork/api/HostAccess$Companion;
+	public abstract fun addPlayerEffect (Ljava/lang/String;Ljava/lang/String;II)Z
+	public abstract fun applyMutationBatch (Lcom/clockwork/api/HostMutationBatch;)Lcom/clockwork/api/HostMutationBatchResult;
+	public abstract fun blockAt (Ljava/lang/String;III)Lcom/clockwork/api/HostBlockSnapshot;
+	public abstract fun blockData (Ljava/lang/String;III)Ljava/util/Map;
+	public abstract fun breakBlock (Ljava/lang/String;IIIZ)Z
+	public abstract fun broadcast (Ljava/lang/String;)Z
+	public abstract fun createWorld (Ljava/lang/String;J)Lcom/clockwork/api/HostWorldSnapshot;
+	public abstract fun entities (Ljava/lang/String;)Ljava/util/List;
+	public abstract fun entityData (Ljava/lang/String;)Ljava/util/Map;
+	public abstract fun findEntity (Ljava/lang/String;)Lcom/clockwork/api/HostEntitySnapshot;
+	public abstract fun findPlayer (Ljava/lang/String;)Lcom/clockwork/api/HostPlayerSnapshot;
+	public abstract fun givePlayerItem (Ljava/lang/String;Ljava/lang/String;I)I
+	public abstract fun grantPlayerPermission (Ljava/lang/String;Ljava/lang/String;)Z
+	public abstract fun hasPlayerPermission (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/Boolean;
+	public abstract fun inventoryItem (Ljava/lang/String;I)Ljava/lang/String;
+	public abstract fun kickPlayer (Ljava/lang/String;Ljava/lang/String;)Z
+	public abstract fun movePlayer (Ljava/lang/String;Lcom/clockwork/api/HostLocationRef;)Lcom/clockwork/api/HostPlayerSnapshot;
+	public abstract fun playerGameMode (Ljava/lang/String;)Ljava/lang/String;
+	public abstract fun playerInventory (Ljava/lang/String;)Lcom/clockwork/api/HostInventorySnapshot;
+	public abstract fun playerIsOp (Ljava/lang/String;)Ljava/lang/Boolean;
+	public abstract fun playerPermissions (Ljava/lang/String;)Ljava/util/Set;
+	public abstract fun playerStatus (Ljava/lang/String;)Lcom/clockwork/api/HostPlayerStatusSnapshot;
+	public abstract fun removeEntity (Ljava/lang/String;)Z
+	public abstract fun removePlayerEffect (Ljava/lang/String;Ljava/lang/String;)Z
+	public abstract fun revokePlayerPermission (Ljava/lang/String;Ljava/lang/String;)Z
+	public abstract fun sendPlayerMessage (Ljava/lang/String;Ljava/lang/String;)Z
+	public abstract fun serverInfo ()Lcom/clockwork/api/HostServerSnapshot;
+	public abstract fun setBlock (Ljava/lang/String;IIILjava/lang/String;)Lcom/clockwork/api/HostBlockSnapshot;
+	public abstract fun setBlockData (Ljava/lang/String;IIILjava/util/Map;)Ljava/util/Map;
+	public abstract fun setEntityData (Ljava/lang/String;Ljava/util/Map;)Ljava/util/Map;
+	public abstract fun setPlayerGameMode (Ljava/lang/String;Ljava/lang/String;)Z
+	public abstract fun setPlayerInventoryItem (Ljava/lang/String;ILjava/lang/String;)Z
+	public abstract fun setPlayerOp (Ljava/lang/String;Z)Z
+	public abstract fun setPlayerStatus (Ljava/lang/String;Lcom/clockwork/api/HostPlayerStatusSnapshot;)Lcom/clockwork/api/HostPlayerStatusSnapshot;
+	public abstract fun setWorldData (Ljava/lang/String;Ljava/util/Map;)Ljava/util/Map;
+	public abstract fun setWorldTime (Ljava/lang/String;J)Z
+	public abstract fun setWorldWeather (Ljava/lang/String;Ljava/lang/String;)Z
+	public abstract fun spawnEntity (Ljava/lang/String;Lcom/clockwork/api/HostLocationRef;)Lcom/clockwork/api/HostEntitySnapshot;
+	public abstract fun worldData (Ljava/lang/String;)Ljava/util/Map;
+	public abstract fun worldTime (Ljava/lang/String;)Ljava/lang/Long;
+	public abstract fun worldWeather (Ljava/lang/String;)Ljava/lang/String;
+	public abstract fun worlds ()Ljava/util/List;
+}
+
+public final class com/clockwork/api/HostAccess$Companion {
+	public final fun unavailable ()Lcom/clockwork/api/HostAccess;
+}
+
+public final class com/clockwork/api/HostAccess$DefaultImpls {
+	public static fun addPlayerEffect (Lcom/clockwork/api/HostAccess;Ljava/lang/String;Ljava/lang/String;II)Z
+	public static synthetic fun addPlayerEffect$default (Lcom/clockwork/api/HostAccess;Ljava/lang/String;Ljava/lang/String;IIILjava/lang/Object;)Z
+	public static fun applyMutationBatch (Lcom/clockwork/api/HostAccess;Lcom/clockwork/api/HostMutationBatch;)Lcom/clockwork/api/HostMutationBatchResult;
+	public static fun blockAt (Lcom/clockwork/api/HostAccess;Ljava/lang/String;III)Lcom/clockwork/api/HostBlockSnapshot;
+	public static fun blockData (Lcom/clockwork/api/HostAccess;Ljava/lang/String;III)Ljava/util/Map;
+	public static fun breakBlock (Lcom/clockwork/api/HostAccess;Ljava/lang/String;IIIZ)Z
+	public static synthetic fun breakBlock$default (Lcom/clockwork/api/HostAccess;Ljava/lang/String;IIIZILjava/lang/Object;)Z
+	public static fun createWorld (Lcom/clockwork/api/HostAccess;Ljava/lang/String;J)Lcom/clockwork/api/HostWorldSnapshot;
+	public static synthetic fun createWorld$default (Lcom/clockwork/api/HostAccess;Ljava/lang/String;JILjava/lang/Object;)Lcom/clockwork/api/HostWorldSnapshot;
+	public static synthetic fun entities$default (Lcom/clockwork/api/HostAccess;Ljava/lang/String;ILjava/lang/Object;)Ljava/util/List;
+	public static fun entityData (Lcom/clockwork/api/HostAccess;Ljava/lang/String;)Ljava/util/Map;
+	public static fun findEntity (Lcom/clockwork/api/HostAccess;Ljava/lang/String;)Lcom/clockwork/api/HostEntitySnapshot;
+	public static fun givePlayerItem (Lcom/clockwork/api/HostAccess;Ljava/lang/String;Ljava/lang/String;I)I
+	public static synthetic fun givePlayerItem$default (Lcom/clockwork/api/HostAccess;Ljava/lang/String;Ljava/lang/String;IILjava/lang/Object;)I
+	public static fun grantPlayerPermission (Lcom/clockwork/api/HostAccess;Ljava/lang/String;Ljava/lang/String;)Z
+	public static fun hasPlayerPermission (Lcom/clockwork/api/HostAccess;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/Boolean;
+	public static fun inventoryItem (Lcom/clockwork/api/HostAccess;Ljava/lang/String;I)Ljava/lang/String;
+	public static fun kickPlayer (Lcom/clockwork/api/HostAccess;Ljava/lang/String;Ljava/lang/String;)Z
+	public static synthetic fun kickPlayer$default (Lcom/clockwork/api/HostAccess;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Z
+	public static fun movePlayer (Lcom/clockwork/api/HostAccess;Ljava/lang/String;Lcom/clockwork/api/HostLocationRef;)Lcom/clockwork/api/HostPlayerSnapshot;
+	public static fun playerGameMode (Lcom/clockwork/api/HostAccess;Ljava/lang/String;)Ljava/lang/String;
+	public static fun playerIsOp (Lcom/clockwork/api/HostAccess;Ljava/lang/String;)Ljava/lang/Boolean;
+	public static fun playerPermissions (Lcom/clockwork/api/HostAccess;Ljava/lang/String;)Ljava/util/Set;
+	public static fun playerStatus (Lcom/clockwork/api/HostAccess;Ljava/lang/String;)Lcom/clockwork/api/HostPlayerStatusSnapshot;
+	public static fun removeEntity (Lcom/clockwork/api/HostAccess;Ljava/lang/String;)Z
+	public static fun removePlayerEffect (Lcom/clockwork/api/HostAccess;Ljava/lang/String;Ljava/lang/String;)Z
+	public static fun revokePlayerPermission (Lcom/clockwork/api/HostAccess;Ljava/lang/String;Ljava/lang/String;)Z
+	public static fun sendPlayerMessage (Lcom/clockwork/api/HostAccess;Ljava/lang/String;Ljava/lang/String;)Z
+	public static fun setBlock (Lcom/clockwork/api/HostAccess;Ljava/lang/String;IIILjava/lang/String;)Lcom/clockwork/api/HostBlockSnapshot;
+	public static fun setBlockData (Lcom/clockwork/api/HostAccess;Ljava/lang/String;IIILjava/util/Map;)Ljava/util/Map;
+	public static fun setEntityData (Lcom/clockwork/api/HostAccess;Ljava/lang/String;Ljava/util/Map;)Ljava/util/Map;
+	public static fun setPlayerGameMode (Lcom/clockwork/api/HostAccess;Ljava/lang/String;Ljava/lang/String;)Z
+	public static fun setPlayerOp (Lcom/clockwork/api/HostAccess;Ljava/lang/String;Z)Z
+	public static fun setPlayerStatus (Lcom/clockwork/api/HostAccess;Ljava/lang/String;Lcom/clockwork/api/HostPlayerStatusSnapshot;)Lcom/clockwork/api/HostPlayerStatusSnapshot;
+	public static fun setWorldData (Lcom/clockwork/api/HostAccess;Ljava/lang/String;Ljava/util/Map;)Ljava/util/Map;
+	public static fun setWorldTime (Lcom/clockwork/api/HostAccess;Ljava/lang/String;J)Z
+	public static fun setWorldWeather (Lcom/clockwork/api/HostAccess;Ljava/lang/String;Ljava/lang/String;)Z
+	public static fun worldData (Lcom/clockwork/api/HostAccess;Ljava/lang/String;)Ljava/util/Map;
+	public static fun worldTime (Lcom/clockwork/api/HostAccess;Ljava/lang/String;)Ljava/lang/Long;
+	public static fun worldWeather (Lcom/clockwork/api/HostAccess;Ljava/lang/String;)Ljava/lang/String;
+}
+
+public final class com/clockwork/api/HostBlockSnapshot {
+	public fun <init> (Ljava/lang/String;IIILjava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()I
+	public final fun component3 ()I
+	public final fun component4 ()I
+	public final fun component5 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;IIILjava/lang/String;)Lcom/clockwork/api/HostBlockSnapshot;
+	public static synthetic fun copy$default (Lcom/clockwork/api/HostBlockSnapshot;Ljava/lang/String;IIILjava/lang/String;ILjava/lang/Object;)Lcom/clockwork/api/HostBlockSnapshot;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBlockId ()Ljava/lang/String;
+	public final fun getWorld ()Ljava/lang/String;
+	public final fun getX ()I
+	public final fun getY ()I
+	public final fun getZ ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/HostEntitySnapshot {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Lcom/clockwork/api/HostLocationRef;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Lcom/clockwork/api/HostLocationRef;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Lcom/clockwork/api/HostLocationRef;)Lcom/clockwork/api/HostEntitySnapshot;
+	public static synthetic fun copy$default (Lcom/clockwork/api/HostEntitySnapshot;Ljava/lang/String;Ljava/lang/String;Lcom/clockwork/api/HostLocationRef;ILjava/lang/Object;)Lcom/clockwork/api/HostEntitySnapshot;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getLocation ()Lcom/clockwork/api/HostLocationRef;
+	public final fun getType ()Ljava/lang/String;
+	public final fun getUuid ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/HostInventorySnapshot {
+	public fun <init> (Ljava/lang/String;II)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()I
+	public final fun component3 ()I
+	public final fun copy (Ljava/lang/String;II)Lcom/clockwork/api/HostInventorySnapshot;
+	public static synthetic fun copy$default (Lcom/clockwork/api/HostInventorySnapshot;Ljava/lang/String;IIILjava/lang/Object;)Lcom/clockwork/api/HostInventorySnapshot;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getNonEmptySlots ()I
+	public final fun getOwner ()Ljava/lang/String;
+	public final fun getSize ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/HostLocationRef {
+	public fun <init> (Ljava/lang/String;DDD)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()D
+	public final fun component3 ()D
+	public final fun component4 ()D
+	public final fun copy (Ljava/lang/String;DDD)Lcom/clockwork/api/HostLocationRef;
+	public static synthetic fun copy$default (Lcom/clockwork/api/HostLocationRef;Ljava/lang/String;DDDILjava/lang/Object;)Lcom/clockwork/api/HostLocationRef;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getWorld ()Ljava/lang/String;
+	public final fun getX ()D
+	public final fun getY ()D
+	public final fun getZ ()D
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/HostMutationBatch {
+	public fun <init> (Ljava/lang/String;Ljava/util/List;Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/util/List;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/util/List;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/util/List;Ljava/lang/String;)Lcom/clockwork/api/HostMutationBatch;
+	public static synthetic fun copy$default (Lcom/clockwork/api/HostMutationBatch;Ljava/lang/String;Ljava/util/List;Ljava/lang/String;ILjava/lang/Object;)Lcom/clockwork/api/HostMutationBatch;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getId ()Ljava/lang/String;
+	public final fun getOperations ()Ljava/util/List;
+	public final fun getRollbackReason ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/HostMutationBatchResult {
+	public fun <init> (Ljava/lang/String;ZIZLjava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;ZIZLjava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Z
+	public final fun component3 ()I
+	public final fun component4 ()Z
+	public final fun component5 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;ZIZLjava/lang/String;)Lcom/clockwork/api/HostMutationBatchResult;
+	public static synthetic fun copy$default (Lcom/clockwork/api/HostMutationBatchResult;Ljava/lang/String;ZIZLjava/lang/String;ILjava/lang/Object;)Lcom/clockwork/api/HostMutationBatchResult;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAppliedOperations ()I
+	public final fun getBatchId ()Ljava/lang/String;
+	public final fun getError ()Ljava/lang/String;
+	public final fun getRolledBack ()Z
+	public final fun getSuccess ()Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/HostMutationOp {
+	public fun <init> (Lcom/clockwork/api/HostMutationType;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Double;Ljava/lang/Double;Ljava/lang/Double;Ljava/lang/Integer;Ljava/lang/Long;Ljava/lang/Boolean;Ljava/lang/String;Ljava/util/Map;)V
+	public synthetic fun <init> (Lcom/clockwork/api/HostMutationType;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Double;Ljava/lang/Double;Ljava/lang/Double;Ljava/lang/Integer;Ljava/lang/Long;Ljava/lang/Boolean;Ljava/lang/String;Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/clockwork/api/HostMutationType;
+	public final fun component10 ()Ljava/lang/String;
+	public final fun component11 ()Ljava/util/Map;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ljava/lang/Double;
+	public final fun component5 ()Ljava/lang/Double;
+	public final fun component6 ()Ljava/lang/Double;
+	public final fun component7 ()Ljava/lang/Integer;
+	public final fun component8 ()Ljava/lang/Long;
+	public final fun component9 ()Ljava/lang/Boolean;
+	public final fun copy (Lcom/clockwork/api/HostMutationType;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Double;Ljava/lang/Double;Ljava/lang/Double;Ljava/lang/Integer;Ljava/lang/Long;Ljava/lang/Boolean;Ljava/lang/String;Ljava/util/Map;)Lcom/clockwork/api/HostMutationOp;
+	public static synthetic fun copy$default (Lcom/clockwork/api/HostMutationOp;Lcom/clockwork/api/HostMutationType;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Double;Ljava/lang/Double;Ljava/lang/Double;Ljava/lang/Integer;Ljava/lang/Long;Ljava/lang/Boolean;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)Lcom/clockwork/api/HostMutationOp;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBoolValue ()Ljava/lang/Boolean;
+	public final fun getData ()Ljava/util/Map;
+	public final fun getIntValue ()Ljava/lang/Integer;
+	public final fun getLongValue ()Ljava/lang/Long;
+	public final fun getStringValue ()Ljava/lang/String;
+	public final fun getTarget ()Ljava/lang/String;
+	public final fun getType ()Lcom/clockwork/api/HostMutationType;
+	public final fun getWorld ()Ljava/lang/String;
+	public final fun getX ()Ljava/lang/Double;
+	public final fun getY ()Ljava/lang/Double;
+	public final fun getZ ()Ljava/lang/Double;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/HostMutationType : java/lang/Enum {
+	public static final field ADD_PLAYER_EFFECT Lcom/clockwork/api/HostMutationType;
+	public static final field BREAK_BLOCK Lcom/clockwork/api/HostMutationType;
+	public static final field CREATE_WORLD Lcom/clockwork/api/HostMutationType;
+	public static final field GIVE_PLAYER_ITEM Lcom/clockwork/api/HostMutationType;
+	public static final field MOVE_PLAYER Lcom/clockwork/api/HostMutationType;
+	public static final field REMOVE_ENTITY Lcom/clockwork/api/HostMutationType;
+	public static final field REMOVE_PLAYER_EFFECT Lcom/clockwork/api/HostMutationType;
+	public static final field SET_BLOCK Lcom/clockwork/api/HostMutationType;
+	public static final field SET_BLOCK_DATA Lcom/clockwork/api/HostMutationType;
+	public static final field SET_PLAYER_GAMEMODE Lcom/clockwork/api/HostMutationType;
+	public static final field SET_PLAYER_INVENTORY_ITEM Lcom/clockwork/api/HostMutationType;
+	public static final field SET_WORLD_DATA Lcom/clockwork/api/HostMutationType;
+	public static final field SET_WORLD_TIME Lcom/clockwork/api/HostMutationType;
+	public static final field SET_WORLD_WEATHER Lcom/clockwork/api/HostMutationType;
+	public static final field SPAWN_ENTITY Lcom/clockwork/api/HostMutationType;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/clockwork/api/HostMutationType;
+	public static fun values ()[Lcom/clockwork/api/HostMutationType;
+}
+
+public final class com/clockwork/api/HostPermissions {
+	public static final field BLOCK_DATA_READ Ljava/lang/String;
+	public static final field BLOCK_DATA_WRITE Ljava/lang/String;
+	public static final field BLOCK_READ Ljava/lang/String;
+	public static final field BLOCK_WRITE Ljava/lang/String;
+	public static final field ENTITY_DATA_READ Ljava/lang/String;
+	public static final field ENTITY_DATA_WRITE Ljava/lang/String;
+	public static final field ENTITY_READ Ljava/lang/String;
+	public static final field ENTITY_REMOVE Ljava/lang/String;
+	public static final field ENTITY_SPAWN Ljava/lang/String;
+	public static final field INSTANCE Lcom/clockwork/api/HostPermissions;
+	public static final field INVENTORY_READ Ljava/lang/String;
+	public static final field INVENTORY_WRITE Ljava/lang/String;
+	public static final field MUTATION_BATCH Ljava/lang/String;
+	public static final field PLAYER_EFFECT_WRITE Ljava/lang/String;
+	public static final field PLAYER_GAMEMODE_READ Ljava/lang/String;
+	public static final field PLAYER_GAMEMODE_WRITE Ljava/lang/String;
+	public static final field PLAYER_KICK Ljava/lang/String;
+	public static final field PLAYER_MESSAGE Ljava/lang/String;
+	public static final field PLAYER_MOVE Ljava/lang/String;
+	public static final field PLAYER_OP_READ Ljava/lang/String;
+	public static final field PLAYER_OP_WRITE Ljava/lang/String;
+	public static final field PLAYER_PERMISSION_READ Ljava/lang/String;
+	public static final field PLAYER_PERMISSION_WRITE Ljava/lang/String;
+	public static final field PLAYER_READ Ljava/lang/String;
+	public static final field PLAYER_STATUS_READ Ljava/lang/String;
+	public static final field PLAYER_STATUS_WRITE Ljava/lang/String;
+	public static final field SERVER_BROADCAST Ljava/lang/String;
+	public static final field SERVER_READ Ljava/lang/String;
+	public static final field WORLD_DATA_READ Ljava/lang/String;
+	public static final field WORLD_DATA_WRITE Ljava/lang/String;
+	public static final field WORLD_READ Ljava/lang/String;
+	public static final field WORLD_WEATHER_READ Ljava/lang/String;
+	public static final field WORLD_WEATHER_WRITE Ljava/lang/String;
+	public static final field WORLD_WRITE Ljava/lang/String;
+}
+
+public final class com/clockwork/api/HostPlayerSnapshot {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Lcom/clockwork/api/HostLocationRef;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Lcom/clockwork/api/HostLocationRef;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Lcom/clockwork/api/HostLocationRef;)Lcom/clockwork/api/HostPlayerSnapshot;
+	public static synthetic fun copy$default (Lcom/clockwork/api/HostPlayerSnapshot;Ljava/lang/String;Ljava/lang/String;Lcom/clockwork/api/HostLocationRef;ILjava/lang/Object;)Lcom/clockwork/api/HostPlayerSnapshot;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getLocation ()Lcom/clockwork/api/HostLocationRef;
+	public final fun getName ()Ljava/lang/String;
+	public final fun getUuid ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/HostPlayerStatusSnapshot {
+	public fun <init> (DDIDIDLjava/util/Map;)V
+	public synthetic fun <init> (DDIDIDLjava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()D
+	public final fun component2 ()D
+	public final fun component3 ()I
+	public final fun component4 ()D
+	public final fun component5 ()I
+	public final fun component6 ()D
+	public final fun component7 ()Ljava/util/Map;
+	public final fun copy (DDIDIDLjava/util/Map;)Lcom/clockwork/api/HostPlayerStatusSnapshot;
+	public static synthetic fun copy$default (Lcom/clockwork/api/HostPlayerStatusSnapshot;DDIDIDLjava/util/Map;ILjava/lang/Object;)Lcom/clockwork/api/HostPlayerStatusSnapshot;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getEffects ()Ljava/util/Map;
+	public final fun getExperienceLevel ()I
+	public final fun getExperienceProgress ()D
+	public final fun getFoodLevel ()I
+	public final fun getHealth ()D
+	public final fun getMaxHealth ()D
+	public final fun getSaturation ()D
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/HostServerSnapshot {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;III)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;IIIILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()I
+	public final fun component5 ()I
+	public final fun component6 ()I
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;III)Lcom/clockwork/api/HostServerSnapshot;
+	public static synthetic fun copy$default (Lcom/clockwork/api/HostServerSnapshot;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;IIIILjava/lang/Object;)Lcom/clockwork/api/HostServerSnapshot;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getMaxPlayers ()I
+	public final fun getName ()Ljava/lang/String;
+	public final fun getOnlinePlayers ()I
+	public final fun getPlatformVersion ()Ljava/lang/String;
+	public final fun getVersion ()Ljava/lang/String;
+	public final fun getWorldCount ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/HostWorldSnapshot {
+	public fun <init> (Ljava/lang/String;I)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()I
+	public final fun copy (Ljava/lang/String;I)Lcom/clockwork/api/HostWorldSnapshot;
+	public static synthetic fun copy$default (Lcom/clockwork/api/HostWorldSnapshot;Ljava/lang/String;IILjava/lang/Object;)Lcom/clockwork/api/HostWorldSnapshot;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getEntityCount ()I
+	public final fun getName ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/InteractionContext {
+	public fun <init> (Ljava/lang/String;Ljava/util/Map;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/util/Map;
+	public final fun copy (Ljava/lang/String;Ljava/util/Map;)Lcom/clockwork/api/InteractionContext;
+	public static synthetic fun copy$default (Lcom/clockwork/api/InteractionContext;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)Lcom/clockwork/api/InteractionContext;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getActor ()Ljava/lang/String;
+	public final fun getMetadata ()Ljava/util/Map;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/ItemDefinition {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;)Lcom/clockwork/api/ItemDefinition;
+	public static synthetic fun copy$default (Lcom/clockwork/api/ItemDefinition;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/clockwork/api/ItemDefinition;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDisplayName ()Ljava/lang/String;
+	public final fun getId ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/ItemDsl {
+	public fun <init> ()V
+	public final fun item (Ljava/lang/String;Ljava/lang/String;)V
+}
+
+public abstract interface class com/clockwork/api/MachineBehavior {
+	public abstract fun onInteract (Lcom/clockwork/api/MachineState;Lcom/clockwork/api/InteractionContext;Lcom/clockwork/api/PluginContext;)V
+	public abstract fun onStateChange (Lcom/clockwork/api/MachineState;Lcom/clockwork/api/MachineState;Lcom/clockwork/api/PluginContext;)V
+	public abstract fun onTick (Lcom/clockwork/api/MachineState;Lcom/clockwork/api/PluginContext;)V
+}
+
+public final class com/clockwork/api/MachineBehavior$DefaultImpls {
+	public static fun onInteract (Lcom/clockwork/api/MachineBehavior;Lcom/clockwork/api/MachineState;Lcom/clockwork/api/InteractionContext;Lcom/clockwork/api/PluginContext;)V
+	public static fun onStateChange (Lcom/clockwork/api/MachineBehavior;Lcom/clockwork/api/MachineState;Lcom/clockwork/api/MachineState;Lcom/clockwork/api/PluginContext;)V
+}
+
+public final class com/clockwork/api/MachineDefinition {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Lcom/clockwork/api/MachineBehavior;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Lcom/clockwork/api/MachineBehavior;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Lcom/clockwork/api/MachineBehavior;)Lcom/clockwork/api/MachineDefinition;
+	public static synthetic fun copy$default (Lcom/clockwork/api/MachineDefinition;Ljava/lang/String;Ljava/lang/String;Lcom/clockwork/api/MachineBehavior;ILjava/lang/Object;)Lcom/clockwork/api/MachineDefinition;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBehavior ()Lcom/clockwork/api/MachineBehavior;
+	public final fun getDisplayName ()Ljava/lang/String;
+	public final fun getId ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/MachineDsl {
+	public fun <init> ()V
+	public final fun machine (Ljava/lang/String;Ljava/lang/String;Lcom/clockwork/api/MachineBehavior;)V
+}
+
+public final class com/clockwork/api/MachineState {
+	public fun <init> (Ljava/lang/String;Ljava/util/Map;I)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/util/Map;IILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/util/Map;
+	public final fun component3 ()I
+	public final fun copy (Ljava/lang/String;Ljava/util/Map;I)Lcom/clockwork/api/MachineState;
+	public static synthetic fun copy$default (Lcom/clockwork/api/MachineState;Ljava/lang/String;Ljava/util/Map;IILjava/lang/Object;)Lcom/clockwork/api/MachineState;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getMachineId ()Ljava/lang/String;
+	public final fun getMetadata ()Ljava/util/Map;
+	public final fun getProgressTicks ()I
+	public fun hashCode ()I
+	public final fun setProgressTicks (I)V
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class com/clockwork/api/ModAdapter {
+	public abstract fun getCapabilities ()Ljava/util/Set;
+	public abstract fun getId ()Ljava/lang/String;
+	public abstract fun getName ()Ljava/lang/String;
+	public abstract fun getVersion ()Ljava/lang/String;
+	public abstract fun invoke (Lcom/clockwork/api/AdapterInvocation;)Lcom/clockwork/api/AdapterResponse;
+}
+
+public abstract interface class com/clockwork/api/ModAdapterRegistry {
+	public abstract fun find (Ljava/lang/String;)Lcom/clockwork/api/ModAdapter;
+	public abstract fun invoke (Ljava/lang/String;Lcom/clockwork/api/AdapterInvocation;)Lcom/clockwork/api/AdapterResponse;
+	public abstract fun list ()Ljava/util/List;
+	public abstract fun register (Lcom/clockwork/api/ModAdapter;)V
+}
+
+public final class com/clockwork/api/ModelBounds {
+	public fun <init> (DDDDDD)V
+	public final fun component1 ()D
+	public final fun component2 ()D
+	public final fun component3 ()D
+	public final fun component4 ()D
+	public final fun component5 ()D
+	public final fun component6 ()D
+	public final fun copy (DDDDDD)Lcom/clockwork/api/ModelBounds;
+	public static synthetic fun copy$default (Lcom/clockwork/api/ModelBounds;DDDDDDILjava/lang/Object;)Lcom/clockwork/api/ModelBounds;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getMaxX ()D
+	public final fun getMaxY ()D
+	public final fun getMaxZ ()D
+	public final fun getMinX ()D
+	public final fun getMinY ()D
+	public final fun getMinZ ()D
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/ModelDefinition {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;Ljava/util/Map;Ljava/lang/String;ZDZLcom/clockwork/api/ModelBounds;Ljava/util/List;Ljava/util/Map;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;Ljava/util/Map;Ljava/lang/String;ZDZLcom/clockwork/api/ModelBounds;Ljava/util/List;Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component10 ()Lcom/clockwork/api/ModelBounds;
+	public final fun component11 ()Ljava/util/List;
+	public final fun component12 ()Ljava/util/Map;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ljava/util/Map;
+	public final fun component5 ()Ljava/util/Map;
+	public final fun component6 ()Ljava/lang/String;
+	public final fun component7 ()Z
+	public final fun component8 ()D
+	public final fun component9 ()Z
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;Ljava/util/Map;Ljava/lang/String;ZDZLcom/clockwork/api/ModelBounds;Ljava/util/List;Ljava/util/Map;)Lcom/clockwork/api/ModelDefinition;
+	public static synthetic fun copy$default (Lcom/clockwork/api/ModelDefinition;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;Ljava/util/Map;Ljava/lang/String;ZDZLcom/clockwork/api/ModelBounds;Ljava/util/List;Ljava/util/Map;ILjava/lang/Object;)Lcom/clockwork/api/ModelDefinition;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAnimations ()Ljava/util/Map;
+	public final fun getBounds ()Lcom/clockwork/api/ModelBounds;
+	public final fun getCollision ()Z
+	public final fun getDoubleSided ()Z
+	public final fun getFormat ()Ljava/lang/String;
+	public final fun getGeometryPath ()Ljava/lang/String;
+	public final fun getId ()Ljava/lang/String;
+	public final fun getLods ()Ljava/util/List;
+	public final fun getMaterial ()Ljava/lang/String;
+	public final fun getMetadata ()Ljava/util/Map;
+	public final fun getScale ()D
+	public final fun getTextures ()Ljava/util/Map;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/ModelDsl {
+	public fun <init> ()V
+	public final fun model (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;Ljava/util/Map;Ljava/lang/String;ZDZLcom/clockwork/api/ModelBounds;Ljava/util/List;Ljava/util/Map;)V
+	public static synthetic fun model$default (Lcom/clockwork/api/ModelDsl;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/Map;Ljava/util/Map;Ljava/lang/String;ZDZLcom/clockwork/api/ModelBounds;Ljava/util/List;Ljava/util/Map;ILjava/lang/Object;)V
+}
+
+public final class com/clockwork/api/ModelLod {
+	public fun <init> (DLjava/lang/String;Ljava/lang/String;)V
+	public synthetic fun <init> (DLjava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()D
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun copy (DLjava/lang/String;Ljava/lang/String;)Lcom/clockwork/api/ModelLod;
+	public static synthetic fun copy$default (Lcom/clockwork/api/ModelLod;DLjava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/clockwork/api/ModelLod;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDistance ()D
+	public final fun getFormat ()Ljava/lang/String;
+	public final fun getGeometryPath ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class com/clockwork/api/PersistentStore {
+	public abstract fun load ()Ljava/lang/Object;
+	public abstract fun migrate (ILkotlin/jvm/functions/Function1;)V
+	public abstract fun save (Ljava/lang/Object;)V
+}
+
+public final class com/clockwork/api/PluginApiExtensionsKt {
+	public static final fun actionBar (Lcom/clockwork/api/PluginContext;Ljava/lang/String;Ljava/lang/String;I)Z
+	public static synthetic fun actionBar$default (Lcom/clockwork/api/PluginContext;Ljava/lang/String;Ljava/lang/String;IILjava/lang/Object;)Z
+	public static final fun applyHostMutationBatch (Lcom/clockwork/api/PluginContext;Lcom/clockwork/api/HostMutationBatch;Lkotlin/jvm/functions/Function1;)Lcom/clockwork/api/HostMutationBatchResult;
+	public static synthetic fun applyHostMutationBatch$default (Lcom/clockwork/api/PluginContext;Lcom/clockwork/api/HostMutationBatch;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/clockwork/api/HostMutationBatchResult;
+	public static final fun broadcastNotice (Lcom/clockwork/api/PluginContext;Ljava/lang/String;Lcom/clockwork/api/UiLevel;Ljava/lang/String;)Z
+	public static synthetic fun broadcastNotice$default (Lcom/clockwork/api/PluginContext;Ljava/lang/String;Lcom/clockwork/api/UiLevel;Ljava/lang/String;ILjava/lang/Object;)Z
+	public static final fun buildResourcePackBundle (Lcom/clockwork/api/PluginContext;Lcom/clockwork/api/ResourcePackBundleOptions;)Lcom/clockwork/api/ResourcePackBundle;
+	public static synthetic fun buildResourcePackBundle$default (Lcom/clockwork/api/PluginContext;Lcom/clockwork/api/ResourcePackBundleOptions;ILjava/lang/Object;)Lcom/clockwork/api/ResourcePackBundle;
+	public static final fun closeUi (Lcom/clockwork/api/PluginContext;Ljava/lang/String;)Z
+	public static final fun hasPermission (Lcom/clockwork/api/PluginContext;Ljava/lang/String;)Z
+	public static final fun notify (Lcom/clockwork/api/PluginContext;Ljava/lang/String;Lcom/clockwork/api/UiLevel;Ljava/lang/String;Ljava/lang/String;J)Z
+	public static synthetic fun notify$default (Lcom/clockwork/api/PluginContext;Ljava/lang/String;Lcom/clockwork/api/UiLevel;Ljava/lang/String;Ljava/lang/String;JILjava/lang/Object;)Z
+	public static final fun notifyError (Lcom/clockwork/api/PluginContext;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Z
+	public static synthetic fun notifyError$default (Lcom/clockwork/api/PluginContext;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Z
+	public static final fun notifyInfo (Lcom/clockwork/api/PluginContext;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Z
+	public static synthetic fun notifyInfo$default (Lcom/clockwork/api/PluginContext;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Z
+	public static final fun notifySuccess (Lcom/clockwork/api/PluginContext;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Z
+	public static synthetic fun notifySuccess$default (Lcom/clockwork/api/PluginContext;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Z
+	public static final fun notifyWarning (Lcom/clockwork/api/PluginContext;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Z
+	public static synthetic fun notifyWarning$default (Lcom/clockwork/api/PluginContext;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Z
+	public static final fun payloadBool (Lcom/clockwork/api/AdapterInvocation;Ljava/lang/String;)Ljava/lang/Boolean;
+	public static final fun payloadBoolRequired (Lcom/clockwork/api/AdapterInvocation;Ljava/lang/String;)Z
+	public static final fun payloadByPrefix (Lcom/clockwork/api/AdapterInvocation;Ljava/lang/String;ZZ)Ljava/util/Map;
+	public static synthetic fun payloadByPrefix$default (Lcom/clockwork/api/AdapterInvocation;Ljava/lang/String;ZZILjava/lang/Object;)Ljava/util/Map;
+	public static final fun payloadCsv (Lcom/clockwork/api/AdapterInvocation;Ljava/lang/String;CZZ)Ljava/util/List;
+	public static synthetic fun payloadCsv$default (Lcom/clockwork/api/AdapterInvocation;Ljava/lang/String;CZZILjava/lang/Object;)Ljava/util/List;
+	public static final fun payloadDouble (Lcom/clockwork/api/AdapterInvocation;Ljava/lang/String;)Ljava/lang/Double;
+	public static final fun payloadDoubleRequired (Lcom/clockwork/api/AdapterInvocation;Ljava/lang/String;)D
+	public static final fun payloadDurationMillis (Lcom/clockwork/api/AdapterInvocation;Ljava/lang/String;)Ljava/lang/Long;
+	public static final fun payloadInt (Lcom/clockwork/api/AdapterInvocation;Ljava/lang/String;)Ljava/lang/Integer;
+	public static final fun payloadIntRequired (Lcom/clockwork/api/AdapterInvocation;Ljava/lang/String;)I
+	public static final fun payloadLong (Lcom/clockwork/api/AdapterInvocation;Ljava/lang/String;)Ljava/lang/Long;
+	public static final fun payloadLongRequired (Lcom/clockwork/api/AdapterInvocation;Ljava/lang/String;)J
+	public static final fun payloadMap (Lcom/clockwork/api/AdapterInvocation;Ljava/lang/String;CC)Ljava/util/Map;
+	public static synthetic fun payloadMap$default (Lcom/clockwork/api/AdapterInvocation;Ljava/lang/String;CCILjava/lang/Object;)Ljava/util/Map;
+	public static final fun payloadRequired (Lcom/clockwork/api/AdapterInvocation;Ljava/lang/String;)Ljava/lang/String;
+	public static final fun payloadString (Lcom/clockwork/api/AdapterInvocation;Ljava/lang/String;)Ljava/lang/String;
+	public static final fun payloadTrimmed (Lcom/clockwork/api/AdapterInvocation;Ljava/lang/String;)Ljava/lang/String;
+	public static final fun publishAsyncUnit (Lcom/clockwork/api/EventBus;Ljava/lang/Object;)Ljava/util/concurrent/CompletableFuture;
+	public static final fun registerAliasOrThrow (Lcom/clockwork/api/CommandRegistry;Ljava/lang/String;Ljava/lang/String;)V
+	public static final fun registerNetworkChannel (Lcom/clockwork/api/PluginContext;Lcom/clockwork/api/PluginChannelSpec;)Z
+	public static final fun registerSpec (Lcom/clockwork/api/CommandRegistry;Lcom/clockwork/api/CommandSpec;Ljava/util/List;Lcom/clockwork/api/CommandCompletionContract;Lcom/clockwork/api/CommandCompletionAsyncContract;Lcom/clockwork/api/CommandPolicyProfile;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function1;)V
+	public static final fun registerSpec (Lcom/clockwork/api/CommandRegistry;Lcom/clockwork/api/CommandSpec;Ljava/util/List;Lcom/clockwork/api/CommandCompletionContract;Lcom/clockwork/api/CommandCompletionAsyncContract;Lcom/clockwork/api/CommandPolicyProfile;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function2;)V
+	public static synthetic fun registerSpec$default (Lcom/clockwork/api/CommandRegistry;Lcom/clockwork/api/CommandSpec;Ljava/util/List;Lcom/clockwork/api/CommandCompletionContract;Lcom/clockwork/api/CommandCompletionAsyncContract;Lcom/clockwork/api/CommandPolicyProfile;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
+	public static synthetic fun registerSpec$default (Lcom/clockwork/api/CommandRegistry;Lcom/clockwork/api/CommandSpec;Ljava/util/List;Lcom/clockwork/api/CommandCompletionContract;Lcom/clockwork/api/CommandCompletionAsyncContract;Lcom/clockwork/api/CommandPolicyProfile;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function2;ILjava/lang/Object;)V
+	public static final fun render (Lcom/clockwork/api/CommandResult;)Ljava/lang/String;
+	public static final fun requirePermission (Lcom/clockwork/api/PluginContext;Ljava/lang/String;)V
+	public static final fun sendPluginMessage (Lcom/clockwork/api/PluginContext;Ljava/lang/String;Ljava/util/Map;)Lcom/clockwork/api/PluginMessageResult;
+	public static final fun showDialog (Lcom/clockwork/api/PluginContext;Ljava/lang/String;Lcom/clockwork/api/UiDialog;)Z
+	public static final fun showMenu (Lcom/clockwork/api/PluginContext;Ljava/lang/String;Lcom/clockwork/api/UiMenu;)Z
+	public static final fun unregisterAll (Lcom/clockwork/api/CommandRegistry;[Ljava/lang/String;)I
+	public static final fun validateAssets (Lcom/clockwork/api/PluginContext;Lcom/clockwork/api/ResourcePackBundleOptions;)Lcom/clockwork/api/AssetValidationResult;
+	public static synthetic fun validateAssets$default (Lcom/clockwork/api/PluginContext;Lcom/clockwork/api/ResourcePackBundleOptions;ILjava/lang/Object;)Lcom/clockwork/api/AssetValidationResult;
+}
+
+public final class com/clockwork/api/PluginChannelSpec {
+	public fun <init> (Ljava/lang/String;IIIII)V
+	public synthetic fun <init> (Ljava/lang/String;IIIIIILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()I
+	public final fun component3 ()I
+	public final fun component4 ()I
+	public final fun component5 ()I
+	public final fun component6 ()I
+	public final fun copy (Ljava/lang/String;IIIII)Lcom/clockwork/api/PluginChannelSpec;
+	public static synthetic fun copy$default (Lcom/clockwork/api/PluginChannelSpec;Ljava/lang/String;IIIIIILjava/lang/Object;)Lcom/clockwork/api/PluginChannelSpec;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getId ()Ljava/lang/String;
+	public final fun getMaxInFlight ()I
+	public final fun getMaxMessagesPerMinute ()I
+	public final fun getMaxPayloadEntries ()I
+	public final fun getMaxPayloadTotalChars ()I
+	public final fun getSchemaVersion ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/PluginChannelStats {
+	public fun <init> (Ljava/lang/String;IIJJJJ)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()I
+	public final fun component3 ()I
+	public final fun component4 ()J
+	public final fun component5 ()J
+	public final fun component6 ()J
+	public final fun component7 ()J
+	public final fun copy (Ljava/lang/String;IIJJJJ)Lcom/clockwork/api/PluginChannelStats;
+	public static synthetic fun copy$default (Lcom/clockwork/api/PluginChannelStats;Ljava/lang/String;IIJJJJILjava/lang/Object;)Lcom/clockwork/api/PluginChannelStats;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAccepted ()J
+	public final fun getChannelId ()Ljava/lang/String;
+	public final fun getDroppedBackpressure ()J
+	public final fun getDroppedQuota ()J
+	public final fun getInFlight ()I
+	public final fun getRejected ()J
+	public final fun getSchemaVersion ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class com/clockwork/api/PluginContext {
+	public abstract fun getAdapters ()Lcom/clockwork/api/ModAdapterRegistry;
+	public abstract fun getCommands ()Lcom/clockwork/api/CommandRegistry;
+	public abstract fun getEvents ()Lcom/clockwork/api/EventBus;
+	public abstract fun getHost ()Lcom/clockwork/api/HostAccess;
+	public abstract fun getLogger ()Lcom/clockwork/api/GigaLogger;
+	public abstract fun getManifest ()Lcom/clockwork/api/PluginManifest;
+	public abstract fun getNetwork ()Lcom/clockwork/api/PluginNetwork;
+	public abstract fun getRegistry ()Lcom/clockwork/api/RegistryFacade;
+	public abstract fun getScheduler ()Lcom/clockwork/api/Scheduler;
+	public abstract fun getStorage ()Lcom/clockwork/api/StorageProvider;
+	public abstract fun getUi ()Lcom/clockwork/api/PluginUi;
+}
+
+public final class com/clockwork/api/PluginContext$DefaultImpls {
+	public static fun getHost (Lcom/clockwork/api/PluginContext;)Lcom/clockwork/api/HostAccess;
+	public static fun getNetwork (Lcom/clockwork/api/PluginContext;)Lcom/clockwork/api/PluginNetwork;
+	public static fun getUi (Lcom/clockwork/api/PluginContext;)Lcom/clockwork/api/PluginUi;
+}
+
+public final class com/clockwork/api/PluginManifest {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/util/List;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun component5 ()Ljava/lang/String;
+	public final fun component6 ()Ljava/util/List;
+	public final fun component7 ()Ljava/util/List;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/util/List;)Lcom/clockwork/api/PluginManifest;
+	public static synthetic fun copy$default (Lcom/clockwork/api/PluginManifest;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/util/List;ILjava/lang/Object;)Lcom/clockwork/api/PluginManifest;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getApiVersion ()Ljava/lang/String;
+	public final fun getDependencies ()Ljava/util/List;
+	public final fun getId ()Ljava/lang/String;
+	public final fun getMain ()Ljava/lang/String;
+	public final fun getName ()Ljava/lang/String;
+	public final fun getPermissions ()Ljava/util/List;
+	public final fun getVersion ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/PluginMessage {
+	public fun <init> (Ljava/lang/String;ILjava/util/Map;Ljava/lang/String;Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;ILjava/util/Map;Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()I
+	public final fun component3 ()Ljava/util/Map;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun component5 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;ILjava/util/Map;Ljava/lang/String;Ljava/lang/String;)Lcom/clockwork/api/PluginMessage;
+	public static synthetic fun copy$default (Lcom/clockwork/api/PluginMessage;Ljava/lang/String;ILjava/util/Map;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/clockwork/api/PluginMessage;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getChannel ()Ljava/lang/String;
+	public final fun getPayload ()Ljava/util/Map;
+	public final fun getSchemaVersion ()I
+	public final fun getSourcePluginId ()Ljava/lang/String;
+	public final fun getTraceId ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/PluginMessageResult {
+	public fun <init> (Lcom/clockwork/api/PluginMessageStatus;ILjava/lang/String;)V
+	public synthetic fun <init> (Lcom/clockwork/api/PluginMessageStatus;ILjava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcom/clockwork/api/PluginMessageStatus;
+	public final fun component2 ()I
+	public final fun component3 ()Ljava/lang/String;
+	public final fun copy (Lcom/clockwork/api/PluginMessageStatus;ILjava/lang/String;)Lcom/clockwork/api/PluginMessageResult;
+	public static synthetic fun copy$default (Lcom/clockwork/api/PluginMessageResult;Lcom/clockwork/api/PluginMessageStatus;ILjava/lang/String;ILjava/lang/Object;)Lcom/clockwork/api/PluginMessageResult;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDeliveredSubscribers ()I
+	public final fun getReason ()Ljava/lang/String;
+	public final fun getStatus ()Lcom/clockwork/api/PluginMessageStatus;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/PluginMessageStatus : java/lang/Enum {
+	public static final field ACCEPTED Lcom/clockwork/api/PluginMessageStatus;
+	public static final field BACKPRESSURE Lcom/clockwork/api/PluginMessageStatus;
+	public static final field CHANNEL_NOT_FOUND Lcom/clockwork/api/PluginMessageStatus;
+	public static final field DENIED Lcom/clockwork/api/PluginMessageStatus;
+	public static final field PAYLOAD_INVALID Lcom/clockwork/api/PluginMessageStatus;
+	public static final field QUOTA_EXCEEDED Lcom/clockwork/api/PluginMessageStatus;
+	public static final field SCHEMA_MISMATCH Lcom/clockwork/api/PluginMessageStatus;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/clockwork/api/PluginMessageStatus;
+	public static fun values ()[Lcom/clockwork/api/PluginMessageStatus;
+}
+
+public abstract interface class com/clockwork/api/PluginNetwork {
+	public static final field Companion Lcom/clockwork/api/PluginNetwork$Companion;
+	public abstract fun channelStats (Ljava/lang/String;)Lcom/clockwork/api/PluginChannelStats;
+	public abstract fun listChannels ()Ljava/util/List;
+	public abstract fun registerChannel (Lcom/clockwork/api/PluginChannelSpec;)Z
+	public abstract fun send (Ljava/lang/String;Lcom/clockwork/api/PluginMessage;)Lcom/clockwork/api/PluginMessageResult;
+	public abstract fun subscribe (Ljava/lang/String;Lkotlin/jvm/functions/Function1;)V
+	public abstract fun unsubscribe (Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Z
+}
+
+public final class com/clockwork/api/PluginNetwork$Companion {
+	public final fun unavailable ()Lcom/clockwork/api/PluginNetwork;
+}
+
+public final class com/clockwork/api/PluginNetwork$DefaultImpls {
+	public static fun channelStats (Lcom/clockwork/api/PluginNetwork;Ljava/lang/String;)Lcom/clockwork/api/PluginChannelStats;
+	public static fun unsubscribe (Lcom/clockwork/api/PluginNetwork;Ljava/lang/String;Lkotlin/jvm/functions/Function1;)Z
+}
+
+public abstract interface class com/clockwork/api/PluginUi {
+	public static final field Companion Lcom/clockwork/api/PluginUi$Companion;
+	public abstract fun actionBar (Ljava/lang/String;Ljava/lang/String;I)Z
+	public abstract fun close (Ljava/lang/String;)Z
+	public abstract fun notify (Ljava/lang/String;Lcom/clockwork/api/UiNotice;)Z
+	public abstract fun openDialog (Ljava/lang/String;Lcom/clockwork/api/UiDialog;)Z
+	public abstract fun openMenu (Ljava/lang/String;Lcom/clockwork/api/UiMenu;)Z
+}
+
+public final class com/clockwork/api/PluginUi$Companion {
+	public final fun unavailable ()Lcom/clockwork/api/PluginUi;
+}
+
+public final class com/clockwork/api/PluginUi$DefaultImpls {
+	public static fun actionBar (Lcom/clockwork/api/PluginUi;Ljava/lang/String;Ljava/lang/String;I)Z
+	public static synthetic fun actionBar$default (Lcom/clockwork/api/PluginUi;Ljava/lang/String;Ljava/lang/String;IILjava/lang/Object;)Z
+	public static fun close (Lcom/clockwork/api/PluginUi;Ljava/lang/String;)Z
+	public static fun openDialog (Lcom/clockwork/api/PluginUi;Ljava/lang/String;Lcom/clockwork/api/UiDialog;)Z
+	public static fun openMenu (Lcom/clockwork/api/PluginUi;Ljava/lang/String;Lcom/clockwork/api/UiMenu;)Z
+}
+
+public final class com/clockwork/api/RecipeDefinition {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()I
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)Lcom/clockwork/api/RecipeDefinition;
+	public static synthetic fun copy$default (Lcom/clockwork/api/RecipeDefinition;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;IILjava/lang/Object;)Lcom/clockwork/api/RecipeDefinition;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDurationTicks ()I
+	public final fun getId ()Ljava/lang/String;
+	public final fun getInput ()Ljava/lang/String;
+	public final fun getOutput ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/RecipeDsl {
+	public fun <init> ()V
+	public final fun recipe (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V
+}
+
+public abstract interface class com/clockwork/api/RegistryFacade {
+	public abstract fun animations ()Ljava/util/List;
+	public abstract fun blocks ()Ljava/util/List;
+	public abstract fun buildResourcePackBundle (Lcom/clockwork/api/ResourcePackBundleOptions;)Lcom/clockwork/api/ResourcePackBundle;
+	public abstract fun items ()Ljava/util/List;
+	public abstract fun machines ()Ljava/util/List;
+	public abstract fun models ()Ljava/util/List;
+	public abstract fun recipes ()Ljava/util/List;
+	public abstract fun registerAnimation (Lcom/clockwork/api/AnimationDefinition;)V
+	public abstract fun registerBlock (Lcom/clockwork/api/BlockDefinition;)V
+	public abstract fun registerItem (Lcom/clockwork/api/ItemDefinition;)V
+	public abstract fun registerMachine (Lcom/clockwork/api/MachineDefinition;)V
+	public abstract fun registerModel (Lcom/clockwork/api/ModelDefinition;)V
+	public abstract fun registerRecipe (Lcom/clockwork/api/RecipeDefinition;)V
+	public abstract fun registerSound (Lcom/clockwork/api/SoundDefinition;)V
+	public abstract fun registerSystem (Ljava/lang/String;Lcom/clockwork/api/TickSystem;)V
+	public abstract fun registerTexture (Lcom/clockwork/api/TextureDefinition;)V
+	public abstract fun sounds ()Ljava/util/List;
+	public abstract fun systems ()Ljava/util/Map;
+	public abstract fun textures ()Ljava/util/List;
+	public abstract fun validateAssets (Lcom/clockwork/api/ResourcePackBundleOptions;)Lcom/clockwork/api/AssetValidationResult;
+}
+
+public final class com/clockwork/api/RegistryFacade$DefaultImpls {
+	public static fun animations (Lcom/clockwork/api/RegistryFacade;)Ljava/util/List;
+	public static fun buildResourcePackBundle (Lcom/clockwork/api/RegistryFacade;Lcom/clockwork/api/ResourcePackBundleOptions;)Lcom/clockwork/api/ResourcePackBundle;
+	public static synthetic fun buildResourcePackBundle$default (Lcom/clockwork/api/RegistryFacade;Lcom/clockwork/api/ResourcePackBundleOptions;ILjava/lang/Object;)Lcom/clockwork/api/ResourcePackBundle;
+	public static fun registerAnimation (Lcom/clockwork/api/RegistryFacade;Lcom/clockwork/api/AnimationDefinition;)V
+	public static fun registerSound (Lcom/clockwork/api/RegistryFacade;Lcom/clockwork/api/SoundDefinition;)V
+	public static fun sounds (Lcom/clockwork/api/RegistryFacade;)Ljava/util/List;
+	public static fun validateAssets (Lcom/clockwork/api/RegistryFacade;Lcom/clockwork/api/ResourcePackBundleOptions;)Lcom/clockwork/api/AssetValidationResult;
+	public static synthetic fun validateAssets$default (Lcom/clockwork/api/RegistryFacade;Lcom/clockwork/api/ResourcePackBundleOptions;ILjava/lang/Object;)Lcom/clockwork/api/AssetValidationResult;
+}
+
+public final class com/clockwork/api/ResolvedCommandRoute {
+	public fun <init> (Lcom/clockwork/api/CommandSpec;I)V
+	public final fun component1 ()Lcom/clockwork/api/CommandSpec;
+	public final fun component2 ()I
+	public final fun copy (Lcom/clockwork/api/CommandSpec;I)Lcom/clockwork/api/ResolvedCommandRoute;
+	public static synthetic fun copy$default (Lcom/clockwork/api/ResolvedCommandRoute;Lcom/clockwork/api/CommandSpec;IILjava/lang/Object;)Lcom/clockwork/api/ResolvedCommandRoute;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getConsumedArgs ()I
+	public final fun getSpec ()Lcom/clockwork/api/CommandSpec;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/ResourceAssetType : java/lang/Enum {
+	public static final field ANIMATION Lcom/clockwork/api/ResourceAssetType;
+	public static final field MODEL_ANIMATION Lcom/clockwork/api/ResourceAssetType;
+	public static final field MODEL_GEOMETRY Lcom/clockwork/api/ResourceAssetType;
+	public static final field MODEL_LOD Lcom/clockwork/api/ResourceAssetType;
+	public static final field SOUND Lcom/clockwork/api/ResourceAssetType;
+	public static final field TEXTURE Lcom/clockwork/api/ResourceAssetType;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/clockwork/api/ResourceAssetType;
+	public static fun values ()[Lcom/clockwork/api/ResourceAssetType;
+}
+
+public final class com/clockwork/api/ResourcePackAsset {
+	public fun <init> (Ljava/lang/String;Lcom/clockwork/api/ResourceAssetType;Ljava/lang/String;Ljava/util/Map;)V
+	public synthetic fun <init> (Ljava/lang/String;Lcom/clockwork/api/ResourceAssetType;Ljava/lang/String;Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Lcom/clockwork/api/ResourceAssetType;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ljava/util/Map;
+	public final fun copy (Ljava/lang/String;Lcom/clockwork/api/ResourceAssetType;Ljava/lang/String;Ljava/util/Map;)Lcom/clockwork/api/ResourcePackAsset;
+	public static synthetic fun copy$default (Lcom/clockwork/api/ResourcePackAsset;Ljava/lang/String;Lcom/clockwork/api/ResourceAssetType;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)Lcom/clockwork/api/ResourcePackAsset;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getId ()Ljava/lang/String;
+	public final fun getMetadata ()Ljava/util/Map;
+	public final fun getPath ()Ljava/lang/String;
+	public final fun getType ()Lcom/clockwork/api/ResourceAssetType;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/ResourcePackBundle {
+	public fun <init> (Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/util/List;
+	public final fun component3 ()Ljava/util/List;
+	public final fun component4 ()Ljava/util/List;
+	public final fun component5 ()Ljava/util/List;
+	public final fun component6 ()Ljava/util/List;
+	public final fun copy (Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;)Lcom/clockwork/api/ResourcePackBundle;
+	public static synthetic fun copy$default (Lcom/clockwork/api/ResourcePackBundle;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;ILjava/lang/Object;)Lcom/clockwork/api/ResourcePackBundle;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAnimations ()Ljava/util/List;
+	public final fun getAssets ()Ljava/util/List;
+	public final fun getModels ()Ljava/util/List;
+	public final fun getPluginId ()Ljava/lang/String;
+	public final fun getSounds ()Ljava/util/List;
+	public final fun getTextures ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/ResourcePackBundleOptions {
+	public fun <init> ()V
+	public fun <init> (ZZZ)V
+	public synthetic fun <init> (ZZZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Z
+	public final fun component2 ()Z
+	public final fun component3 ()Z
+	public final fun copy (ZZZ)Lcom/clockwork/api/ResourcePackBundleOptions;
+	public static synthetic fun copy$default (Lcom/clockwork/api/ResourcePackBundleOptions;ZZZILjava/lang/Object;)Lcom/clockwork/api/ResourcePackBundleOptions;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getStrict ()Z
+	public final fun getValidatePaths ()Z
+	public final fun getValidateReferences ()Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class com/clockwork/api/Scheduler {
+	public abstract fun cancel (Ljava/lang/String;)V
+	public abstract fun clear ()V
+	public abstract fun once (Ljava/lang/String;ILkotlin/jvm/functions/Function0;)V
+	public abstract fun repeating (Ljava/lang/String;ILkotlin/jvm/functions/Function0;)V
+}
+
+public final class com/clockwork/api/SoundDefinition {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZDD)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZDDILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Z
+	public final fun component5 ()D
+	public final fun component6 ()D
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZDD)Lcom/clockwork/api/SoundDefinition;
+	public static synthetic fun copy$default (Lcom/clockwork/api/SoundDefinition;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZDDILjava/lang/Object;)Lcom/clockwork/api/SoundDefinition;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCategory ()Ljava/lang/String;
+	public final fun getId ()Ljava/lang/String;
+	public final fun getPath ()Ljava/lang/String;
+	public final fun getPitch ()D
+	public final fun getStream ()Z
+	public final fun getVolume ()D
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/SoundDsl {
+	public fun <init> ()V
+	public final fun sound (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZDD)V
+	public static synthetic fun sound$default (Lcom/clockwork/api/SoundDsl;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZDDILjava/lang/Object;)V
+}
+
+public abstract interface class com/clockwork/api/StorageProvider {
+	public abstract fun store (Ljava/lang/String;Ljava/lang/Class;I)Lcom/clockwork/api/PersistentStore;
+}
+
+public final class com/clockwork/api/StorageProvider$DefaultImpls {
+	public static synthetic fun store$default (Lcom/clockwork/api/StorageProvider;Ljava/lang/String;Ljava/lang/Class;IILjava/lang/Object;)Lcom/clockwork/api/PersistentStore;
+}
+
+public final class com/clockwork/api/SystemDsl {
+	public fun <init> ()V
+	public final fun system (Ljava/lang/String;Lkotlin/jvm/functions/Function1;)V
+}
+
+public final class com/clockwork/api/TextureDefinition {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Z)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Z
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Z)Lcom/clockwork/api/TextureDefinition;
+	public static synthetic fun copy$default (Lcom/clockwork/api/TextureDefinition;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZILjava/lang/Object;)Lcom/clockwork/api/TextureDefinition;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAnimated ()Z
+	public final fun getCategory ()Ljava/lang/String;
+	public final fun getId ()Ljava/lang/String;
+	public final fun getPath ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/TextureDsl {
+	public fun <init> ()V
+	public final fun texture (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Z)V
+	public static synthetic fun texture$default (Lcom/clockwork/api/TextureDsl;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZILjava/lang/Object;)V
+}
+
+public abstract interface class com/clockwork/api/TickSystem {
+	public abstract fun onTick (Lcom/clockwork/api/PluginContext;)V
+}
+
+public final class com/clockwork/api/UiDialog {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/util/List;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/util/List;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/util/List;)Lcom/clockwork/api/UiDialog;
+	public static synthetic fun copy$default (Lcom/clockwork/api/UiDialog;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;ILjava/lang/Object;)Lcom/clockwork/api/UiDialog;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getFields ()Ljava/util/List;
+	public final fun getId ()Ljava/lang/String;
+	public final fun getTitle ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/UiDialogField {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Lcom/clockwork/api/UiDialogFieldType;ZLjava/util/List;Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lcom/clockwork/api/UiDialogFieldType;ZLjava/util/List;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Lcom/clockwork/api/UiDialogFieldType;
+	public final fun component4 ()Z
+	public final fun component5 ()Ljava/util/List;
+	public final fun component6 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Lcom/clockwork/api/UiDialogFieldType;ZLjava/util/List;Ljava/lang/String;)Lcom/clockwork/api/UiDialogField;
+	public static synthetic fun copy$default (Lcom/clockwork/api/UiDialogField;Ljava/lang/String;Ljava/lang/String;Lcom/clockwork/api/UiDialogFieldType;ZLjava/util/List;Ljava/lang/String;ILjava/lang/Object;)Lcom/clockwork/api/UiDialogField;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getId ()Ljava/lang/String;
+	public final fun getLabel ()Ljava/lang/String;
+	public final fun getOptions ()Ljava/util/List;
+	public final fun getPlaceholder ()Ljava/lang/String;
+	public final fun getRequired ()Z
+	public final fun getType ()Lcom/clockwork/api/UiDialogFieldType;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/UiDialogFieldType : java/lang/Enum {
+	public static final field NUMBER Lcom/clockwork/api/UiDialogFieldType;
+	public static final field SELECT Lcom/clockwork/api/UiDialogFieldType;
+	public static final field TEXT Lcom/clockwork/api/UiDialogFieldType;
+	public static final field TOGGLE Lcom/clockwork/api/UiDialogFieldType;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/clockwork/api/UiDialogFieldType;
+	public static fun values ()[Lcom/clockwork/api/UiDialogFieldType;
+}
+
+public final class com/clockwork/api/UiLevel : java/lang/Enum {
+	public static final field ERROR Lcom/clockwork/api/UiLevel;
+	public static final field INFO Lcom/clockwork/api/UiLevel;
+	public static final field SUCCESS Lcom/clockwork/api/UiLevel;
+	public static final field WARNING Lcom/clockwork/api/UiLevel;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/clockwork/api/UiLevel;
+	public static fun values ()[Lcom/clockwork/api/UiLevel;
+}
+
+public final class com/clockwork/api/UiMenu {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/util/List;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/util/List;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/util/List;)Lcom/clockwork/api/UiMenu;
+	public static synthetic fun copy$default (Lcom/clockwork/api/UiMenu;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;ILjava/lang/Object;)Lcom/clockwork/api/UiMenu;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getId ()Ljava/lang/String;
+	public final fun getItems ()Ljava/util/List;
+	public final fun getTitle ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/UiMenuItem {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Z)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Z
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Z)Lcom/clockwork/api/UiMenuItem;
+	public static synthetic fun copy$default (Lcom/clockwork/api/UiMenuItem;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZILjava/lang/Object;)Lcom/clockwork/api/UiMenuItem;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDescription ()Ljava/lang/String;
+	public final fun getEnabled ()Z
+	public final fun getId ()Ljava/lang/String;
+	public final fun getLabel ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/clockwork/api/UiNotice {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Lcom/clockwork/api/UiLevel;J)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lcom/clockwork/api/UiLevel;JILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Lcom/clockwork/api/UiLevel;
+	public final fun component4 ()J
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Lcom/clockwork/api/UiLevel;J)Lcom/clockwork/api/UiNotice;
+	public static synthetic fun copy$default (Lcom/clockwork/api/UiNotice;Ljava/lang/String;Ljava/lang/String;Lcom/clockwork/api/UiLevel;JILjava/lang/Object;)Lcom/clockwork/api/UiNotice;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDurationMillis ()J
+	public final fun getLevel ()Lcom/clockwork/api/UiLevel;
+	public final fun getMessage ()Ljava/lang/String;
+	public final fun getTitle ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+

@@ -5,9 +5,9 @@ Use this if you want the smallest possible plugin first.
 ## 1. Implement Plugin Class
 
 ```kotlin
-import com.gigasoft.api.GigaPlugin
-import com.gigasoft.api.PluginContext
-import com.gigasoft.api.gigaPlugin
+import com.clockwork.api.GigaPlugin
+import com.clockwork.api.PluginContext
+import com.clockwork.api.gigaPlugin
 
 class HelloPlugin : GigaPlugin {
     private val delegate = gigaPlugin(

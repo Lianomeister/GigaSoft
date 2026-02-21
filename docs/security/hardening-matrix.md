@@ -38,8 +38,8 @@ Use FAST only in trusted/internal deployments.
 Run:
 
 ```bash
-./gradlew --no-daemon :gigasoft-runtime:test --tests "*RuntimeModAdapterRegistryTest"
-./gradlew --no-daemon :gigasoft-net:test --tests "*StandaloneNetServerTest"
+./gradlew --no-daemon :clockwork-runtime:test --tests "*RuntimeModAdapterRegistryTest"
+./gradlew --no-daemon :clockwork-net:test --tests "*StandaloneNetServerTest"
 ```
 
 Focus cases covered:
