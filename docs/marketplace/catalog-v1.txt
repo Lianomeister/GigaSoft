@@ -1,3 +1,4 @@
 # clockwork plugin browser catalog format (v1)
 # id|name|version|minecraft|category|downloadUrl|description
+clockwork-plugin-browser|Clockwork Plugin Browser|1.5.6|1.21.x|utility|https://github.com/Lianomeister/Clockwork/releases/latest/download/clockwork-plugin-browser-1.5.6.jar|Default in-game plugin marketplace/browser plugin; install to recover browser functionality
 clockwork-demo|Clockwork Demo|1.5.0|1.21.x|automation|https://github.com/Lianomeister/Clockwork/releases/latest/download/clockwork-demo-standalone-1.5.0.jar|Reference plugin with commands systems and events

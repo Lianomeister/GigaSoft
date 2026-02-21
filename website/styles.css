@@ -565,6 +565,29 @@ a:hover {
   gap: 0.75rem;
 }
 
+.market-pagination {
+  border: 1px solid var(--line);
+  border-radius: 0.85rem;
+  background: rgba(8, 20, 28, 0.75);
+  padding: 0.7rem 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+}
+
+.market-page-status {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.market-pagination .btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
 .market-card {
   border: 1px solid var(--line);
   border-radius: 0.85rem;
@@ -638,6 +661,13 @@ a:hover {
   font-size: 0.74rem;
   color: var(--muted);
   background: rgba(7, 19, 27, 0.72);
+}
+
+.market-tags .market-tag-core {
+  color: #2f2400;
+  border-color: rgba(255, 200, 38, 0.75);
+  background: linear-gradient(120deg, #ffd75e, #ffb200);
+  font-weight: 700;
 }
 
 .market-meta {
@@ -805,6 +835,19 @@ a:hover {
 .admin-form label span {
   color: var(--muted);
   font-size: 0.86rem;
+}
+
+.admin-check {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.admin-check input[type="checkbox"] {
+  width: auto;
+  accent-color: var(--accent);
 }
 
 .admin-form input,
@@ -1122,6 +1165,11 @@ code {
 
   .market-card {
     grid-template-columns: auto 1fr;
+  }
+
+  .market-pagination {
+    flex-wrap: wrap;
+    justify-content: flex-start;
   }
 
   .market-meta {

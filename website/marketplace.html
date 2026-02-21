@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -51,6 +51,7 @@
         <span class="filter-label">Category</span>
         <div class="market-filters" id="market-filters-sidebar">
           <button class="market-chip active" type="button" data-filter="all">All</button>
+          <button class="market-chip" type="button" data-filter="core">Core &#10003;</button>
           <button class="market-chip" type="button" data-filter="automation">Automation</button>
           <button class="market-chip" type="button" data-filter="worldgen">Worldgen</button>
           <button class="market-chip" type="button" data-filter="economy">Economy</button>
@@ -99,7 +100,7 @@
           </div>
 
           <div class="market-grid" id="market-grid">
-            <article class="market-card" data-name="Clockwork Plugin Browser" data-tags="admin utility ui network devtools" data-description="Default Clockwork plugin browser. Reinstall it from marketplace if it was removed." data-mc-versions="1.21.x" data-rating="5.0">
+            <article class="market-card" data-name="Clockwork Plugin Browser" data-tags="core admin utility ui network devtools" data-description="Default Clockwork plugin browser. Reinstall it from marketplace if it was removed." data-mc-versions="1.21.x" data-rating="5.0">
               <div class="market-icon">PB</div>
               <div class="market-main">
                 <div class="market-head">
@@ -108,6 +109,7 @@
                 </div>
                 <p>Built-in marketplace/browser plugin for in-game discovery and install flow. Keep this entry to recover it quickly.</p>
                 <div class="market-tags">
+                  <span class="market-tag-core">core &#10003;</span>
                   <span>admin</span>
                   <span>utility</span>
                   <span>network</span>
@@ -118,12 +120,12 @@
                 <span>Type</span>
                 <strong>5.0</strong>
                 <span>Sample Score</span>
-                <a class="btn btn-primary" href="../clockwork-plugin-browser/src/main/kotlin/com/clockwork/pluginbrowser/ClockworkPluginBrowserPlugin.kt">Source</a>
+                <a class="btn btn-primary" href="../clockwork-plugin-browser/src/main/kotlin/com/clockwork/pluginbrowser/ClockworkPluginBrowserPlugin.kt">Install</a>
                 <a class="btn btn-ghost" href="./plugin.html?id=clockwork-plugin-browser">View</a>
               </div>
             </article>
 
-            <article class="market-card" data-name="Nick" data-tags="social admin utility ui" data-description="Change display name with /nick and assign a skin alias with /nick-skin in showcase mode." data-mc-versions="1.21.x" data-rating="4.7">
+            <article class="market-card" data-name="Nick" data-tags="core social admin utility ui" data-description="Change display name with /nick and assign a skin alias with /nick-skin in showcase mode." data-mc-versions="1.21.x" data-rating="4.7">
               <div class="market-icon">NK</div>
               <div class="market-main">
                 <div class="market-head">
@@ -132,6 +134,7 @@
                 </div>
                 <p>Use <code>/nick</code> and <code>/nick-skin</code> to simulate identity + skin alias flow for Clockwork plugins.</p>
                 <div class="market-tags">
+                  <span class="market-tag-core">core &#10003;</span>
                   <span>social</span>
                   <span>admin</span>
                   <span>utility</span>
@@ -142,12 +145,12 @@
                 <span>Type</span>
                 <strong>4.7</strong>
                 <span>Sample Score</span>
-                <a class="btn btn-primary" href="../showcase-plugins/nick/src/main/kotlin/com/clockwork/showcase/nick/NickPlugin.kt">Source</a>
+                <a class="btn btn-primary" href="../showcase-plugins/nick/src/main/kotlin/com/clockwork/showcase/nick/NickPlugin.kt">Install</a>
                 <a class="btn btn-ghost" href="./plugin.html?id=showcase-nick">View</a>
               </div>
             </article>
 
-            <article class="market-card" data-name="Godmode" data-tags="admin combat utility moderation" data-description="Admin-only /godmode toggle. Players can still be hit, but receive no damage while enabled." data-mc-versions="1.21.x" data-rating="4.8">
+            <article class="market-card" data-name="Godmode" data-tags="core admin combat utility moderation" data-description="Admin-only /godmode toggle. Players can still be hit, but receive no damage while enabled." data-mc-versions="1.21.x" data-rating="4.8">
               <div class="market-icon">GD</div>
               <div class="market-main">
                 <div class="market-head">
@@ -156,6 +159,7 @@
                 </div>
                 <p>Admin-only invulnerability showcase with command control and lightweight runtime state.</p>
                 <div class="market-tags">
+                  <span class="market-tag-core">core &#10003;</span>
                   <span>admin</span>
                   <span>combat</span>
                   <span>moderation</span>
@@ -166,12 +170,12 @@
                 <span>Type</span>
                 <strong>4.8</strong>
                 <span>Sample Score</span>
-                <a class="btn btn-primary" href="../showcase-plugins/godmode/src/main/kotlin/com/clockwork/showcase/godmode/GodmodePlugin.kt">Source</a>
+                <a class="btn btn-primary" href="../showcase-plugins/godmode/src/main/kotlin/com/clockwork/showcase/godmode/GodmodePlugin.kt">Install</a>
                 <a class="btn btn-ghost" href="./plugin.html?id=showcase-godmode">View</a>
               </div>
             </article>
 
-            <article class="market-card" data-name="Veinminer" data-tags="utility performance automation worldgen" data-description="Mine a full connected ore vein at once with delay scaling based on vein size." data-mc-versions="1.21.x" data-rating="4.9">
+            <article class="market-card" data-name="Veinminer" data-tags="core utility performance automation worldgen" data-description="Mine a full connected ore vein at once with delay scaling based on vein size." data-mc-versions="1.21.x" data-rating="4.9">
               <div class="market-icon">VM</div>
               <div class="market-main">
                 <div class="market-head">
@@ -180,6 +184,7 @@
                 </div>
                 <p>Connected ore mining with configurable max scan and slower resolution for very large veins.</p>
                 <div class="market-tags">
+                  <span class="market-tag-core">core &#10003;</span>
                   <span>utility</span>
                   <span>performance</span>
                   <span>automation</span>
@@ -190,12 +195,12 @@
                 <span>Type</span>
                 <strong>4.9</strong>
                 <span>Sample Score</span>
-                <a class="btn btn-primary" href="../showcase-plugins/veinminer/src/main/kotlin/com/clockwork/showcase/veinminer/VeinminerPlugin.kt">Source</a>
+                <a class="btn btn-primary" href="../showcase-plugins/veinminer/src/main/kotlin/com/clockwork/showcase/veinminer/VeinminerPlugin.kt">Install</a>
                 <a class="btn btn-ghost" href="./plugin.html?id=showcase-veinminer">View</a>
               </div>
             </article>
 
-            <article class="market-card" data-name="Guarded" data-tags="admin moderation utility worldgen" data-description="WorldEdit-style area guarding with commands for build, break, and PvP restrictions." data-mc-versions="1.21.x" data-rating="4.6">
+            <article class="market-card" data-name="Guarded" data-tags="core admin moderation utility worldgen" data-description="WorldEdit-style area guarding with commands for build, break, and PvP restrictions." data-mc-versions="1.21.x" data-rating="4.6">
               <div class="market-icon">GR</div>
               <div class="market-main">
                 <div class="market-head">
@@ -204,6 +209,7 @@
                 </div>
                 <p>Select cuboids and enforce per-area policy for protected building and PvP control.</p>
                 <div class="market-tags">
+                  <span class="market-tag-core">core &#10003;</span>
                   <span>admin</span>
                   <span>moderation</span>
                   <span>utility</span>
@@ -214,12 +220,12 @@
                 <span>Type</span>
                 <strong>4.6</strong>
                 <span>Sample Score</span>
-                <a class="btn btn-primary" href="../showcase-plugins/guarded/src/main/kotlin/com/clockwork/showcase/guarded/GuardedPlugin.kt">Source</a>
+                <a class="btn btn-primary" href="../showcase-plugins/guarded/src/main/kotlin/com/clockwork/showcase/guarded/GuardedPlugin.kt">Install</a>
                 <a class="btn btn-ghost" href="./plugin.html?id=showcase-guarded">View</a>
               </div>
             </article>
 
-            <article class="market-card" data-name="SoftAnticheat" data-tags="moderation combat admin performance" data-description="Lightweight anti-cheat that detects repeated suspicious movement spikes." data-mc-versions="1.21.x" data-rating="4.5">
+            <article class="market-card" data-name="SoftAnticheat" data-tags="core moderation combat admin performance" data-description="Lightweight anti-cheat that detects repeated suspicious movement spikes." data-mc-versions="1.21.x" data-rating="4.5">
               <div class="market-icon">SA</div>
               <div class="market-main">
                 <div class="market-head">
@@ -228,6 +234,7 @@
                 </div>
                 <p>Conservative movement anomaly detection with strike windows and automatic kicks.</p>
                 <div class="market-tags">
+                  <span class="market-tag-core">core &#10003;</span>
                   <span>moderation</span>
                   <span>combat</span>
                   <span>performance</span>
@@ -238,12 +245,12 @@
                 <span>Type</span>
                 <strong>4.5</strong>
                 <span>Sample Score</span>
-                <a class="btn btn-primary" href="../showcase-plugins/softanticheat/src/main/kotlin/com/clockwork/showcase/softanticheat/SoftAnticheatPlugin.kt">Source</a>
+                <a class="btn btn-primary" href="../showcase-plugins/softanticheat/src/main/kotlin/com/clockwork/showcase/softanticheat/SoftAnticheatPlugin.kt">Install</a>
                 <a class="btn btn-ghost" href="./plugin.html?id=showcase-softanticheat">View</a>
               </div>
             </article>
 
-            <article class="market-card" data-name="Restocker" data-tags="utility admin automation economy" data-description="Configurable villager restock loop and status commands for operator tuning." data-mc-versions="1.21.x" data-rating="4.4">
+            <article class="market-card" data-name="Restocker" data-tags="core utility admin automation economy" data-description="Configurable villager restock loop and status commands for operator tuning." data-mc-versions="1.21.x" data-rating="4.4">
               <div class="market-icon">RS</div>
               <div class="market-main">
                 <div class="market-head">
@@ -252,6 +259,7 @@
                 </div>
                 <p>Set custom restock intervals for villagers and track restock metadata in host entity data.</p>
                 <div class="market-tags">
+                  <span class="market-tag-core">core &#10003;</span>
                   <span>utility</span>
                   <span>admin</span>
                   <span>economy</span>
@@ -262,10 +270,616 @@
                 <span>Type</span>
                 <strong>4.4</strong>
                 <span>Sample Score</span>
-                <a class="btn btn-primary" href="../showcase-plugins/restocker/src/main/kotlin/com/clockwork/showcase/restocker/RestockerPlugin.kt">Source</a>
+                <a class="btn btn-primary" href="../showcase-plugins/restocker/src/main/kotlin/com/clockwork/showcase/restocker/RestockerPlugin.kt">Install</a>
                 <a class="btn btn-ghost" href="./plugin.html?id=showcase-restocker">View</a>
               </div>
             </article>
+
+            <article class="market-card" data-name="Framed" data-tags="core utility ui devtools" data-description="Create image and gif frame jobs for maps with configurable width and height." data-mc-versions="1.21.x" data-rating="4.7">
+              <div class="market-icon">FR</div>
+              <div class="market-main">
+                <div class="market-head">
+                  <h3>Framed</h3>
+                  <span class="market-version">showcase 1.0.0</span>
+                </div>
+                <p>Use <code>/framed &lt;link&gt; [w] [h]</code> to generate framed image jobs, including multi-map walls.</p>
+                <div class="market-tags">
+                  <span class="market-tag-core">core &#10003;</span>
+                  <span>utility</span>
+                  <span>ui</span>
+                  <span>devtools</span>
+                </div>
+              </div>
+              <div class="market-meta">
+                <strong>Showcase</strong>
+                <span>Type</span>
+                <strong>4.7</strong>
+                <span>Sample Score</span>
+                <a class="btn btn-primary" href="../showcase-plugins/framed/src/main/kotlin/com/clockwork/showcase/framed/FramedPlugin.kt">Install</a>
+                <a class="btn btn-ghost" href="./plugin.html?id=showcase-framed">View</a>
+              </div>
+            </article>
+
+            <article class="market-card" data-name="Enchanted" data-tags="core combat pvp utility" data-description="PvP-focused enchant-style preset system with fast profile application." data-mc-versions="1.21.x" data-rating="4.8">
+              <div class="market-icon">EN</div>
+              <div class="market-main">
+                <div class="market-head">
+                  <h3>Enchanted</h3>
+                  <span class="market-version">showcase 1.0.0</span>
+                </div>
+                <p>PvP preset profiles with <code>/enchanted-apply</code>, including duelist, assassin, guardian, and berserker styles.</p>
+                <div class="market-tags">
+                  <span class="market-tag-core">core &#10003;</span>
+                  <span>combat</span>
+                  <span>pvp</span>
+                  <span>utility</span>
+                </div>
+              </div>
+              <div class="market-meta">
+                <strong>Showcase</strong>
+                <span>Type</span>
+                <strong>4.8</strong>
+                <span>Sample Score</span>
+                <a class="btn btn-primary" href="../showcase-plugins/enchanted/src/main/kotlin/com/clockwork/showcase/enchanted/EnchantedPlugin.kt">Install</a>
+                <a class="btn btn-ghost" href="./plugin.html?id=showcase-enchanted">View</a>
+              </div>
+            </article>
+
+            <article class="market-card" data-name="Living" data-tags="core utility social admin" data-description="Set and teleport to named homes with configurable teleport delay." data-mc-versions="1.21.x" data-rating="4.9">
+              <div class="market-icon">LV</div>
+              <div class="market-main">
+                <div class="market-head">
+                  <h3>Living</h3>
+                  <span class="market-version">showcase 1.0.0</span>
+                </div>
+                <p>Home system with <code>/sethome</code>, <code>/home</code>, <code>/homes</code> and configurable teleport timing.</p>
+                <div class="market-tags">
+                  <span class="market-tag-core">core &#10003;</span>
+                  <span>utility</span>
+                  <span>social</span>
+                  <span>admin</span>
+                </div>
+              </div>
+              <div class="market-meta">
+                <strong>Showcase</strong>
+                <span>Type</span>
+                <strong>4.9</strong>
+                <span>Sample Score</span>
+                <a class="btn btn-primary" href="../showcase-plugins/living/src/main/kotlin/com/clockwork/showcase/living/LivingPlugin.kt">Install</a>
+                <a class="btn btn-ghost" href="./plugin.html?id=showcase-living">View</a>
+              </div>
+            </article>
+
+            <article class="market-card" data-name="Sit" data-tags="core utility social ui" data-description="Sit on chairs, stairs and slabs when air is available above." data-mc-versions="1.21.x" data-rating="4.6">
+              <div class="market-icon">ST</div>
+              <div class="market-main">
+                <div class="market-head">
+                  <h3>Sit</h3>
+                  <span class="market-version">showcase 1.0.0</span>
+                </div>
+                <p>Lightweight sit/stand flow with environment checks to emulate natural chair and slab seating.</p>
+                <div class="market-tags">
+                  <span class="market-tag-core">core &#10003;</span>
+                  <span>utility</span>
+                  <span>social</span>
+                  <span>ui</span>
+                </div>
+              </div>
+              <div class="market-meta">
+                <strong>Showcase</strong>
+                <span>Type</span>
+                <strong>4.6</strong>
+                <span>Sample Score</span>
+                <a class="btn btn-primary" href="../showcase-plugins/sit/src/main/kotlin/com/clockwork/showcase/sit/SitPlugin.kt">Install</a>
+                <a class="btn btn-ghost" href="./plugin.html?id=showcase-sit">View</a>
+              </div>
+            </article>
+
+            <article class="market-card" data-name="Graved" data-tags="core utility moderation survival" data-description="Lightweight grave/death-chest style flow with configurable steal policy." data-mc-versions="1.21.x" data-rating="4.5">
+              <div class="market-icon">GV</div>
+              <div class="market-main">
+                <div class="market-head">
+                  <h3>Graved</h3>
+                  <span class="market-version">showcase 1.0.0</span>
+                </div>
+                <p>Simple grave entry and claim flow with policy toggle for whether others can loot.</p>
+                <div class="market-tags">
+                  <span class="market-tag-core">core &#10003;</span>
+                  <span>utility</span>
+                  <span>moderation</span>
+                  <span>survival</span>
+                </div>
+              </div>
+              <div class="market-meta">
+                <strong>Showcase</strong>
+                <span>Type</span>
+                <strong>4.5</strong>
+                <span>Sample Score</span>
+                <a class="btn btn-primary" href="../showcase-plugins/graved/src/main/kotlin/com/clockwork/showcase/graved/GravedPlugin.kt">Install</a>
+                <a class="btn btn-ghost" href="./plugin.html?id=showcase-graved">View</a>
+              </div>
+            </article>
+
+            <article class="market-card" data-name="Vanished" data-tags="core admin moderation utility" data-description="Toggle vanish mode with persistent state and moderation-focused stealth flow." data-mc-versions="1.21.x" data-rating="4.8">
+              <div class="market-icon">VN</div>
+              <div class="market-main">
+                <div class="market-head">
+                  <h3>Vanished</h3>
+                  <span class="market-version">showcase 1.0.0</span>
+                </div>
+                <p>Moderation vanish command set with invisible-effect simulation and persisted vanish state.</p>
+                <div class="market-tags">
+                  <span class="market-tag-core">core &#10003;</span>
+                  <span>admin</span>
+                  <span>moderation</span>
+                  <span>utility</span>
+                </div>
+              </div>
+              <div class="market-meta">
+                <strong>Showcase</strong>
+                <span>Type</span>
+                <strong>4.8</strong>
+                <span>Sample Score</span>
+                <a class="btn btn-primary" href="../showcase-plugins/vanished/src/main/kotlin/com/clockwork/showcase/vanished/VanishedPlugin.kt">Install</a>
+                <a class="btn btn-ghost" href="./plugin.html?id=showcase-vanished">View</a>
+              </div>
+            </article>
+
+            <article class="market-card" data-name="SimpleTpa" data-tags="core utility social network" data-description="Lightweight teleport request plugin with accept/decline and request toggle." data-mc-versions="1.21.x" data-rating="4.7">
+              <div class="market-icon">TP</div>
+              <div class="market-main">
+                <div class="market-head">
+                  <h3>SimpleTpa</h3>
+                  <span class="market-version">showcase 1.0.0</span>
+                </div>
+                <p><code>/tpa</code>, <code>/tpahere</code>, accept/decline flow and per-player request opt-in/out.</p>
+                <div class="market-tags">
+                  <span class="market-tag-core">core &#10003;</span>
+                  <span>utility</span>
+                  <span>social</span>
+                  <span>network</span>
+                </div>
+              </div>
+              <div class="market-meta">
+                <strong>Showcase</strong>
+                <span>Type</span>
+                <strong>4.7</strong>
+                <span>Sample Score</span>
+                <a class="btn btn-primary" href="../showcase-plugins/simpletpa/src/main/kotlin/com/clockwork/showcase/simpletpa/SimpleTpaPlugin.kt">Install</a>
+                <a class="btn btn-ghost" href="./plugin.html?id=showcase-simpletpa">View</a>
+              </div>
+            </article>
+
+            <article class="market-card" data-name="Spawn" data-tags="core utility admin social" data-description="Set and teleport to world spawn with configurable delay." data-mc-versions="1.21.x" data-rating="4.6">
+              <div class="market-icon">SP</div>
+              <div class="market-main">
+                <div class="market-head">
+                  <h3>Spawn</h3>
+                  <span class="market-version">showcase 1.0.0</span>
+                </div>
+                <p>Admin can run <code>/spawn set</code>; players can run <code>/spawn</code> with optional delay handling.</p>
+                <div class="market-tags">
+                  <span class="market-tag-core">core &#10003;</span>
+                  <span>utility</span>
+                  <span>admin</span>
+                  <span>social</span>
+                </div>
+              </div>
+              <div class="market-meta">
+                <strong>Showcase</strong>
+                <span>Type</span>
+                <strong>4.6</strong>
+                <span>Sample Score</span>
+                <a class="btn btn-primary" href="../showcase-plugins/spawn/src/main/kotlin/com/clockwork/showcase/spawn/SpawnPlugin.kt">Install</a>
+                <a class="btn btn-ghost" href="./plugin.html?id=showcase-spawn">View</a>
+              </div>
+            </article>
+
+            <article class="market-card" data-name="Invsee" data-tags="core admin utility moderation" data-description="Lightweight inventory inspection and slot editing plugin." data-mc-versions="1.21.x" data-rating="4.5">
+              <div class="market-icon">IV</div>
+              <div class="market-main">
+                <div class="market-head">
+                  <h3>Invsee</h3>
+                  <span class="market-version">showcase 1.0.0</span>
+                </div>
+                <p>Quick inventory visibility with peek/set commands for moderation and support workflows.</p>
+                <div class="market-tags">
+                  <span class="market-tag-core">core &#10003;</span>
+                  <span>admin</span>
+                  <span>utility</span>
+                  <span>moderation</span>
+                </div>
+              </div>
+              <div class="market-meta">
+                <strong>Showcase</strong>
+                <span>Type</span>
+                <strong>4.5</strong>
+                <span>Sample Score</span>
+                <a class="btn btn-primary" href="../showcase-plugins/invsee/src/main/kotlin/com/clockwork/showcase/invsee/InvseePlugin.kt">Install</a>
+                <a class="btn btn-ghost" href="./plugin.html?id=showcase-invsee">View</a>
+              </div>
+            </article>
+
+            <article class="market-card" data-name="Chopped" data-tags="core utility automation survival performance" data-description="Break one tree log and chop the full connected tree with configurable delay scaling." data-mc-versions="1.21.x" data-rating="4.7">
+              <div class="market-icon">CH</div>
+              <div class="market-main">
+                <div class="market-head">
+                  <h3>Chopped</h3>
+                  <span class="market-version">showcase 1.0.0</span>
+                </div>
+                <p>Tree-feller showcase: one broken log can cascade through the whole tree, but takes longer for bigger trees.</p>
+                <div class="market-tags">
+                  <span class="market-tag-core">core &#10003;</span>
+                  <span>utility</span>
+                  <span>automation</span>
+                  <span>survival</span>
+                </div>
+              </div>
+              <div class="market-meta">
+                <strong>Showcase</strong>
+                <span>Type</span>
+                <strong>4.7</strong>
+                <span>Sample Score</span>
+                <a class="btn btn-primary" href="../showcase-plugins/chopped/src/main/kotlin/com/clockwork/showcase/chopped/ChoppedPlugin.kt">Install</a>
+                <a class="btn btn-ghost" href="./plugin.html?id=showcase-chopped">View</a>
+              </div>
+            </article>
+
+            <article class="market-card" data-name="String Dupers Return" data-tags="core utility survival fun automation" data-description="Brings back a configurable string duper style glitch with cooldown and multiplier." data-mc-versions="1.21.x" data-rating="4.4">
+              <div class="market-icon">SD</div>
+              <div class="market-main">
+                <div class="market-head">
+                  <h3>String Dupers Return</h3>
+                  <span class="market-version">showcase 1.0.0</span>
+                </div>
+                <p>Configurable glitch-style string duplication flow with status/toggle commands and admin control.</p>
+                <div class="market-tags">
+                  <span class="market-tag-core">core &#10003;</span>
+                  <span>utility</span>
+                  <span>survival</span>
+                  <span>fun</span>
+                </div>
+              </div>
+              <div class="market-meta">
+                <strong>Showcase</strong>
+                <span>Type</span>
+                <strong>4.4</strong>
+                <span>Sample Score</span>
+                <a class="btn btn-primary" href="../showcase-plugins/stringdupersreturn/src/main/kotlin/com/clockwork/showcase/stringdupersreturn/StringDupersReturnPlugin.kt">Install</a>
+                <a class="btn btn-ghost" href="./plugin.html?id=showcase-stringdupersreturn">View</a>
+              </div>
+            </article>
+
+            <article class="market-card" data-name="Portable-EC" data-tags="core utility survival social admin" data-description="Open and manage your ender chest from anywhere with /ec and /enderchest." data-mc-versions="1.21.x" data-rating="4.8">
+              <div class="market-icon">PE</div>
+              <div class="market-main">
+                <div class="market-head">
+                  <h3>Portable-EC</h3>
+                  <span class="market-version">showcase 1.0.0</span>
+                </div>
+                <p>Portable ender chest access with direct command workflow and persistent per-player chest content.</p>
+                <div class="market-tags">
+                  <span class="market-tag-core">core &#10003;</span>
+                  <span>utility</span>
+                  <span>survival</span>
+                  <span>social</span>
+                </div>
+              </div>
+              <div class="market-meta">
+                <strong>Showcase</strong>
+                <span>Type</span>
+                <strong>4.8</strong>
+                <span>Sample Score</span>
+                <a class="btn btn-primary" href="../showcase-plugins/portableec/src/main/kotlin/com/clockwork/showcase/portableec/PortableEcPlugin.kt">Install</a>
+                <a class="btn btn-ghost" href="./plugin.html?id=showcase-portableec">View</a>
+              </div>
+            </article>
+
+            <article class="market-card" data-name="Carry" data-tags="core utility social fun admin" data-description="Carry players or blocks and throw or drop them with lightweight Carry-On style commands." data-mc-versions="1.21.x" data-rating="4.6">
+              <div class="market-icon">CY</div>
+              <div class="market-main">
+                <div class="market-head">
+                  <h3>Carry</h3>
+                  <span class="market-version">showcase 1.0.0</span>
+                </div>
+                <p>Carry blocks and players, then drop or throw them with configurable throw power.</p>
+                <div class="market-tags">
+                  <span class="market-tag-core">core &#10003;</span>
+                  <span>utility</span>
+                  <span>social</span>
+                  <span>fun</span>
+                </div>
+              </div>
+              <div class="market-meta">
+                <strong>Showcase</strong>
+                <span>Type</span>
+                <strong>4.6</strong>
+                <span>Sample Score</span>
+                <a class="btn btn-primary" href="../showcase-plugins/carry/src/main/kotlin/com/clockwork/showcase/carry/CarryPlugin.kt">Install</a>
+                <a class="btn btn-ghost" href="./plugin.html?id=showcase-carry">View</a>
+              </div>
+            </article>
+
+            <article class="market-card" data-name="Theoneandonly" data-tags="core admin utility survival moderation" data-description="Limit specific item counts in player inventories (for example only one mace)." data-mc-versions="1.21.x" data-rating="4.5">
+              <div class="market-icon">TO</div>
+              <div class="market-main">
+                <div class="market-head">
+                  <h3>Theoneandonly</h3>
+                  <span class="market-version">showcase 1.0.0</span>
+                </div>
+                <p>Admin item-cap showcase with runtime enforcement so configured items stay limited.</p>
+                <div class="market-tags">
+                  <span class="market-tag-core">core &#10003;</span>
+                  <span>admin</span>
+                  <span>utility</span>
+                  <span>moderation</span>
+                </div>
+              </div>
+              <div class="market-meta">
+                <strong>Showcase</strong>
+                <span>Type</span>
+                <strong>4.5</strong>
+                <span>Sample Score</span>
+                <a class="btn btn-primary" href="../showcase-plugins/theoneandonly/src/main/kotlin/com/clockwork/showcase/theoneandonly/TheoneandonlyPlugin.kt">Install</a>
+                <a class="btn btn-ghost" href="./plugin.html?id=showcase-theoneandonly">View</a>
+              </div>
+            </article>
+
+            <article class="market-card" data-name="Hearted" data-tags="core admin utility combat survival" data-description="Configure player hearts globally or per player with hearted commands." data-mc-versions="1.21.x" data-rating="4.8">
+              <div class="market-icon">HT</div>
+              <div class="market-main">
+                <div class="market-head">
+                  <h3>Hearted</h3>
+                  <span class="market-version">showcase 1.0.0</span>
+                </div>
+                <p>Set max hearts for everyone or individual players and persist values across restarts.</p>
+                <div class="market-tags">
+                  <span class="market-tag-core">core &#10003;</span>
+                  <span>admin</span>
+                  <span>utility</span>
+                  <span>combat</span>
+                </div>
+              </div>
+              <div class="market-meta">
+                <strong>Showcase</strong>
+                <span>Type</span>
+                <strong>4.8</strong>
+                <span>Sample Score</span>
+                <a class="btn btn-primary" href="../showcase-plugins/hearted/src/main/kotlin/com/clockwork/showcase/hearted/HeartedPlugin.kt">Install</a>
+                <a class="btn btn-ghost" href="./plugin.html?id=showcase-hearted">View</a>
+              </div>
+            </article>
+
+            <article class="market-card" data-name="CraftVisualizer" data-tags="core ui utility devtools social" data-description="Visualize crafting with preview commands and automatic on-change feedback." data-mc-versions="1.21.x" data-rating="4.6">
+              <div class="market-icon">CV</div>
+              <div class="market-main">
+                <div class="market-head">
+                  <h3>CraftVisualizer</h3>
+                  <span class="market-version">showcase 1.0.0</span>
+                </div>
+                <p>Recipe preview plus optional realtime craft-like feedback in chat and action bar.</p>
+                <div class="market-tags">
+                  <span class="market-tag-core">core &#10003;</span>
+                  <span>ui</span>
+                  <span>utility</span>
+                  <span>devtools</span>
+                </div>
+              </div>
+              <div class="market-meta">
+                <strong>Showcase</strong>
+                <span>Type</span>
+                <strong>4.6</strong>
+                <span>Sample Score</span>
+                <a class="btn btn-primary" href="../showcase-plugins/craftvisualizer/src/main/kotlin/com/clockwork/showcase/craftvisualizer/CraftVisualizerPlugin.kt">Install</a>
+                <a class="btn btn-ghost" href="./plugin.html?id=showcase-craftvisualizer">View</a>
+              </div>
+            </article>
+
+            <article class="market-card" data-name="Voiced" data-tags="core social utility ui admin" data-description="Voicemod-style profile plugin with per-player voice mode presets." data-mc-versions="1.21.x" data-rating="4.4">
+              <div class="market-icon">VC</div>
+              <div class="market-main">
+                <div class="market-head">
+                  <h3>Voiced</h3>
+                  <span class="market-version">showcase 1.0.0</span>
+                </div>
+                <p>Configure voice style modes for players and track active mode presets in a lightweight way.</p>
+                <div class="market-tags">
+                  <span class="market-tag-core">core &#10003;</span>
+                  <span>social</span>
+                  <span>utility</span>
+                  <span>ui</span>
+                </div>
+              </div>
+              <div class="market-meta">
+                <strong>Showcase</strong>
+                <span>Type</span>
+                <strong>4.4</strong>
+                <span>Sample Score</span>
+                <a class="btn btn-primary" href="../showcase-plugins/voiced/src/main/kotlin/com/clockwork/showcase/voiced/VoicedPlugin.kt">Install</a>
+                <a class="btn btn-ghost" href="./plugin.html?id=showcase-voiced">View</a>
+              </div>
+            </article>
+
+            <article class="market-card" data-name="SimpleLogin" data-tags="core admin security utility social" data-description="Register/login password flow for players with session handling." data-mc-versions="1.21.x" data-rating="4.7">
+              <div class="market-icon">SL</div>
+              <div class="market-main">
+                <div class="market-head">
+                  <h3>SimpleLogin</h3>
+                  <span class="market-version">showcase 1.0.0</span>
+                </div>
+                <p>First-join register and returning login workflow with salted password hashing and status commands.</p>
+                <div class="market-tags">
+                  <span class="market-tag-core">core &#10003;</span>
+                  <span>admin</span>
+                  <span>security</span>
+                  <span>utility</span>
+                </div>
+              </div>
+              <div class="market-meta">
+                <strong>Showcase</strong>
+                <span>Type</span>
+                <strong>4.7</strong>
+                <span>Sample Score</span>
+                <a class="btn btn-primary" href="../showcase-plugins/simplelogin/src/main/kotlin/com/clockwork/showcase/simplelogin/SimpleloginPlugin.kt">Install</a>
+                <a class="btn btn-ghost" href="./plugin.html?id=showcase-simplelogin">View</a>
+              </div>
+            </article>
+
+            <article class="market-card" data-name="Scrible" data-tags="core ui utility social devtools" data-description="Book/sign style text formatting with legacy and modern format markers." data-mc-versions="1.21.x" data-rating="4.5">
+              <div class="market-icon">SB</div>
+              <div class="market-main">
+                <div class="market-head">
+                  <h3>Scrible</h3>
+                  <span class="market-version">showcase 1.0.0</span>
+                </div>
+                <p>Use color/style tags and reusable snippets to format text workflows like classic Minecraft and beyond.</p>
+                <div class="market-tags">
+                  <span class="market-tag-core">core &#10003;</span>
+                  <span>ui</span>
+                  <span>utility</span>
+                  <span>devtools</span>
+                </div>
+              </div>
+              <div class="market-meta">
+                <strong>Showcase</strong>
+                <span>Type</span>
+                <strong>4.5</strong>
+                <span>Sample Score</span>
+                <a class="btn btn-primary" href="../showcase-plugins/scrible/src/main/kotlin/com/clockwork/showcase/scrible/ScriblePlugin.kt">Install</a>
+                <a class="btn btn-ghost" href="./plugin.html?id=showcase-scrible">View</a>
+              </div>
+            </article>
+
+            <article class="market-card" data-name="Rtpd" data-tags="core utility survival admin worldgen" data-description="Random teleport to configurable distance inside your world area." data-mc-versions="1.21.x" data-rating="4.6">
+              <div class="market-icon">RT</div>
+              <div class="market-main">
+                <div class="market-head">
+                  <h3>Rtpd</h3>
+                  <span class="market-version">showcase 1.0.0</span>
+                </div>
+                <p>Random teleport with configurable min/max range and simple operator tuning commands.</p>
+                <div class="market-tags">
+                  <span class="market-tag-core">core &#10003;</span>
+                  <span>utility</span>
+                  <span>survival</span>
+                  <span>worldgen</span>
+                </div>
+              </div>
+              <div class="market-meta">
+                <strong>Showcase</strong>
+                <span>Type</span>
+                <strong>4.6</strong>
+                <span>Sample Score</span>
+                <a class="btn btn-primary" href="../showcase-plugins/rtpd/src/main/kotlin/com/clockwork/showcase/rtpd/RtpdPlugin.kt">Install</a>
+                <a class="btn btn-ghost" href="./plugin.html?id=showcase-rtpd">View</a>
+              </div>
+            </article>
+
+            <article class="market-card" data-name="BetterWorld" data-tags="core worldgen utility admin performance" data-description="Atmosphere-focused world preset plugin for richer world mood." data-mc-versions="1.21.x" data-rating="4.3">
+              <div class="market-icon">BW</div>
+              <div class="market-main">
+                <div class="market-head">
+                  <h3>BetterWorld</h3>
+                  <span class="market-version">showcase 1.0.0</span>
+                </div>
+                <p>Apply lush, dramatic, or calm world ambience profiles with periodic consistency refresh.</p>
+                <div class="market-tags">
+                  <span class="market-tag-core">core &#10003;</span>
+                  <span>worldgen</span>
+                  <span>utility</span>
+                  <span>performance</span>
+                </div>
+              </div>
+              <div class="market-meta">
+                <strong>Showcase</strong>
+                <span>Type</span>
+                <strong>4.3</strong>
+                <span>Sample Score</span>
+                <a class="btn btn-primary" href="../showcase-plugins/betterworld/src/main/kotlin/com/clockwork/showcase/betterworld/BetterWorldPlugin.kt">Install</a>
+                <a class="btn btn-ghost" href="./plugin.html?id=showcase-betterworld">View</a>
+              </div>
+            </article>
+
+            <article class="market-card" data-name="InvisFrames" data-tags="core utility survival ui social" data-description="Craft and use invisible item frames in a lightweight workflow." data-mc-versions="1.21.x" data-rating="4.5">
+              <div class="market-icon">IF</div>
+              <div class="market-main">
+                <div class="market-head">
+                  <h3>InvisFrames</h3>
+                  <span class="market-version">showcase 1.0.0</span>
+                </div>
+                <p>Give/craft invisible item frames and manage per-player enable state.</p>
+                <div class="market-tags">
+                  <span class="market-tag-core">core &#10003;</span>
+                  <span>utility</span>
+                  <span>survival</span>
+                  <span>ui</span>
+                </div>
+              </div>
+              <div class="market-meta">
+                <strong>Showcase</strong>
+                <span>Type</span>
+                <strong>4.5</strong>
+                <span>Sample Score</span>
+                <a class="btn btn-primary" href="../showcase-plugins/invisframes/src/main/kotlin/com/clockwork/showcase/invisframes/InvisFramesPlugin.kt">Install</a>
+                <a class="btn btn-ghost" href="./plugin.html?id=showcase-invisframes">View</a>
+              </div>
+            </article>
+
+            <article class="market-card" data-name="TabPing" data-tags="core utility ui admin network" data-description="Shows and sorts player ping values for tab-list style visibility." data-mc-versions="1.21.x" data-rating="4.2">
+              <div class="market-icon">PG</div>
+              <div class="market-main">
+                <div class="market-head">
+                  <h3>TabPing</h3>
+                  <span class="market-version">showcase 1.0.0</span>
+                </div>
+                <p>Maintain ping samples and view a sorted board to monitor player latency quickly.</p>
+                <div class="market-tags">
+                  <span class="market-tag-core">core &#10003;</span>
+                  <span>utility</span>
+                  <span>ui</span>
+                  <span>network</span>
+                </div>
+              </div>
+              <div class="market-meta">
+                <strong>Showcase</strong>
+                <span>Type</span>
+                <strong>4.2</strong>
+                <span>Sample Score</span>
+                <a class="btn btn-primary" href="../showcase-plugins/tabping/src/main/kotlin/com/clockwork/showcase/tabping/TabPingPlugin.kt">Install</a>
+                <a class="btn btn-ghost" href="./plugin.html?id=showcase-tabping">View</a>
+              </div>
+            </article>
+
+            <article class="market-card" data-name="EasySleep" data-tags="core utility survival social admin" data-description="Configurable percent-based sleep requirement to skip the night." data-mc-versions="1.21.x" data-rating="4.8">
+              <div class="market-icon">ES</div>
+              <div class="market-main">
+                <div class="market-head">
+                  <h3>EasySleep</h3>
+                  <span class="market-version">showcase 1.0.0</span>
+                </div>
+                <p>Set required sleeping percentage and let players skip night as soon as threshold is reached.</p>
+                <div class="market-tags">
+                  <span class="market-tag-core">core &#10003;</span>
+                  <span>utility</span>
+                  <span>survival</span>
+                  <span>social</span>
+                </div>
+              </div>
+              <div class="market-meta">
+                <strong>Showcase</strong>
+                <span>Type</span>
+                <strong>4.8</strong>
+                <span>Sample Score</span>
+                <a class="btn btn-primary" href="../showcase-plugins/easysleep/src/main/kotlin/com/clockwork/showcase/easysleep/EasySleepPlugin.kt">Install</a>
+                <a class="btn btn-ghost" href="./plugin.html?id=showcase-easysleep">View</a>
+              </div>
+            </article>
+          </div>
+
+          <div class="market-pagination" id="market-pagination-bottom">
+            <button type="button" class="btn btn-ghost" id="market-prev-bottom">Previous</button>
+            <span class="market-page-status" id="market-page-status-bottom">Page 1 / 1</span>
+            <button type="button" class="btn btn-ghost" id="market-next-bottom">Next</button>
           </div>
         </div>
       </section>
@@ -282,3 +896,5 @@
   <script src="./app.js"></script>
 </body>
 </html>
+
+

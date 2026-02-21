@@ -200,15 +200,33 @@ const marketFilterChips = document.querySelectorAll("#market-filters-sidebar .ma
 const marketCards = document.querySelectorAll("#market-grid .market-card");
 const marketVersionFilters = document.querySelectorAll(".market-version-filter");
 const marketResetFilters = document.querySelector("#market-reset-filters");
+const marketPrevBottom = document.querySelector("#market-prev-bottom");
+const marketNextBottom = document.querySelector("#market-next-bottom");
+const marketPageStatusBottom = document.querySelector("#market-page-status-bottom");
 let activeMarketFilter = "all";
+let marketCurrentPage = 1;
+const marketPageSize = 10;
 
-const applyMarketplaceFilters = () => {
+const setMarketPagerState = (page, totalPages, totalItems) => {
+  const statusText = totalItems === 0 ? "No plugins found" : `Page ${page} / ${totalPages}`;
+  if (marketPageStatusBottom) marketPageStatusBottom.textContent = statusText;
+
+  const disablePrev = totalItems === 0 || page <= 1;
+  const disableNext = totalItems === 0 || page >= totalPages;
+  if (marketPrevBottom) marketPrevBottom.disabled = disablePrev;
+  if (marketNextBottom) marketNextBottom.disabled = disableNext;
+};
+
+const applyMarketplaceFilters = ({ resetPage = false } = {}) => {
   if (marketCards.length === 0) return;
+  if (resetPage) marketCurrentPage = 1;
+
   const query = (marketSearchInput?.value || "").trim().toLowerCase();
   const selectedVersions = Array.from(marketVersionFilters)
     .filter((input) => input.checked)
     .map((input) => input.value.toLowerCase());
 
+  const matchedCards = [];
   marketCards.forEach((card) => {
     const name = (card.getAttribute("data-name") || "").toLowerCase();
     const tags = (card.getAttribute("data-tags") || "").toLowerCase();
@@ -223,8 +241,23 @@ const applyMarketplaceFilters = () => {
       selectedVersions.length === 0 || selectedVersions.some((version) => mcVersions.includes(version));
     const searchable = `${name} ${tags} ${description}`;
     const matchesQuery = query.length === 0 || searchable.includes(query);
-    card.classList.toggle("hidden", !(matchesFilter && matchesVersion && matchesQuery));
+    if (matchesFilter && matchesVersion && matchesQuery) {
+      matchedCards.push(card);
+    }
   });
+
+  const totalItems = matchedCards.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / marketPageSize));
+  if (marketCurrentPage > totalPages) marketCurrentPage = totalPages;
+  const start = (marketCurrentPage - 1) * marketPageSize;
+  const end = start + marketPageSize;
+  const visibleSet = new Set(matchedCards.slice(start, end));
+
+  marketCards.forEach((card) => {
+    card.classList.toggle("hidden", !visibleSet.has(card));
+  });
+
+  setMarketPagerState(marketCurrentPage, totalPages, totalItems);
 };
 
 if (marketFilterChips.length > 0) {
@@ -235,17 +268,17 @@ if (marketFilterChips.length > 0) {
       marketFilterChips.forEach((candidate) => {
         candidate.classList.toggle("active", candidate === chip);
       });
-      applyMarketplaceFilters();
+      applyMarketplaceFilters({ resetPage: true });
     });
   });
 }
 
 if (marketSearchInput) {
-  marketSearchInput.addEventListener("input", applyMarketplaceFilters);
+  marketSearchInput.addEventListener("input", () => applyMarketplaceFilters({ resetPage: true }));
 }
 
 marketVersionFilters.forEach((input) => {
-  input.addEventListener("change", applyMarketplaceFilters);
+  input.addEventListener("change", () => applyMarketplaceFilters({ resetPage: true }));
 });
 
 if (marketResetFilters) {
@@ -260,11 +293,26 @@ if (marketResetFilters) {
     if (marketSearchInput) {
       marketSearchInput.value = "";
     }
+    applyMarketplaceFilters({ resetPage: true });
+  });
+}
+
+if (marketPrevBottom) {
+  marketPrevBottom.addEventListener("click", () => {
+    if (marketCurrentPage <= 1) return;
+    marketCurrentPage -= 1;
     applyMarketplaceFilters();
   });
 }
 
-applyMarketplaceFilters();
+if (marketNextBottom) {
+  marketNextBottom.addEventListener("click", () => {
+    marketCurrentPage += 1;
+    applyMarketplaceFilters();
+  });
+}
+
+applyMarketplaceFilters({ resetPage: true });
 
 function scrollToSection(target, behavior) {
   const offset = navActivationOffset;

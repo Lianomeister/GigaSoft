@@ -1,9 +1,14 @@
 ﻿# Showcase: Veinminer
 
-Behavior:
-- When an ore block is broken, connected ore of same type is collected.
-- Remaining ore blocks are broken after a delay based on vein size.
+Commands:
+- `veinminer-status`
+- `veinminer-max-scan <nodes>`
+- `veinminer-delay-divisor <value>`
+- `veinminer-max-delay <ticks>`
+- `veinminer-drop-loot <true|false>`
 
-Tuning:
-- Current max vein scan: 256 blocks.
-- Delay scales by amount (`size / 2`) to feel balanced.
+Behavior:
+- Breaks connected ore veins with a deferred batch strategy.
+- Supports expanded ore set (including deepslate/nether variants).
+- Uses deterministic limits and suppression to avoid recursive break loops.
+- Persists tuning config in plugin storage.

@@ -82,7 +82,7 @@ class ScaffoldCommand : Callable<Int> {
             }
         )
 
-        resources.resolve("gigaplugin.yml").writeText(
+        resources.resolve("clockworkplugin.yml").writeText(
             """
             id: $normalizedId
             name: $normalizedId

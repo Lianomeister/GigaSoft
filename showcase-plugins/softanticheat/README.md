@@ -1,12 +1,19 @@
 ﻿# Showcase: SoftAnticheat
 
-Features:
-- Lightweight movement anomaly detector.
-- Tracks repeated large movement jumps and kicks after threshold.
+Commands:
+- `softac-status [player]`
+- `softac-reset [player]`
+- `softac-threshold <distance>`
+- `softac-setback <score>`
+- `softac-kick <true|false>`
+- `softac-top [limit]`
 
-Command:
-- `softac-status`
+Features:
+- Score-based movement anomaly detector (distance/horizontal/vertical/acceleration).
+- Time-based decay, alert cooldown, automatic setback, optional kick escalation.
+- Per-player reason counters for quick operator diagnosis.
+- Persisted config via simplified Plugin API storage helpers.
 
 Notes:
-- This is intentionally lightweight and conservative.
-- Intended as baseline logic before advanced packet/physics checks.
+- Intentionally conservative baseline before advanced packet/physics checks.
+- Designed for low overhead and clear operator visibility.

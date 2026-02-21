@@ -19,7 +19,9 @@
     "onCommand:clockwork.createAssetTemplate",
     "onCommand:clockwork.validateManifest",
     "onCommand:clockwork.checkForUpdates",
-    "workspaceContains:**/gigaplugin.yml"
+    "workspaceContains:**/clockworkplugin.yml",
+    "workspaceContains:**/clockworktestplugin.yml",
+    "workspaceContains:**/clockworkdemoplugin.yml"
   ],
   "main": "./src/extension.js",
   "contributes": {
@@ -34,7 +36,7 @@
       },
       {
         "command": "clockwork.validateManifest",
-        "title": "Clockwork: Validate gigaplugin.yml"
+        "title": "Clockwork: Validate plugin manifest"
       },
       {
         "command": "clockwork.checkForUpdates",
@@ -52,7 +54,7 @@
         "clockwork.plugin.defaultMainClass": {
           "type": "string",
           "default": "plugin.MainPlugin",
-          "description": "Default fully qualified main class for gigaplugin.yml."
+          "description": "Default fully qualified main class for clockworkplugin.yml."
         },
         "clockwork.plugin.defaultVersion": {
           "type": "string",

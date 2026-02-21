@@ -1164,7 +1164,7 @@ class GigaStandaloneCore(
         tickEventNanos.addAndGet(System.nanoTime() - beforeEvents)
         val beforeSystems = System.nanoTime()
         for (entry in tickPlugins) {
-            val faultBudgetStage = runtime.profile(entry.pluginId)?.faultBudget?.stage ?: FaultBudgetStage.NORMAL
+            val faultBudgetStage = runtime.faultBudgetStage(entry.pluginId)
             when (faultBudgetStage) {
                 FaultBudgetStage.WARN -> faultBudgetWarnTickCounter.incrementAndGet()
                 FaultBudgetStage.THROTTLE -> faultBudgetThrottleTickCounter.incrementAndGet()

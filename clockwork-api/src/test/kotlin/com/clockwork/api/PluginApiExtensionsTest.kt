@@ -56,6 +56,24 @@ class PluginApiExtensionsTest {
     }
 
     @Test
+    fun `plugin context state helpers simplify load save and update`() {
+        val storage = RecordingStorageProvider()
+        val ctx = contextWithPermissions(emptyList(), storage = storage)
+
+        val initial = ctx.loadOrDefault<TestPayload>("state:test") { TestPayload("init") }
+        assertEquals(TestPayload("init"), initial)
+
+        ctx.saveState("state:test", TestPayload("saved"))
+        assertEquals(TestPayload("saved"), ctx.store<TestPayload>("state:test").load())
+
+        val updated = ctx.updateState("state:test", default = { TestPayload("default") }) { current ->
+            current.copy(value = "${current.value}-updated")
+        }
+        assertEquals(TestPayload("saved-updated"), updated)
+        assertEquals(TestPayload("saved-updated"), ctx.store<TestPayload>("state:test").load())
+    }
+
+    @Test
     fun `register alias helper enforces registration and resolves aliases`() {
         val commands = RecordingCommandRegistry()
         commands.registerSpec(CommandSpec(command = "hello")) { inv ->
@@ -160,6 +178,42 @@ class PluginApiExtensionsTest {
     @Test
     fun `command result render uses message when no code is set`() {
         assertEquals("pong", CommandResult.ok("pong").render())
+    }
+
+    @Test
+    fun `command parsed args required primitives enforce typed access`() {
+        val spec = CommandSpec(
+            command = "typed",
+            argsSchema = listOf(
+                CommandArgSpec("i", CommandArgType.INT),
+                CommandArgSpec("l", CommandArgType.LONG),
+                CommandArgSpec("d", CommandArgType.DOUBLE),
+                CommandArgSpec("b", CommandArgType.BOOLEAN)
+            )
+        )
+        val parsed = parseCommandArgs(spec, listOf("4", "9", "1.5", "true")).parsed
+        assertEquals(4, parsed.requiredInt("i"))
+        assertEquals(9L, parsed.requiredLong("l"))
+        assertEquals(1.5, parsed.requiredDouble("d"))
+        assertTrue(parsed.requiredBoolean("b"))
+        assertFailsWith<IllegalArgumentException> { parsed.requiredInt("missing") }
+    }
+
+    @Test
+    fun `movement distance helpers compute 3d horizontal and vertical distances`() {
+        val before = HostPlayerSnapshot(
+            uuid = "u1",
+            name = "Alex",
+            location = HostLocationRef(world = "world", x = 10.0, y = 64.0, z = 10.0)
+        )
+        val after = before.copy(
+            location = HostLocationRef(world = "world", x = 13.0, y = 66.0, z = 14.0)
+        )
+        val event = GigaPlayerMoveEvent(previous = before, current = after)
+
+        assertEquals(5.385164807134504, event.distance3d())
+        assertEquals(5.0, event.horizontalDistance())
+        assertEquals(2.0, event.verticalDistanceAbs())
     }
 
     @Test
@@ -723,7 +777,8 @@ class PluginApiExtensionsTest {
 
     private fun contextWithPermissions(
         permissions: List<String>,
-        ui: PluginUi = PluginUi.unavailable()
+        ui: PluginUi = PluginUi.unavailable(),
+        storage: StorageProvider = RecordingStorageProvider()
     ): PluginContext {
         return object : PluginContext {
             override val manifest: PluginManifest = PluginManifest(
@@ -764,7 +819,7 @@ class PluginApiExtensionsTest {
                     return AdapterResponse(success = false)
                 }
             }
-            override val storage: StorageProvider = RecordingStorageProvider()
+            override val storage: StorageProvider = storage
             override val commands: CommandRegistry = RecordingCommandRegistry()
             override val ui: PluginUi = ui
             override val events: EventBus = RuntimeLikeEventBus()

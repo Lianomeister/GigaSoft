@@ -1,0 +1,10 @@
+﻿id: showcase-graved
+name: Showcase Graved
+version: 1.0.0
+main: com.clockwork.showcase.graved.GravedPlugin
+apiVersion: 1
+dependencies: []
+permissions:
+  - host.player.read
+  - host.inventory.read
+  - host.player.message

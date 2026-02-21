@@ -1,4 +1,4 @@
-# Tutorial: Plugin Start (from zero to first command)
+﻿# Tutorial: Plugin Start (from zero to first command)
 
 Goal: build and run a plugin without any hidden assumptions.
 
@@ -36,7 +36,7 @@ class DemoPlugin : GigaPlugin {
 
 ## Step 2: Add Manifest
 
-Create `gigaplugin.yml` in jar root:
+Create `clockworkplugin.yml` in jar root:
 
 ```yaml
 id: demo

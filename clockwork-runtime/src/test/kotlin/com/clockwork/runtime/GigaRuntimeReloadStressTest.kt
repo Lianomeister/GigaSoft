@@ -1,4 +1,4 @@
-package com.clockwork.runtime
+﻿package com.clockwork.runtime
 
 import java.nio.file.Files
 import java.nio.file.Path
@@ -61,7 +61,7 @@ class GigaRuntimeReloadStressTest {
     private fun createPluginManifestJar(targetJar: Path, version: String) {
         Files.createDirectories(targetJar.parent)
         JarOutputStream(Files.newOutputStream(targetJar)).use { jar ->
-            jar.putNextEntry(JarEntry("gigaplugin.yml"))
+            jar.putNextEntry(JarEntry("clockworkplugin.yml"))
             jar.write(
                 """
                 id: demo

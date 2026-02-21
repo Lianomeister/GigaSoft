@@ -4,6 +4,9 @@ const path = require("path");
 const https = require("https");
 
 const REQUIRED_MANIFEST_KEYS = ["id", "name", "version", "main", "apiVersion"];
+const PRIMARY_MANIFEST_FILE = "clockworkplugin.yml";
+const TEST_MANIFEST_FILE = "clockworktestplugin.yml";
+const DEMO_MANIFEST_FILE = "clockworkdemoplugin.yml";
 const PLUGIN_ID_PATTERN = /^[a-z0-9][a-z0-9._-]{1,63}$/;
 const SEMVER_LIKE_PATTERN = /^\d+\.\d+\.\d+(?:[-+][A-Za-z0-9.-]+)?$/;
 const KNOWN_PERMISSIONS = new Set([
@@ -50,18 +53,21 @@ function activate(context) {
   const manifestDiagnostics = vscode.languages.createDiagnosticCollection("clockwork-manifest");
   const kotlinDiagnostics = vscode.languages.createDiagnosticCollection("clockwork-kotlin");
   context.subscriptions.push(manifestDiagnostics, kotlinDiagnostics);
-  const manifestQuickFixProvider = vscode.languages.registerCodeActionsProvider(
-    { language: "yaml", pattern: "**/gigaplugin.yml" },
-    {
-      provideCodeActions(document, _range, codeActionContext) {
-        return buildManifestCodeActions(document, codeActionContext.diagnostics || []);
+  const manifestPatterns = [`**/${PRIMARY_MANIFEST_FILE}`, `**/${TEST_MANIFEST_FILE}`, `**/${DEMO_MANIFEST_FILE}`];
+  manifestPatterns.forEach((pattern) => {
+    const provider = vscode.languages.registerCodeActionsProvider(
+      { language: "yaml", pattern },
+      {
+        provideCodeActions(document, _range, codeActionContext) {
+          return buildManifestCodeActions(document, codeActionContext.diagnostics || []);
+        }
+      },
+      {
+        providedCodeActionKinds: [vscode.CodeActionKind.QuickFix, vscode.CodeActionKind.SourceFixAll]
       }
-    },
-    {
-      providedCodeActionKinds: [vscode.CodeActionKind.QuickFix, vscode.CodeActionKind.SourceFixAll]
-    }
-  );
-  context.subscriptions.push(manifestQuickFixProvider);
+    );
+    context.subscriptions.push(provider);
+  });
   const kotlinCodeActionProvider = vscode.languages.registerCodeActionsProvider(
     { language: "kotlin", pattern: "**/*.kt" },
     {
@@ -153,7 +159,7 @@ async function createPluginTemplate() {
     : mainClass;
   const packageDir = path.join(root, "src", "main", "kotlin", ...packageName.split("."));
   const mainFile = path.join(packageDir, `${className}.kt`);
-  const manifestFile = path.join(root, "gigaplugin.yml");
+  const manifestFile = path.join(root, PRIMARY_MANIFEST_FILE);
 
   fs.mkdirSync(packageDir, { recursive: true });
   if (!fs.existsSync(mainFile)) {
@@ -341,7 +347,8 @@ function validateManifestIfRelevant(document, diagnostics) {
 }
 
 function isManifestFile(document) {
-  return path.basename(document.uri.fsPath).toLowerCase() === "gigaplugin.yml";
+  const name = path.basename(document.uri.fsPath).toLowerCase();
+  return name === PRIMARY_MANIFEST_FILE || name === TEST_MANIFEST_FILE || name === DEMO_MANIFEST_FILE;
 }
 
 function isKotlinFile(document) {
@@ -351,10 +358,11 @@ function isKotlinFile(document) {
 function buildManifestDiagnostics(text, document) {
   const diagnostics = [];
   const parsed = parseYamlLike(text);
+  const manifestName = path.basename(document.uri.fsPath).toLowerCase();
 
   for (const key of REQUIRED_MANIFEST_KEYS) {
     if (!parsed.map.has(key) || String(parsed.map.get(key)).trim() === "") {
-      diagnostics.push(createDiagnostic(0, document, `Missing required key '${key}' in gigaplugin.yml.`, vscode.DiagnosticSeverity.Error, "clockwork.manifest.missingKey", key));
+      diagnostics.push(createDiagnostic(0, document, `Missing required key '${key}' in ${manifestName}.`, vscode.DiagnosticSeverity.Error, "clockwork.manifest.missingKey", key));
     }
   }
 

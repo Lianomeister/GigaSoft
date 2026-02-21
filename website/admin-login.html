@@ -42,7 +42,7 @@
         <form id="admin-login-form" class="admin-form">
           <label>
             <span>Display Name (for new account)</span>
-            <input type="text" name="displayName" autocomplete="nickname" placeholder="Clockwork Operator" />
+            <input type="text" name="displayName" maxlength="40" autocomplete="nickname" placeholder="Clockwork Operator" />
           </label>
           <label>
             <span>Email</span>
@@ -50,18 +50,27 @@
           </label>
           <label>
             <span>Password</span>
-            <input type="password" name="password" required autocomplete="current-password" placeholder="********" />
+            <input type="password" name="password" required minlength="10" autocomplete="current-password" placeholder="********" />
+          </label>
+          <label class="admin-check">
+            <input type="checkbox" id="admin-show-password" />
+            <span>Show password</span>
           </label>
           <label>
             <span>Confirm Password (for registration)</span>
-            <input type="password" name="confirmPassword" autocomplete="new-password" placeholder="********" />
+            <input type="password" name="confirmPassword" minlength="10" autocomplete="new-password" placeholder="********" />
+          </label>
+          <label class="admin-check">
+            <input type="checkbox" id="admin-show-confirm-password" />
+            <span>Show confirm password</span>
           </label>
           <div class="admin-row-actions">
-            <button class="btn btn-primary" type="submit">Sign In</button>
+            <button id="admin-login-submit" class="btn btn-primary" type="submit">Sign In</button>
             <button id="admin-register" class="btn btn-ghost" type="button">Register</button>
+            <button id="admin-reset-password" class="btn btn-ghost" type="button">Reset Password</button>
           </div>
           <p class="admin-note">
-            Uses Supabase Auth email/password.
+            Uses Supabase Auth email/password. Registration password minimum: 10 chars, with upper/lowercase and number.
           </p>
           <p id="admin-login-error" class="admin-error" aria-live="polite"></p>
         </form>

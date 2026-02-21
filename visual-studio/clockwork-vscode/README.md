@@ -6,13 +6,13 @@ VS Code extension for Clockwork plugin development.
 
 - `Clockwork: Create Plugin Template`:
   - creates `src/main/kotlin/.../MainPlugin.kt`
-  - creates `gigaplugin.yml`
+  - creates `clockworkplugin.yml`
   - includes modern adapter payload helper usage (`payloadRequired`, `payloadIntRequired`)
   - includes updated model DSL fields (`material`, `scale`, `collision`)
 - `Clockwork: Create Texture/Model Asset Template`:
   - creates `src/main/resources/assets/<plugin-id>/...` scaffold
   - adds example model json and asset README
-- `Clockwork: Validate gigaplugin.yml`:
+- `Clockwork: Validate plugin manifest`:
   - checks required keys (`id`, `name`, `version`, `main`, `apiVersion`)
   - warns for unknown host permissions
   - warns for duplicate permissions
@@ -39,7 +39,7 @@ VS Code extension for Clockwork plugin development.
 - `Clockwork: Check Extension Updates`:
   - checks latest release from GitHub repo (`Lianomeister/Clockwork`)
 - Clockwork-aware syntax highlighting:
-  - highlights `gigaplugin.yml` keys (`id`, `name`, `version`, `main`, `apiVersion`, `dependencies`, `permissions`)
+  - highlights manifest keys (`id`, `name`, `version`, `main`, `apiVersion`, `dependencies`, `permissions`) for `clockworkplugin.yml`, `clockworktestplugin.yml`, and `clockworkdemoplugin.yml`
   - highlights Clockwork permission strings (`host.*`, `adapter.*`) in YAML and Kotlin
   - highlights common Clockwork Kotlin DSL/API calls and types without replacing normal Kotlin coloring
 
@@ -50,7 +50,7 @@ VS Code extension for Clockwork plugin development.
   - CommandSpec-first command templates
   - Event 2.0 options/tracing
   - Plugin network channels
-- YAML snippet for `gigaplugin.yml`
+- YAML snippet for `clockworkplugin.yml`
 
 Updated Kotlin snippets include:
 

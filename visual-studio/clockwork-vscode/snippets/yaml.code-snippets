@@ -1,6 +1,6 @@
 ﻿{
-  "Giga Plugin Manifest": {
-    "prefix": "gigapluginyml",
+  "Clockwork Plugin Manifest": {
+    "prefix": "clockworkpluginyml",
     "body": [
       "id: ${1:my-plugin}",
       "name: ${2:My Plugin}",
@@ -15,7 +15,7 @@
       "  - ${8:adapter.invoke.*}",
       "  - ${9:adapter.capability.*}"
     ],
-    "description": "Generate a gigaplugin.yml file."
+    "description": "Generate a clockworkplugin.yml file."
   }
 }
 

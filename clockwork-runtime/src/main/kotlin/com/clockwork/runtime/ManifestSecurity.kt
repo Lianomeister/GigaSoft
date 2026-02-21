@@ -1,6 +1,7 @@
 package com.clockwork.runtime
 
 import com.clockwork.api.DependencySpec
+import com.clockwork.api.DependencyKind
 import com.clockwork.api.PluginManifest
 
 object ManifestSecurity {
@@ -38,7 +39,7 @@ object ManifestSecurity {
         require(dependencies.size <= maxDependencies) {
             "Too many dependencies (${dependencies.size} > $maxDependencies)"
         }
-        val ids = mutableSetOf<String>()
+        val keys = mutableSetOf<Pair<String, DependencyKind>>()
         dependencies.forEach { dependency ->
             require(pluginIdRegex.matches(dependency.id)) {
                 "Invalid dependency id '${dependency.id}'"
@@ -46,8 +47,8 @@ object ManifestSecurity {
             require(dependency.id != pluginId) {
                 "Plugin '$pluginId' cannot depend on itself"
             }
-            require(ids.add(dependency.id)) {
-                "Duplicate dependency '${dependency.id}' in plugin '$pluginId'"
+            require(keys.add(dependency.id to dependency.kind)) {
+                "Duplicate dependency '${dependency.id}' (${dependency.kind}) in plugin '$pluginId'"
             }
             val range = dependency.versionRange?.trim().orEmpty()
             if (range.isNotBlank()) {

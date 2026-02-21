@@ -1,11 +1,11 @@
-# Plugin Debug Playbook
+﻿# Plugin Debug Playbook
 
 This checklist is optimized for "plugin does not load / command not found / behavior missing".
 
 ## 1. Basic Sanity
 
 - build plugin jar successfully
-- `gigaplugin.yml` exists in jar root
+- `clockworkplugin.yml` exists in jar root
 - `id`, `main`, `version`, `apiVersion` are valid
 - `apiVersion: 1`
 

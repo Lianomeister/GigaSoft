@@ -1,4 +1,4 @@
-package com.clockwork.core
+﻿package com.clockwork.core
 
 import com.clockwork.api.GigaPlayerMovePreEvent
 import com.clockwork.api.GigaPlugin
@@ -83,7 +83,7 @@ class GigaStandaloneCoreHybridIsolationTest {
     ) {
         Files.createDirectories(targetJar.parent)
         JarOutputStream(Files.newOutputStream(targetJar)).use { jar ->
-            jar.putNextEntry(JarEntry("gigaplugin.yml"))
+            jar.putNextEntry(JarEntry("clockworkplugin.yml"))
             jar.write(
                 """
                 id: $pluginId

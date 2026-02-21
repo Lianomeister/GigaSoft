@@ -23,44 +23,51 @@ async function bootLogin() {
   }
   const form = document.getElementById("admin-login-form");
   const errorNode = document.getElementById("admin-login-error");
-  if (!form || !errorNode) return;
+  const loginBtn = document.getElementById("admin-login-submit");
+  const registerBtn = document.getElementById("admin-register");
+  const resetBtn = document.getElementById("admin-reset-password");
+  if (!form || !errorNode || !loginBtn || !registerBtn) return;
+
+  wirePasswordToggles(form);
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
-    errorNode.textContent = "";
-    errorNode.classList.remove("admin-note");
-    errorNode.classList.add("admin-error");
+    setLoginMessage(errorNode, "", false);
     const data = new FormData(form);
-    const email = String(data.get("username") || "").trim();
+    const email = normalizeEmail(String(data.get("username") || ""));
     const password = String(data.get("password") || "");
-    const { error } = await state.supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      errorNode.textContent = error.message || "Login failed.";
+    const inputError = validateLoginInput(email, password);
+    if (inputError) {
+      setLoginMessage(errorNode, inputError, false);
       return;
     }
-    window.location.replace("./admin-portal.html");
+    setAuthButtonsBusy(loginBtn, registerBtn, resetBtn, true, "Signing in...");
+    try {
+      const { error } = await state.supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        setLoginMessage(errorNode, formatAuthError(error, "sign-in"), false);
+        return;
+      }
+      window.location.replace("./admin-portal.html");
+    } finally {
+      setAuthButtonsBusy(loginBtn, registerBtn, resetBtn, false);
+    }
   });
 
-  const registerBtn = document.getElementById("admin-register");
-  if (registerBtn) {
-    registerBtn.addEventListener("click", async () => {
-      errorNode.textContent = "";
-      errorNode.classList.remove("admin-note");
-      errorNode.classList.add("admin-error");
-      const data = new FormData(form);
-      const email = String(data.get("username") || "").trim();
-      const password = String(data.get("password") || "");
-      const confirmPassword = String(data.get("confirmPassword") || "");
-      const displayName = String(data.get("displayName") || "").trim();
-      if (!email || !password) {
-        errorNode.textContent = "Email and password are required.";
-        return;
-      }
-      if (password !== confirmPassword) {
-        errorNode.textContent = "Passwords do not match.";
-        return;
-      }
-      registerBtn.disabled = true;
+  registerBtn.addEventListener("click", async () => {
+    setLoginMessage(errorNode, "", false);
+    const data = new FormData(form);
+    const email = normalizeEmail(String(data.get("username") || ""));
+    const password = String(data.get("password") || "");
+    const confirmPassword = String(data.get("confirmPassword") || "");
+    const displayName = String(data.get("displayName") || "").trim();
+    const inputError = validateRegistrationInput(email, password, confirmPassword, displayName);
+    if (inputError) {
+      setLoginMessage(errorNode, inputError, false);
+      return;
+    }
+    setAuthButtonsBusy(loginBtn, registerBtn, resetBtn, true, "Registering...");
+    try {
       const { error } = await state.supabase.auth.signUp({
         email,
         password,
@@ -70,14 +77,38 @@ async function bootLogin() {
           }
         }
       });
-      registerBtn.disabled = false;
       if (error) {
-        errorNode.textContent = error.message || "Registration failed.";
+        setLoginMessage(errorNode, formatAuthError(error, "sign-up"), false);
         return;
       }
-      errorNode.classList.remove("admin-error");
-      errorNode.classList.add("admin-note");
-      errorNode.textContent = "Registration successful. Confirm your email if required, then sign in.";
+      setLoginMessage(errorNode, "Registration successful. Confirm your email if required, then sign in.", true);
+    } finally {
+      setAuthButtonsBusy(loginBtn, registerBtn, resetBtn, false);
+    }
+  });
+
+  if (resetBtn) {
+    resetBtn.addEventListener("click", async () => {
+      setLoginMessage(errorNode, "", false);
+      const data = new FormData(form);
+      const email = normalizeEmail(String(data.get("username") || ""));
+      if (!isValidEmail(email)) {
+        setLoginMessage(errorNode, "Enter a valid email first, then click Reset Password.", false);
+        return;
+      }
+      setAuthButtonsBusy(loginBtn, registerBtn, resetBtn, true, "Sending reset link...");
+      try {
+        const { error } = await state.supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: window.location.href
+        });
+        if (error) {
+          setLoginMessage(errorNode, formatAuthError(error, "reset"), false);
+          return;
+        }
+        setLoginMessage(errorNode, "If this account exists, a password reset email was sent.", true);
+      } finally {
+        setAuthButtonsBusy(loginBtn, registerBtn, resetBtn, false);
+      }
     });
   }
 }
@@ -406,6 +437,85 @@ function wireDeleteAccount() {
 
 function splitCsv(raw) {
   return raw.split(",").map((v) => v.trim()).filter((v) => v.length > 0);
+}
+
+function setLoginMessage(node, text, isNote) {
+  node.textContent = String(text || "");
+  node.classList.toggle("admin-note", !!isNote);
+  node.classList.toggle("admin-error", !isNote);
+}
+
+function setAuthButtonsBusy(loginBtn, registerBtn, resetBtn, isBusy, loginText) {
+  if (loginBtn) {
+    loginBtn.disabled = isBusy;
+    loginBtn.textContent = isBusy ? (loginText || "Working...") : "Sign In";
+  }
+  if (registerBtn) registerBtn.disabled = isBusy;
+  if (resetBtn) resetBtn.disabled = isBusy;
+}
+
+function wirePasswordToggles(form) {
+  const passwordInput = form.querySelector("input[name='password']");
+  const confirmInput = form.querySelector("input[name='confirmPassword']");
+  const showPassword = document.getElementById("admin-show-password");
+  const showConfirm = document.getElementById("admin-show-confirm-password");
+  if (showPassword && passwordInput) {
+    showPassword.addEventListener("change", () => {
+      passwordInput.type = showPassword.checked ? "text" : "password";
+    });
+  }
+  if (showConfirm && confirmInput) {
+    showConfirm.addEventListener("change", () => {
+      confirmInput.type = showConfirm.checked ? "text" : "password";
+    });
+  }
+}
+
+function normalizeEmail(raw) {
+  return String(raw || "").trim().toLowerCase();
+}
+
+function isValidEmail(email) {
+  if (!email) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function validateLoginInput(email, password) {
+  if (!isValidEmail(email)) return "Enter a valid email address.";
+  if (!password) return "Password is required.";
+  return "";
+}
+
+function validateRegistrationInput(email, password, confirmPassword, displayName) {
+  const loginError = validateLoginInput(email, password);
+  if (loginError) return loginError;
+  if (!confirmPassword) return "Confirm your password to register.";
+  if (password !== confirmPassword) return "Passwords do not match.";
+  if (password.length < 10) return "Password must be at least 10 characters.";
+  if (!/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/[0-9]/.test(password)) {
+    return "Password must include uppercase, lowercase, and a number.";
+  }
+  if (displayName.length > 40) return "Display name can have at most 40 characters.";
+  return "";
+}
+
+function formatAuthError(error, mode) {
+  const msg = String(error?.message || "").toLowerCase();
+  if (mode === "sign-in") {
+    if (msg.includes("invalid login credentials")) return "Invalid email or password.";
+    if (msg.includes("email not confirmed")) return "Email not confirmed. Check your inbox first.";
+    if (msg.includes("too many requests")) return "Too many attempts. Wait a moment and try again.";
+  }
+  if (mode === "sign-up") {
+    if (msg.includes("already registered")) return "This email is already registered.";
+    if (msg.includes("password")) return "Password does not meet auth requirements.";
+  }
+  if (mode === "reset") {
+    if (msg.includes("rate limit") || msg.includes("too many requests")) {
+      return "Too many reset requests. Wait a moment and try again.";
+    }
+  }
+  return error?.message || "Authentication request failed.";
 }
 
 function normalizeStringList(raw) {

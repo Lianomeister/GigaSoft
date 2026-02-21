@@ -746,11 +746,13 @@ fun main(args: Array<String>) {
                     continue
                 }
                 val recommendations = buildProfileRecommendations(p)
+                val dependencyDiagnostic = core.doctor().currentDependencyDiagnostics[id]
                 if (jsonMode) {
                     printJson(
                         mapper = objectMapper,
                         value = mapOf(
                             "profile" to p,
+                            "dependencyDiagnostic" to dependencyDiagnostic,
                             "recommendations" to recommendations
                         ),
                         mode = outputMode
@@ -803,6 +805,11 @@ fun main(args: Array<String>) {
                     if (p.faultBudget.used > 0) {
                         println(
                             "fault.budget=used:${p.faultBudget.used},remaining:${p.faultBudget.remaining},tripped:${p.faultBudget.tripped},stage:${p.faultBudget.stage},usageRatio:${"%.3f".format(p.faultBudget.usageRatio)}"
+                        )
+                    }
+                    if (dependencyDiagnostic != null) {
+                        println(
+                            "dependency.issue[${dependencyDiagnostic.code}]=${dependencyDiagnostic.message} hint=${dependencyDiagnostic.hint}"
                         )
                     }
                     recommendations.forEach { rec ->

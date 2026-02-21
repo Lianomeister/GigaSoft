@@ -61,4 +61,4 @@ Use this checklist before upgrading production plugins:
 
 - Event dispatch mode defaults to `exact`.
 - Adapter execution mode defaults to `safe`.
-- Host access requires explicit permissions in `gigaplugin.yml`.
+- Host access requires explicit permissions in `clockworkplugin.yml` (legacy `gigaplugin.yml` also works until v1.7).

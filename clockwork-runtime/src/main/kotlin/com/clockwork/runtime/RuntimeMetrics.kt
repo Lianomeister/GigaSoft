@@ -288,6 +288,10 @@ class RuntimeMetrics(
         )
     }
 
+    fun faultBudgetStage(pluginId: String): FaultBudgetStage {
+        return snapshotFaultBudget(pluginId).stage
+    }
+
     private fun snapshotFaultBudget(pluginId: String): PluginFaultBudgetSnapshot {
         val now = System.currentTimeMillis()
         val windowStart = now - faultBudgetPolicy.windowMillis

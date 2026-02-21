@@ -1,8 +1,8 @@
-# Tutorial: Adapters
+﻿# Tutorial: Adapters
 
 Goal: define a custom adapter and invoke host adapters safely.
 
-Host bridge actions are permission-gated. Add required permissions in `gigaplugin.yml`, for example:
+Host bridge actions are permission-gated. Add required permissions in `clockworkplugin.yml`, for example:
 
 ```yaml
 permissions:

@@ -1,4 +1,4 @@
-package com.clockwork.standalone
+﻿package com.clockwork.standalone
 
 import com.clockwork.api.CommandSender
 import com.clockwork.core.GigaStandaloneCore
@@ -110,7 +110,7 @@ class StandaloneParitySmokeTest {
         }
         val yaml = lines.joinToString("\n")
         JarOutputStream(Files.newOutputStream(jarPath)).use { out ->
-            out.putNextEntry(JarEntry("gigaplugin.yml"))
+            out.putNextEntry(JarEntry("clockworkplugin.yml"))
             out.write(yaml.toByteArray(Charsets.UTF_8))
             out.closeEntry()
         }

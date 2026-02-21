@@ -2,8 +2,16 @@ package com.clockwork.api
 
 data class DependencySpec(
     val id: String,
-    val versionRange: String? = null
+    val versionRange: String? = null,
+    val kind: DependencyKind = DependencyKind.REQUIRED
 )
+
+enum class DependencyKind {
+    REQUIRED,
+    OPTIONAL,
+    SOFT_AFTER,
+    CONFLICTS
+}
 
 data class PluginManifest(
     val id: String,

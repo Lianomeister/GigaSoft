@@ -1,4 +1,4 @@
-package com.clockwork.runtime
+﻿package com.clockwork.runtime
 
 import com.clockwork.api.GigaPlugin
 import com.clockwork.api.ModelDefinition
@@ -102,7 +102,7 @@ class GigaRuntimeReloadRollbackTest {
     ) {
         Files.createDirectories(targetJar.parent)
         JarOutputStream(Files.newOutputStream(targetJar)).use { jar ->
-            jar.putNextEntry(JarEntry("gigaplugin.yml"))
+            jar.putNextEntry(JarEntry("clockworkplugin.yml"))
             jar.write(
                 """
                 id: $pluginId

@@ -1,0 +1,10 @@
+﻿id: showcase-simpletpa
+name: Showcase SimpleTpa
+version: 1.0.0
+main: com.clockwork.showcase.simpletpa.SimpleTpaPlugin
+apiVersion: 1
+dependencies: []
+permissions:
+  - host.player.move
+  - host.player.read
+  - host.player.message

@@ -50,10 +50,30 @@ fun gigaPlugin(
 }
 
 fun dependency(id: String, versionRange: String? = null): DependencySpec {
+    return dependency(id = id, versionRange = versionRange, kind = DependencyKind.REQUIRED)
+}
+
+fun optionalDependency(id: String, versionRange: String? = null): DependencySpec {
+    return dependency(id = id, versionRange = versionRange, kind = DependencyKind.OPTIONAL)
+}
+
+fun softAfterDependency(id: String, versionRange: String? = null): DependencySpec {
+    return dependency(id = id, versionRange = versionRange, kind = DependencyKind.SOFT_AFTER)
+}
+
+fun conflictDependency(id: String, versionRange: String? = null): DependencySpec {
+    return dependency(id = id, versionRange = versionRange, kind = DependencyKind.CONFLICTS)
+}
+
+fun dependency(
+    id: String,
+    versionRange: String? = null,
+    kind: DependencyKind = DependencyKind.REQUIRED
+): DependencySpec {
     val trimmedId = id.trim()
     require(trimmedId.isNotEmpty()) { "Dependency id must not be empty" }
     val range = versionRange?.trim()?.takeIf { it.isNotEmpty() }
-    return DependencySpec(id = trimmedId, versionRange = range)
+    return DependencySpec(id = trimmedId, versionRange = range, kind = kind)
 }
 
 class GigaPluginDsl(private val ctx: PluginContext) {

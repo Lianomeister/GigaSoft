@@ -1,4 +1,4 @@
-# Hello Plugin (Quick Path)
+﻿# Hello Plugin (Quick Path)
 
 Use this if you want the smallest possible plugin first.
 
@@ -34,7 +34,7 @@ class HelloPlugin : GigaPlugin {
 }
 ```
 
-## 2. Add `gigaplugin.yml`
+## 2. Add `clockworkplugin.yml`
 
 ```yaml
 id: hello

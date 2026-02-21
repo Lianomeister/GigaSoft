@@ -1,4 +1,4 @@
-package com.clockwork.runtime
+﻿package com.clockwork.runtime
 
 import java.nio.file.Files
 import java.nio.file.Path
@@ -97,7 +97,7 @@ class GigaRuntimeSecurityTest {
 
     private fun createManifestJar(targetJar: Path, manifest: String) {
         JarOutputStream(Files.newOutputStream(targetJar)).use { out ->
-            out.putNextEntry(JarEntry("gigaplugin.yml"))
+            out.putNextEntry(JarEntry("clockworkplugin.yml"))
             out.write(manifest.toByteArray())
             out.closeEntry()
         }

@@ -2,6 +2,8 @@ package com.clockwork.api
 
 import java.util.ArrayDeque
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.math.abs
+import kotlin.math.sqrt
 
 inline fun <reified T : Any> EventBus.subscribe(noinline listener: (T) -> Unit) {
     subscribe(T::class.java, listener)
@@ -27,6 +29,39 @@ fun EventBus.publishAsyncUnit(event: Any): java.util.concurrent.CompletableFutur
 
 inline fun <reified T : Any> StorageProvider.store(key: String, version: Int = 1): PersistentStore<T> {
     return store(key, T::class.java, version)
+}
+
+inline fun <reified T : Any> PluginContext.store(key: String, version: Int = 1): PersistentStore<T> {
+    return storage.store(key, T::class.java, version)
+}
+
+inline fun <reified T : Any> PluginContext.loadOrDefault(
+    key: String,
+    version: Int = 1,
+    default: () -> T
+): T {
+    return store<T>(key, version).load() ?: default()
+}
+
+inline fun <reified T : Any> PluginContext.saveState(
+    key: String,
+    value: T,
+    version: Int = 1
+) {
+    store<T>(key, version).save(value)
+}
+
+inline fun <reified T : Any> PluginContext.updateState(
+    key: String,
+    version: Int = 1,
+    default: () -> T,
+    updater: (T) -> T
+): T {
+    val store = store<T>(key, version)
+    val current = store.load() ?: default()
+    val next = updater(current)
+    store.save(next)
+    return next
 }
 
 fun CommandRegistry.registerAliasOrThrow(alias: String, command: String) {
@@ -446,6 +481,48 @@ fun CommandResult.render(): String {
     val body = if (normalizedCode == null) message else "[$normalizedCode] $message"
     return if (hint == null) body else "$body (hint: $hint)"
 }
+
+fun CommandParsedArgs.requiredInt(name: String): Int {
+    return int(name) ?: throw IllegalArgumentException("Missing or invalid Int argument '$name'")
+}
+
+fun CommandParsedArgs.requiredLong(name: String): Long {
+    return long(name) ?: throw IllegalArgumentException("Missing or invalid Long argument '$name'")
+}
+
+fun CommandParsedArgs.requiredDouble(name: String): Double {
+    return double(name) ?: throw IllegalArgumentException("Missing or invalid Double argument '$name'")
+}
+
+fun CommandParsedArgs.requiredBoolean(name: String): Boolean {
+    return boolean(name) ?: throw IllegalArgumentException("Missing or invalid Boolean argument '$name'")
+}
+
+fun HostLocationRef.distanceTo(other: HostLocationRef): Double {
+    if (!world.equals(other.world, ignoreCase = true)) return Double.POSITIVE_INFINITY
+    val dx = x - other.x
+    val dy = y - other.y
+    val dz = z - other.z
+    return sqrt(dx * dx + dy * dy + dz * dz)
+}
+
+fun HostLocationRef.horizontalDistanceTo(other: HostLocationRef): Double {
+    if (!world.equals(other.world, ignoreCase = true)) return Double.POSITIVE_INFINITY
+    val dx = x - other.x
+    val dz = z - other.z
+    return sqrt(dx * dx + dz * dz)
+}
+
+fun HostLocationRef.verticalDistanceTo(other: HostLocationRef): Double {
+    if (!world.equals(other.world, ignoreCase = true)) return Double.POSITIVE_INFINITY
+    return abs(y - other.y)
+}
+
+fun GigaPlayerMoveEvent.distance3d(): Double = current.location.distanceTo(previous.location)
+
+fun GigaPlayerMoveEvent.horizontalDistance(): Double = current.location.horizontalDistanceTo(previous.location)
+
+fun GigaPlayerMoveEvent.verticalDistanceAbs(): Double = current.location.verticalDistanceTo(previous.location)
 
 fun AdapterInvocation.payloadString(key: String): String? {
     val normalizedKey = key.trim()

@@ -1,6 +1,6 @@
 id: clockwork-plugin-browser
 name: Clockwork Plugin Browser
-version: 1.5.0
+version: 1.5.1
 main: com.clockwork.pluginbrowser.ClockworkPluginBrowserPlugin
 apiVersion: 1
 dependencies: []

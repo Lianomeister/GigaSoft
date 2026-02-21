@@ -1,4 +1,4 @@
-# API Reference v1
+﻿# API Reference v1
 
 Versioned companion docs:
 
@@ -284,7 +284,7 @@ Note:
 
 Host permission enforcement:
 
-- Host calls are denied unless permissions are declared in `gigaplugin.yml`
+- Host calls are denied unless permissions are declared in `clockworkplugin.yml`
 - common permissions:
   - `host.server.read`
   - `host.server.broadcast`

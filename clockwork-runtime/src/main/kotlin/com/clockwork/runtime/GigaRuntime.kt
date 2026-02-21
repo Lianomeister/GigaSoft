@@ -3,6 +3,7 @@ package com.clockwork.runtime
 import com.clockwork.api.GigaLogger
 import com.clockwork.api.GigaPlugin
 import com.clockwork.api.HostAccess
+import com.clockwork.api.DependencyKind
 import com.clockwork.api.PluginManifest
 import java.net.URLClassLoader
 import java.nio.file.Files
@@ -62,6 +63,8 @@ class GigaRuntime(
     private var lastScanVersionMismatches: Map<String, String> = emptyMap()
     @Volatile
     private var lastScanApiCompatibility: Map<String, String> = emptyMap()
+    @Volatile
+    private var lastScanDependencyDiagnostics: Map<String, DependencyDiagnostic> = emptyMap()
 
     init {
         Files.createDirectories(normalizedPluginsDirectory)
@@ -121,6 +124,7 @@ class GigaRuntime(
         lastScanRejected = resolution.rejected.toMap()
         lastScanVersionMismatches = resolution.versionMismatches.toMap()
         lastScanApiCompatibility = resolution.apiCompatibility.toMap()
+        lastScanDependencyDiagnostics = resolution.diagnostics.toMap()
 
         resolution.rejected.forEach { (id, reason) ->
             rootLogger.info("Skipped '$id': $reason")
@@ -182,12 +186,15 @@ class GigaRuntime(
             "Cannot load '${descriptor.manifest.id}': incompatible apiVersion ${descriptor.manifest.apiVersion} (runtime=${RuntimeVersion.API_VERSION})"
         }
 
-        val missing = descriptor.manifest.dependencies.filter { dep -> !loaded.containsKey(dep.id) }
+        val requiredDeps = descriptor.manifest.dependencies.filter { it.kind == DependencyKind.REQUIRED }
+        val conflictDeps = descriptor.manifest.dependencies.filter { it.kind == DependencyKind.CONFLICTS }
+
+        val missing = requiredDeps.filter { dep -> !loaded.containsKey(dep.id) }
         require(missing.isEmpty()) {
             "Cannot load '${descriptor.manifest.id}': missing dependency/dependencies ${missing.joinToString(", ") { it.id }}"
         }
 
-        val mismatched = descriptor.manifest.dependencies.filter { dep ->
+        val mismatched = requiredDeps.filter { dep ->
             val range = dep.versionRange ?: return@filter false
             !VersionRange.matches(
                 version = loaded.getValue(dep.id).manifest.version,
@@ -199,6 +206,18 @@ class GigaRuntime(
                 "${dep.id} requires '${dep.versionRange}', found '${loaded.getValue(dep.id).manifest.version}'"
             }
             "Cannot load '${descriptor.manifest.id}': dependency version mismatch ($details)"
+        }
+
+        val conflicts = conflictDeps.filter { dep ->
+            val loadedDep = loaded[dep.id] ?: return@filter false
+            val range = dep.versionRange
+            range.isNullOrBlank() || VersionRange.matches(
+                version = loadedDep.manifest.version,
+                expression = range
+            )
+        }
+        require(conflicts.isEmpty()) {
+            "Cannot load '${descriptor.manifest.id}': conflict(s) ${conflicts.joinToString(", ") { it.id }}"
         }
 
         return loadDescriptor(descriptor)
@@ -291,6 +310,11 @@ class GigaRuntime(
         )
     }
 
+    fun faultBudgetStage(pluginId: String): FaultBudgetStage {
+        if (!loaded.containsKey(pluginId)) return FaultBudgetStage.NORMAL
+        return metrics.faultBudgetStage(pluginId)
+    }
+
     fun recordSystemIsolation(pluginId: String, snapshot: SystemIsolationSnapshot) {
         isolatedSystems.computeIfAbsent(pluginId) { ConcurrentHashMap() }[snapshot.systemId] = snapshot
     }
@@ -311,7 +335,12 @@ class GigaRuntime(
 
         val graph = loaded.values
             .sortedBy { it.manifest.id }
-            .associate { it.manifest.id to it.manifest.dependencies.map { dep -> dep.id }.sorted() }
+            .associate {
+                it.manifest.id to it.manifest.dependencies
+                    .filter { dep -> dep.kind == DependencyKind.REQUIRED }
+                    .map { dep -> dep.id }
+                    .sorted()
+            }
 
         val pluginPerformance = loaded.values
             .sortedBy { it.manifest.id }
@@ -333,9 +362,11 @@ class GigaRuntime(
             currentDependencyIssues = resolution.rejected.toMap(),
             versionMismatches = resolution.versionMismatches.toMap(),
             apiCompatibility = resolution.apiCompatibility.toMap(),
+            currentDependencyDiagnostics = resolution.diagnostics.toMap(),
             lastScanRejected = lastScanRejected.toMap(),
             lastScanVersionMismatches = lastScanVersionMismatches.toMap(),
             lastScanApiCompatibility = lastScanApiCompatibility.toMap(),
+            lastScanDependencyDiagnostics = lastScanDependencyDiagnostics.toMap(),
             dependencyGraph = graph,
             pluginPerformance = pluginPerformance
         )
@@ -499,9 +530,11 @@ class GigaRuntime(
     private fun collectReloadSet(rootId: String): Set<String> {
         val reverseDeps = mutableMapOf<String, MutableSet<String>>()
         loaded.values.forEach { plugin ->
-            plugin.manifest.dependencies.forEach { dependency ->
+            plugin.manifest.dependencies
+                .filter { it.kind == DependencyKind.REQUIRED }
+                .forEach { dependency ->
                 reverseDeps.computeIfAbsent(dependency.id) { linkedSetOf() }.add(plugin.manifest.id)
-            }
+                }
         }
 
         val visited = linkedSetOf<String>()
@@ -765,9 +798,11 @@ class GigaRuntime(
     private fun collectReloadSet(rootIds: Set<String>): Set<String> {
         val reverseDeps = mutableMapOf<String, MutableSet<String>>()
         loaded.values.forEach { plugin ->
-            plugin.manifest.dependencies.forEach { dependency ->
+            plugin.manifest.dependencies
+                .filter { it.kind == DependencyKind.REQUIRED }
+                .forEach { dependency ->
                 reverseDeps.computeIfAbsent(dependency.id) { linkedSetOf() }.add(plugin.manifest.id)
-            }
+                }
         }
         val visited = linkedSetOf<String>()
         val queue = ArrayDeque<String>()
@@ -785,7 +820,8 @@ class GigaRuntime(
         var lastError: Throwable? = null
         repeat(5) { attempt ->
             try {
-                return PluginDescriptor(ManifestReader.readFromJar(jar), jar)
+                val read = ManifestReader.readFromJarDetailed(jar)
+                return PluginDescriptor(read.manifest, jar)
             } catch (t: Throwable) {
                 lastError = t
                 if (attempt < 4) Thread.sleep(80L)
