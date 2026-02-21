@@ -138,6 +138,30 @@ public final class com/gigasoft/api/GigaApiVersion {
 	public static final field MANIFEST_API_VERSION Ljava/lang/String;
 }
 
+public final class com/gigasoft/api/GigaBlockChangeEvent {
+	public fun <init> (Ljava/lang/String;IIILjava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;IIILjava/lang/String;Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()I
+	public final fun component3 ()I
+	public final fun component4 ()I
+	public final fun component5 ()Ljava/lang/String;
+	public final fun component6 ()Ljava/lang/String;
+	public final fun component7 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;IIILjava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lcom/gigasoft/api/GigaBlockChangeEvent;
+	public static synthetic fun copy$default (Lcom/gigasoft/api/GigaBlockChangeEvent;Ljava/lang/String;IIILjava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/gigasoft/api/GigaBlockChangeEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCause ()Ljava/lang/String;
+	public final fun getCurrentBlockId ()Ljava/lang/String;
+	public final fun getPreviousBlockId ()Ljava/lang/String;
+	public final fun getWorld ()Ljava/lang/String;
+	public final fun getX ()I
+	public final fun getY ()I
+	public final fun getZ ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public final class com/gigasoft/api/GigaEntityRemoveEvent {
 	public fun <init> (Lcom/gigasoft/api/HostEntitySnapshot;Ljava/lang/String;)V
 	public synthetic fun <init> (Lcom/gigasoft/api/HostEntitySnapshot;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
@@ -294,6 +318,8 @@ public final class com/gigasoft/api/GigaWorldTimeChangeEvent {
 
 public abstract interface class com/gigasoft/api/HostAccess {
 	public static final field Companion Lcom/gigasoft/api/HostAccess$Companion;
+	public abstract fun blockAt (Ljava/lang/String;III)Lcom/gigasoft/api/HostBlockSnapshot;
+	public abstract fun breakBlock (Ljava/lang/String;IIIZ)Z
 	public abstract fun broadcast (Ljava/lang/String;)Z
 	public abstract fun createWorld (Ljava/lang/String;J)Lcom/gigasoft/api/HostWorldSnapshot;
 	public abstract fun entities (Ljava/lang/String;)Ljava/util/List;
@@ -305,6 +331,7 @@ public abstract interface class com/gigasoft/api/HostAccess {
 	public abstract fun playerInventory (Ljava/lang/String;)Lcom/gigasoft/api/HostInventorySnapshot;
 	public abstract fun removeEntity (Ljava/lang/String;)Z
 	public abstract fun serverInfo ()Lcom/gigasoft/api/HostServerSnapshot;
+	public abstract fun setBlock (Ljava/lang/String;IIILjava/lang/String;)Lcom/gigasoft/api/HostBlockSnapshot;
 	public abstract fun setPlayerInventoryItem (Ljava/lang/String;ILjava/lang/String;)Z
 	public abstract fun setWorldTime (Ljava/lang/String;J)Z
 	public abstract fun spawnEntity (Ljava/lang/String;Lcom/gigasoft/api/HostLocationRef;)Lcom/gigasoft/api/HostEntitySnapshot;
@@ -317,6 +344,9 @@ public final class com/gigasoft/api/HostAccess$Companion {
 }
 
 public final class com/gigasoft/api/HostAccess$DefaultImpls {
+	public static fun blockAt (Lcom/gigasoft/api/HostAccess;Ljava/lang/String;III)Lcom/gigasoft/api/HostBlockSnapshot;
+	public static fun breakBlock (Lcom/gigasoft/api/HostAccess;Ljava/lang/String;IIIZ)Z
+	public static synthetic fun breakBlock$default (Lcom/gigasoft/api/HostAccess;Ljava/lang/String;IIIZILjava/lang/Object;)Z
 	public static fun createWorld (Lcom/gigasoft/api/HostAccess;Ljava/lang/String;J)Lcom/gigasoft/api/HostWorldSnapshot;
 	public static synthetic fun createWorld$default (Lcom/gigasoft/api/HostAccess;Ljava/lang/String;JILjava/lang/Object;)Lcom/gigasoft/api/HostWorldSnapshot;
 	public static synthetic fun entities$default (Lcom/gigasoft/api/HostAccess;Ljava/lang/String;ILjava/lang/Object;)Ljava/util/List;
@@ -326,8 +356,28 @@ public final class com/gigasoft/api/HostAccess$DefaultImpls {
 	public static fun inventoryItem (Lcom/gigasoft/api/HostAccess;Ljava/lang/String;I)Ljava/lang/String;
 	public static fun movePlayer (Lcom/gigasoft/api/HostAccess;Ljava/lang/String;Lcom/gigasoft/api/HostLocationRef;)Lcom/gigasoft/api/HostPlayerSnapshot;
 	public static fun removeEntity (Lcom/gigasoft/api/HostAccess;Ljava/lang/String;)Z
+	public static fun setBlock (Lcom/gigasoft/api/HostAccess;Ljava/lang/String;IIILjava/lang/String;)Lcom/gigasoft/api/HostBlockSnapshot;
 	public static fun setWorldTime (Lcom/gigasoft/api/HostAccess;Ljava/lang/String;J)Z
 	public static fun worldTime (Lcom/gigasoft/api/HostAccess;Ljava/lang/String;)Ljava/lang/Long;
+}
+
+public final class com/gigasoft/api/HostBlockSnapshot {
+	public fun <init> (Ljava/lang/String;IIILjava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()I
+	public final fun component3 ()I
+	public final fun component4 ()I
+	public final fun component5 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;IIILjava/lang/String;)Lcom/gigasoft/api/HostBlockSnapshot;
+	public static synthetic fun copy$default (Lcom/gigasoft/api/HostBlockSnapshot;Ljava/lang/String;IIILjava/lang/String;ILjava/lang/Object;)Lcom/gigasoft/api/HostBlockSnapshot;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBlockId ()Ljava/lang/String;
+	public final fun getWorld ()Ljava/lang/String;
+	public final fun getX ()I
+	public final fun getY ()I
+	public final fun getZ ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
 }
 
 public final class com/gigasoft/api/HostEntitySnapshot {
@@ -378,6 +428,8 @@ public final class com/gigasoft/api/HostLocationRef {
 }
 
 public final class com/gigasoft/api/HostPermissions {
+	public static final field BLOCK_READ Ljava/lang/String;
+	public static final field BLOCK_WRITE Ljava/lang/String;
 	public static final field ENTITY_READ Ljava/lang/String;
 	public static final field ENTITY_REMOVE Ljava/lang/String;
 	public static final field ENTITY_SPAWN Ljava/lang/String;

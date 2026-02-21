@@ -3,6 +3,7 @@ package com.gigasoft.host.api
 import com.gigasoft.api.HostAccess
 import com.gigasoft.api.HostEntitySnapshot as ApiHostEntitySnapshot
 import com.gigasoft.api.HostInventorySnapshot as ApiHostInventorySnapshot
+import com.gigasoft.api.HostBlockSnapshot as ApiHostBlockSnapshot
 import com.gigasoft.api.HostLocationRef as ApiHostLocationRef
 import com.gigasoft.api.HostPlayerSnapshot as ApiHostPlayerSnapshot
 import com.gigasoft.api.HostServerSnapshot as ApiHostServerSnapshot
@@ -74,6 +75,18 @@ fun HostBridgePort.asHostAccess(): HostAccess {
     override fun givePlayerItem(name: String, itemId: String, count: Int): Int {
         return bridge.givePlayerItem(name, itemId, count)
     }
+
+    override fun blockAt(world: String, x: Int, y: Int, z: Int): ApiHostBlockSnapshot? {
+        return bridge.blockAt(world, x, y, z)?.toApi()
+    }
+
+    override fun setBlock(world: String, x: Int, y: Int, z: Int, blockId: String): ApiHostBlockSnapshot? {
+        return bridge.setBlock(world, x, y, z, blockId)?.toApi()
+    }
+
+    override fun breakBlock(world: String, x: Int, y: Int, z: Int, dropLoot: Boolean): Boolean {
+        return bridge.breakBlock(world, x, y, z, dropLoot)
+    }
 }
 }
 
@@ -103,6 +116,10 @@ private fun HostEntitySnapshot?.toApiNullable(): ApiHostEntitySnapshot? {
 
 private fun HostInventorySnapshot.toApi(): ApiHostInventorySnapshot {
     return ApiHostInventorySnapshot(owner = owner, size = size, nonEmptySlots = nonEmptySlots)
+}
+
+private fun HostBlockSnapshot.toApi(): ApiHostBlockSnapshot {
+    return ApiHostBlockSnapshot(world = world, x = x, y = y, z = z, blockId = blockId)
 }
 
 private fun HostServerSnapshot.toApi(): ApiHostServerSnapshot {

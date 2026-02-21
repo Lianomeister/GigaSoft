@@ -30,6 +30,14 @@ data class HostInventorySnapshot(
     val nonEmptySlots: Int
 )
 
+data class HostBlockSnapshot(
+    val world: String,
+    val x: Int,
+    val y: Int,
+    val z: Int,
+    val blockId: String
+)
+
 data class HostLocationRef(
     val world: String,
     val x: Double,

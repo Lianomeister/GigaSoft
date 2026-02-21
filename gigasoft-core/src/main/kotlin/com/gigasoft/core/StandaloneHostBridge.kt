@@ -4,6 +4,7 @@ import com.gigasoft.api.GigaLogger
 import com.gigasoft.host.api.HostBridgePort
 import com.gigasoft.host.api.HostEntitySnapshot
 import com.gigasoft.host.api.HostInventorySnapshot
+import com.gigasoft.host.api.HostBlockSnapshot
 import com.gigasoft.host.api.HostLocationRef
 import com.gigasoft.host.api.HostServerSnapshot
 import com.gigasoft.host.api.HostPlayerSnapshot
@@ -156,5 +157,31 @@ class StandaloneHostBridge(
 
     override fun givePlayerItem(name: String, itemId: String, count: Int): Int {
         return hostState.givePlayerItem(name, itemId, count)
+    }
+
+    override fun blockAt(world: String, x: Int, y: Int, z: Int): HostBlockSnapshot? {
+        val block = hostState.blockAt(world, x, y, z) ?: return null
+        return HostBlockSnapshot(
+            world = block.world,
+            x = block.x,
+            y = block.y,
+            z = block.z,
+            blockId = block.blockId
+        )
+    }
+
+    override fun setBlock(world: String, x: Int, y: Int, z: Int, blockId: String): HostBlockSnapshot? {
+        val block = hostState.setBlock(world, x, y, z, blockId) ?: return null
+        return HostBlockSnapshot(
+            world = block.world,
+            x = block.x,
+            y = block.y,
+            z = block.z,
+            blockId = block.blockId
+        )
+    }
+
+    override fun breakBlock(world: String, x: Int, y: Int, z: Int, dropLoot: Boolean): Boolean {
+        return hostState.breakBlock(world, x, y, z) != null
     }
 }

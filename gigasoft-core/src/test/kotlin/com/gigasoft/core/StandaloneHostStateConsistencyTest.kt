@@ -62,5 +62,12 @@ class StandaloneHostStateConsistencyTest {
         val removed = state.removeEntity(entity.uuid)
         assertNotNull(removed)
         assertEquals(null, state.findEntity(entity.uuid))
+
+        val block = state.setBlock("mod_world", 1, 64, 1, "stone")
+        assertNotNull(block)
+        assertEquals("stone", state.blockAt("mod_world", 1, 64, 1)?.blockId)
+        val broken = state.breakBlock("mod_world", 1, 64, 1)
+        assertNotNull(broken)
+        assertEquals(null, state.blockAt("mod_world", 1, 64, 1))
     }
 }

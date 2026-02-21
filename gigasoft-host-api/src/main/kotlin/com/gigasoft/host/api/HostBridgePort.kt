@@ -17,4 +17,7 @@ interface HostBridgePort {
     fun movePlayer(name: String, location: HostLocationRef): HostPlayerSnapshot? = null
     fun inventoryItem(name: String, slot: Int): String? = null
     fun givePlayerItem(name: String, itemId: String, count: Int = 1): Int = 0
+    fun blockAt(world: String, x: Int, y: Int, z: Int): HostBlockSnapshot? = null
+    fun setBlock(world: String, x: Int, y: Int, z: Int, blockId: String): HostBlockSnapshot? = null
+    fun breakBlock(world: String, x: Int, y: Int, z: Int, dropLoot: Boolean = true): Boolean = false
 }

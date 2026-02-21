@@ -19,8 +19,9 @@
     - `createWorld`, `worldTime`, `setWorldTime`,
     - `findEntity`, `removeEntity`,
     - `movePlayer`,
-    - `inventoryItem`, `givePlayerItem`.
-  - new gameplay events: `GigaEntityRemoveEvent`, `GigaPlayerTeleportEvent`, `GigaWorldTimeChangeEvent`.
+    - `inventoryItem`, `givePlayerItem`,
+    - `blockAt`, `setBlock`, `breakBlock`.
+  - new gameplay events: `GigaEntityRemoveEvent`, `GigaPlayerTeleportEvent`, `GigaWorldTimeChangeEvent`, `GigaBlockChangeEvent`.
 
 ### Planned
 - Network v1.1 improvements (session throughput and backpressure tuning).

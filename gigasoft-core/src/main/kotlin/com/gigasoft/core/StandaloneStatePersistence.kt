@@ -13,7 +13,8 @@ data class StandaloneHostSnapshot(
     val worlds: List<StandaloneWorld> = emptyList(),
     val players: List<StandalonePlayer> = emptyList(),
     val entities: List<StandaloneEntity> = emptyList(),
-    val inventories: Map<String, Map<Int, String>> = emptyMap()
+    val inventories: Map<String, Map<Int, String>> = emptyMap(),
+    val blocks: List<StandaloneBlock> = emptyList()
 )
 
 data class StandaloneStateEnvelope(

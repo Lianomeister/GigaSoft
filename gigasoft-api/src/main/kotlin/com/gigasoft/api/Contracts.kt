@@ -36,6 +36,9 @@ interface HostAccess {
     fun movePlayer(name: String, location: HostLocationRef): HostPlayerSnapshot? = null
     fun inventoryItem(name: String, slot: Int): String? = null
     fun givePlayerItem(name: String, itemId: String, count: Int = 1): Int = 0
+    fun blockAt(world: String, x: Int, y: Int, z: Int): HostBlockSnapshot? = null
+    fun setBlock(world: String, x: Int, y: Int, z: Int, blockId: String): HostBlockSnapshot? = null
+    fun breakBlock(world: String, x: Int, y: Int, z: Int, dropLoot: Boolean = true): Boolean = false
 
     companion object {
         fun unavailable(): HostAccess = object : HostAccess {
@@ -63,6 +66,8 @@ object HostPermissions {
     const val INVENTORY_WRITE = "host.inventory.write"
     const val PLAYER_READ = "host.player.read"
     const val PLAYER_MOVE = "host.player.move"
+    const val BLOCK_READ = "host.block.read"
+    const val BLOCK_WRITE = "host.block.write"
 }
 
 data class HostLocationRef(
@@ -93,6 +98,14 @@ data class HostInventorySnapshot(
     val owner: String,
     val size: Int,
     val nonEmptySlots: Int
+)
+
+data class HostBlockSnapshot(
+    val world: String,
+    val x: Int,
+    val y: Int,
+    val z: Int,
+    val blockId: String
 )
 
 data class HostServerSnapshot(
@@ -150,6 +163,16 @@ data class GigaWorldTimeChangeEvent(
     val world: String,
     val previousTime: Long,
     val currentTime: Long
+)
+
+data class GigaBlockChangeEvent(
+    val world: String,
+    val x: Int,
+    val y: Int,
+    val z: Int,
+    val previousBlockId: String?,
+    val currentBlockId: String?,
+    val cause: String = "plugin"
 )
 
 fun interface GigaLogger {

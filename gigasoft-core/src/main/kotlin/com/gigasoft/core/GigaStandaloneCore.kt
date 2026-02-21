@@ -5,6 +5,7 @@ import com.gigasoft.api.AdapterResponse
 import com.gigasoft.api.GigaLogger
 import com.gigasoft.api.GigaEntitySpawnEvent
 import com.gigasoft.api.GigaInventoryChangeEvent
+import com.gigasoft.api.GigaBlockChangeEvent
 import com.gigasoft.api.GigaPlayerJoinEvent
 import com.gigasoft.api.GigaPlayerLeaveEvent
 import com.gigasoft.api.GigaPlayerMoveEvent
@@ -16,6 +17,7 @@ import com.gigasoft.api.GigaWorldCreatedEvent
 import com.gigasoft.api.EventBus
 import com.gigasoft.api.HostAccess
 import com.gigasoft.api.HostEntitySnapshot
+import com.gigasoft.api.HostBlockSnapshot
 import com.gigasoft.api.HostLocationRef
 import com.gigasoft.api.HostPlayerSnapshot
 import com.gigasoft.api.HostWorldSnapshot
@@ -371,6 +373,42 @@ class GigaStandaloneCore(
         hostState.givePlayerItem(owner, itemId, count)
     }
 
+    fun blockAt(world: String, x: Int, y: Int, z: Int): StandaloneBlock? = hostState.blockAt(world, x, y, z)
+
+    fun setBlock(world: String, x: Int, y: Int, z: Int, blockId: String, cause: String = "plugin"): StandaloneBlock? = mutate {
+        val previous = hostState.blockAt(world, x, y, z)
+        val updated = hostState.setBlock(world, x, y, z, blockId) ?: return@mutate null
+        publishEvent(
+            GigaBlockChangeEvent(
+                world = updated.world,
+                x = updated.x,
+                y = updated.y,
+                z = updated.z,
+                previousBlockId = previous?.blockId,
+                currentBlockId = updated.blockId,
+                cause = cause
+            )
+        )
+        updated
+    }
+
+    fun breakBlock(world: String, x: Int, y: Int, z: Int, dropLoot: Boolean = true, cause: String = "plugin"): Boolean = mutate {
+        val previous = hostState.blockAt(world, x, y, z) ?: return@mutate false
+        val removed = hostState.breakBlock(world, x, y, z) ?: return@mutate false
+        publishEvent(
+            GigaBlockChangeEvent(
+                world = removed.world,
+                x = removed.x,
+                y = removed.y,
+                z = removed.z,
+                previousBlockId = previous.blockId,
+                currentBlockId = null,
+                cause = if (dropLoot) "$cause:drop" else cause
+            )
+        )
+        true
+    }
+
     fun saveState() {
         mutate {
             runCatching {
@@ -541,6 +579,15 @@ class GigaStandaloneCore(
             override fun givePlayerItem(name: String, itemId: String, count: Int): Int {
                 return this@GigaStandaloneCore.givePlayerItem(name, itemId, count)
             }
+            override fun blockAt(world: String, x: Int, y: Int, z: Int): HostBlockSnapshot? {
+                return this@GigaStandaloneCore.blockAt(world, x, y, z)?.toHostSnapshot()
+            }
+            override fun setBlock(world: String, x: Int, y: Int, z: Int, blockId: String): HostBlockSnapshot? {
+                return this@GigaStandaloneCore.setBlock(world, x, y, z, blockId, cause = "plugin")?.toHostSnapshot()
+            }
+            override fun breakBlock(world: String, x: Int, y: Int, z: Int, dropLoot: Boolean): Boolean {
+                return this@GigaStandaloneCore.breakBlock(world, x, y, z, dropLoot, cause = "plugin")
+            }
         }
     }
 
@@ -663,6 +710,16 @@ class GigaStandaloneCore(
         return HostWorldSnapshot(
             name = name,
             entityCount = hostState.entityCount(name)
+        )
+    }
+
+    private fun StandaloneBlock.toHostSnapshot(): HostBlockSnapshot {
+        return HostBlockSnapshot(
+            world = world,
+            x = x,
+            y = y,
+            z = z,
+            blockId = blockId
         )
     }
 

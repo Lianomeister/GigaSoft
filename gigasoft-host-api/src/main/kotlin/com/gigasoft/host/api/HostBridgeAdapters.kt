@@ -21,6 +21,8 @@ object HostBridgeAdapters {
         const val HOST_INVENTORY_WRITE = HostPermissions.INVENTORY_WRITE
         const val HOST_PLAYER_READ = HostPermissions.PLAYER_READ
         const val HOST_PLAYER_MOVE = HostPermissions.PLAYER_MOVE
+        const val HOST_BLOCK_READ = HostPermissions.BLOCK_READ
+        const val HOST_BLOCK_WRITE = HostPermissions.BLOCK_WRITE
     }
 
     fun registerDefaults(

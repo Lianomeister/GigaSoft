@@ -244,6 +244,12 @@ class GigaStandaloneCoreTest {
             val removed = core.removeEntity(entity.uuid, "test")
             assertNotNull(removed)
             assertEquals(null, core.findEntity(entity.uuid))
+
+            val block = core.setBlock("adventure", 1, 64, 1, "stone", "test")
+            assertNotNull(block)
+            assertEquals("stone", core.blockAt("adventure", 1, 64, 1)?.blockId)
+            assertTrue(core.breakBlock("adventure", 1, 64, 1, dropLoot = false, cause = "test"))
+            assertEquals(null, core.blockAt("adventure", 1, 64, 1))
         } finally {
             core.stop()
         }

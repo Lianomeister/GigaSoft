@@ -25,6 +25,10 @@ class HostAccessAdapterTest {
         assertNotNull(access.movePlayer("Alex", com.gigasoft.api.HostLocationRef("world", 1.0, 65.0, 1.0)))
         assertEquals("stone", access.inventoryItem("Alex", 0))
         assertEquals(2, access.givePlayerItem("Alex", "stone", 2))
+        val block = access.setBlock("world", 1, 64, 1, "stone")
+        assertNotNull(block)
+        assertEquals("stone", access.blockAt("world", 1, 64, 1)?.blockId)
+        assertTrue(access.breakBlock("world", 1, 64, 1, true))
     }
 
     private class FakeBridge : HostBridgePort {
@@ -79,5 +83,12 @@ class HostAccessAdapterTest {
         }
         override fun inventoryItem(name: String, slot: Int): String? = "stone"
         override fun givePlayerItem(name: String, itemId: String, count: Int): Int = count
+        override fun blockAt(world: String, x: Int, y: Int, z: Int): HostBlockSnapshot? {
+            return HostBlockSnapshot(world = world, x = x, y = y, z = z, blockId = "stone")
+        }
+        override fun setBlock(world: String, x: Int, y: Int, z: Int, blockId: String): HostBlockSnapshot? {
+            return HostBlockSnapshot(world = world, x = x, y = y, z = z, blockId = blockId)
+        }
+        override fun breakBlock(world: String, x: Int, y: Int, z: Int, dropLoot: Boolean): Boolean = true
     }
 }

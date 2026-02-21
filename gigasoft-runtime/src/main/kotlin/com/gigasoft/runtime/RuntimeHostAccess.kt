@@ -98,6 +98,21 @@ internal class RuntimeHostAccess(
         return delegate.givePlayerItem(name, itemId, count)
     }
 
+    override fun blockAt(world: String, x: Int, y: Int, z: Int): com.gigasoft.api.HostBlockSnapshot? {
+        if (!allowed(HostPermissions.BLOCK_READ)) return null
+        return delegate.blockAt(world, x, y, z)
+    }
+
+    override fun setBlock(world: String, x: Int, y: Int, z: Int, blockId: String): com.gigasoft.api.HostBlockSnapshot? {
+        if (!allowed(HostPermissions.BLOCK_WRITE)) return null
+        return delegate.setBlock(world, x, y, z, blockId)
+    }
+
+    override fun breakBlock(world: String, x: Int, y: Int, z: Int, dropLoot: Boolean): Boolean {
+        if (!allowed(HostPermissions.BLOCK_WRITE)) return false
+        return delegate.breakBlock(world, x, y, z, dropLoot)
+    }
+
     private fun allowed(permission: String): Boolean {
         if (permission in permissions) return true
         logger.info("Denied host access for plugin '$pluginId': missing permission '$permission'")

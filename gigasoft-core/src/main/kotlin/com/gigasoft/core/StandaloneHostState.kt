@@ -34,6 +34,14 @@ data class StandaloneInventory(
     val slots: Map<Int, String>
 )
 
+data class StandaloneBlock(
+    val world: String,
+    val x: Int,
+    val y: Int,
+    val z: Int,
+    val blockId: String
+)
+
 class StandaloneHostState(
     defaultWorld: String = "world"
 ) {
@@ -70,6 +78,7 @@ class StandaloneHostState(
     private val worldEntityCounts = LinkedHashMap<String, Int>()
     private val playersByName = LinkedHashMap<String, StandalonePlayer>()
     private val inventoriesByOwner = LinkedHashMap<String, MutableMap<Int, String>>()
+    private val blocks = LinkedHashMap<String, StandaloneBlock>()
     @Volatile
     private var worldsCache: List<StandaloneWorld> = emptyList()
     @Volatile
@@ -431,7 +440,13 @@ class StandaloneHostState(
                 worlds = worlds.values.sortedWith(WORLD_COMPARATOR),
                 players = playersByName.values.sortedWith(PLAYER_COMPARATOR),
                 entities = entities.values.sortedWith(ENTITY_ALL_COMPARATOR),
-                inventories = inventoriesByOwner.toSortedMap().mapValues { (_, slots) -> slots.toSortedMap() }
+                inventories = inventoriesByOwner.toSortedMap().mapValues { (_, slots) -> slots.toSortedMap() },
+                blocks = blocks.values.sortedWith(
+                    compareBy<StandaloneBlock, String>(String.CASE_INSENSITIVE_ORDER) { it.world }
+                        .thenBy { it.y }
+                        .thenBy { it.z }
+                        .thenBy { it.x }
+                )
             )
         }
     }
@@ -443,6 +458,7 @@ class StandaloneHostState(
             worldEntityCounts.clear()
             playersByName.clear()
             inventoriesByOwner.clear()
+            blocks.clear()
 
             snapshot.worlds.forEach { world ->
                 val name = world.name.trim()
@@ -498,6 +514,16 @@ class StandaloneHostState(
                     }
                 }
                 inventoriesByOwner[ownerKey] = sanitized.toMutableMap()
+            }
+
+            snapshot.blocks.forEach { block ->
+                val worldName = block.world.trim()
+                val blockId = block.blockId.trim()
+                if (worldName.isEmpty() || blockId.isEmpty()) return@forEach
+                if (blockId.equals("air", ignoreCase = true) || blockId.equals("empty", ignoreCase = true)) return@forEach
+                val resolvedWorld = createWorldWithStatusUnsafe(worldName, seed = 0L).world.name
+                val resolved = block.copy(world = resolvedWorld, blockId = blockId)
+                blocks[blockKey(resolved.world, resolved.x, resolved.y, resolved.z)] = resolved
             }
 
             if (worlds.isEmpty()) {
@@ -556,10 +582,50 @@ class StandaloneHostState(
         return trimmed
     }
 
+    fun blockAt(world: String, x: Int, y: Int, z: Int): StandaloneBlock? {
+        val worldName = world.trim()
+        if (worldName.isEmpty()) return null
+        return synchronized(stateLock) {
+            blocks[blockKey(worldName, x, y, z)]
+        }
+    }
+
+    fun setBlock(world: String, x: Int, y: Int, z: Int, blockId: String): StandaloneBlock? {
+        val worldName = requiredText(world, "world")
+        val block = requiredText(blockId, "blockId")
+        if (block.equals("air", ignoreCase = true) || block.equals("empty", ignoreCase = true)) {
+            return breakBlock(worldName, x, y, z)
+        }
+        return synchronized(stateLock) {
+            val resolvedWorld = createWorldWithStatusUnsafe(worldName, seed = 0L).world.name
+            val next = StandaloneBlock(
+                world = resolvedWorld,
+                x = x,
+                y = y,
+                z = z,
+                blockId = block
+            )
+            blocks[blockKey(resolvedWorld, x, y, z)] = next
+            next
+        }
+    }
+
+    fun breakBlock(world: String, x: Int, y: Int, z: Int): StandaloneBlock? {
+        val worldName = world.trim()
+        if (worldName.isEmpty()) return null
+        return synchronized(stateLock) {
+            blocks.remove(blockKey(worldName, x, y, z))
+        }
+    }
+
     private fun firstFreeInventorySlotUnsafe(slots: Map<Int, String>): Int? {
         for (slot in 0..35) {
             if (!slots.containsKey(slot)) return slot
         }
         return null
+    }
+
+    private fun blockKey(world: String, x: Int, y: Int, z: Int): String {
+        return "${canonicalKey(world)}:$x:$y:$z"
     }
 }

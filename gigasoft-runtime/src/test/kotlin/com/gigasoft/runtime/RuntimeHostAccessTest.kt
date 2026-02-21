@@ -27,7 +27,9 @@ class RuntimeHostAccessTest {
                 HostPermissions.WORLD_READ,
                 HostPermissions.ENTITY_REMOVE,
                 HostPermissions.PLAYER_MOVE,
-                HostPermissions.INVENTORY_WRITE
+                HostPermissions.INVENTORY_WRITE,
+                HostPermissions.BLOCK_READ,
+                HostPermissions.BLOCK_WRITE
             ),
             logger = GigaLogger { }
         )
@@ -38,6 +40,9 @@ class RuntimeHostAccessTest {
         assertTrue(access.removeEntity("e1"))
         assertNotNull(access.movePlayer("Alex", HostLocationRef("mod", 3.0, 64.0, 3.0)))
         assertEquals(2, access.givePlayerItem("Alex", "iron_ingot", 2))
+        assertEquals("stone", access.blockAt("world", 1, 64, 1)?.blockId)
+        assertEquals("dirt", access.setBlock("world", 1, 64, 1, "dirt")?.blockId)
+        assertTrue(access.breakBlock("world", 1, 64, 1))
         assertNull(access.findEntity("e1"))
         assertEquals(null, access.inventoryItem("Alex", 0))
     }
@@ -63,5 +68,10 @@ class RuntimeHostAccessTest {
         }
         override fun inventoryItem(name: String, slot: Int): String? = "stone"
         override fun givePlayerItem(name: String, itemId: String, count: Int): Int = count
+        override fun blockAt(world: String, x: Int, y: Int, z: Int) =
+            com.gigasoft.api.HostBlockSnapshot(world = world, x = x, y = y, z = z, blockId = "stone")
+        override fun setBlock(world: String, x: Int, y: Int, z: Int, blockId: String) =
+            com.gigasoft.api.HostBlockSnapshot(world = world, x = x, y = y, z = z, blockId = blockId)
+        override fun breakBlock(world: String, x: Int, y: Int, z: Int, dropLoot: Boolean): Boolean = true
     }
 }
