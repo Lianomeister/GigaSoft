@@ -8,7 +8,9 @@
       "main: ${4:plugin.MainPlugin}",
       "apiVersion: 1",
       "dependencies: []",
-      "permissions: [${5:host.server.read}]"
+      "permissions:",
+      "  - ${5:host.server.read}",
+      "  - ${6:host.player.read}"
     ],
     "description": "Generate a gigaplugin.yml file."
   }

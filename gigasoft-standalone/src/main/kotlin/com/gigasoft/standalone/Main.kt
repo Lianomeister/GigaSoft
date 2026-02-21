@@ -45,6 +45,7 @@ fun main(args: Array<String>) {
             ),
             eventDispatchMode = when (launchConfig.eventDispatchMode.lowercase()) {
                 "polymorphic" -> EventDispatchMode.POLYMORPHIC
+                "hybrid" -> EventDispatchMode.HYBRID
                 else -> EventDispatchMode.EXACT
             }
         )
@@ -165,7 +166,8 @@ fun main(args: Array<String>) {
                 }
 
                 override fun entitySpawn(type: String, world: String, x: Double, y: Double, z: Double): SessionActionResult {
-                    val entity = core.spawnEntity(type, world, x, y, z)
+                    val entity = runCatching { core.spawnEntity(type, world, x, y, z) }.getOrNull()
+                        ?: return SessionActionResult(false, "ENTITY_SPAWN_FAILED", "entity spawn cancelled or failed")
                     return SessionActionResult(
                         success = true,
                         code = "ENTITY_SPAWNED",
@@ -303,7 +305,11 @@ fun main(args: Array<String>) {
                     println("Usage: entity spawn <type> <world> <x> <y> <z>")
                     continue
                 }
-                val entity = core.spawnEntity(type, world, x, y, z)
+                val entity = runCatching { core.spawnEntity(type, world, x, y, z) }.getOrNull()
+                if (entity == null) {
+                    println("entity spawn cancelled or failed")
+                    continue
+                }
                 println("spawned ${entity.type} (${entity.uuid}) @ ${entity.world} ${entity.x},${entity.y},${entity.z}")
             }
             "players" -> {
@@ -414,6 +420,43 @@ fun main(args: Array<String>) {
                             println("issue[$id]=$reason")
                         }
                     }
+                    val pluginHotspots = d.pluginPerformance
+                        .toSortedMap()
+                        .filterValues {
+                            it.slowSystems.isNotEmpty() ||
+                                it.adapterHotspots.isNotEmpty() ||
+                                it.isolatedSystems.any { system -> system.isolated || system.isolationCount > 0L }
+                        }
+                    if (pluginHotspots.isNotEmpty()) {
+                        pluginHotspots.forEach { (pluginId, perf) ->
+                            if (perf.slowSystems.isNotEmpty()) {
+                                val top = perf.slowSystems.take(3)
+                                top.forEach { system ->
+                                    println(
+                                        "slow.system[$pluginId:${system.systemId}]=runs:${system.runs},avgNs:${system.averageNanos},maxNs:${system.maxNanos},failRate:${"%.3f".format(system.failureRate)} reasons=${system.reasons.joinToString("|")}"
+                                    )
+                                }
+                            }
+                            if (perf.adapterHotspots.isNotEmpty()) {
+                                val top = perf.adapterHotspots.take(3)
+                                top.forEach { adapter ->
+                                    println(
+                                        "hot.adapter[$pluginId:${adapter.adapterId}]=total:${adapter.total},denyRate:${"%.3f".format(adapter.deniedRate)},timeoutRate:${"%.3f".format(adapter.timeoutRate)},failRate:${"%.3f".format(adapter.failureRate)} reasons=${adapter.reasons.joinToString("|")}"
+                                    )
+                                }
+                            }
+                            if (perf.isolatedSystems.isNotEmpty()) {
+                                perf.isolatedSystems
+                                    .filter { it.isolated || it.isolationCount > 0L }
+                                    .take(3)
+                                    .forEach { system ->
+                                        println(
+                                            "isolated.system[$pluginId:${system.systemId}]=isolated:${system.isolated},remainingTicks:${system.remainingTicks},isolations:${system.isolationCount},skippedTicks:${system.skippedTicks},lastError:${system.lastError ?: "<none>"}"
+                                        )
+                                    }
+                            }
+                        }
+                    }
                 }
             }
             "profile" -> {
@@ -441,10 +484,34 @@ fun main(args: Array<String>) {
                             println("system[$name]=runs:${metric.runs},fail:${metric.failures},avgNs:${metric.averageNanos},maxNs:${metric.maxNanos}")
                         }
                     }
+                    if (p.slowSystems.isNotEmpty()) {
+                        p.slowSystems.take(5).forEach { system ->
+                            println(
+                                "slow.system[${system.systemId}]=runs:${system.runs},fail:${system.failures},avgNs:${system.averageNanos},maxNs:${system.maxNanos},failRate:${"%.3f".format(system.failureRate)} reasons=${system.reasons.joinToString("|")}"
+                            )
+                        }
+                    }
                     if (p.adapters.isNotEmpty()) {
                         p.adapters.forEach { (name, metric) ->
                             println("adapter[$name]=total:${metric.total},ok:${metric.accepted},deny:${metric.denied},timeout:${metric.timeouts},fail:${metric.failures}")
                         }
+                    }
+                    if (p.adapterHotspots.isNotEmpty()) {
+                        p.adapterHotspots.take(5).forEach { adapter ->
+                            println(
+                                "hot.adapter[${adapter.adapterId}]=total:${adapter.total},denyRate:${"%.3f".format(adapter.deniedRate)},timeoutRate:${"%.3f".format(adapter.timeoutRate)},failRate:${"%.3f".format(adapter.failureRate)} reasons=${adapter.reasons.joinToString("|")}"
+                            )
+                        }
+                    }
+                    if (p.isolatedSystems.isNotEmpty()) {
+                        p.isolatedSystems
+                            .filter { it.isolated || it.isolationCount > 0L }
+                            .take(5)
+                            .forEach { system ->
+                                println(
+                                    "isolated.system[${system.systemId}]=isolated:${system.isolated},remainingTicks:${system.remainingTicks},isolations:${system.isolationCount},skippedTicks:${system.skippedTicks},lastError:${system.lastError ?: "<none>"}"
+                                )
+                            }
                     }
                 }
             }

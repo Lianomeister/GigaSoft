@@ -30,6 +30,21 @@ class GigaStandaloneCoreTest {
         core1.start()
         core1.createWorld("test-world", 42L)
         core1.joinPlayer("Alex", "test-world", 10.0, 70.0, 5.0)
+        core1.setPlayerOp("Alex", true)
+        core1.grantPlayerPermission("Alex", "plugin.debug")
+        core1.setPlayerGameMode("Alex", "creative")
+        core1.setPlayerStatus(
+            "Alex",
+            StandalonePlayerStatus(
+                health = 18.0,
+                maxHealth = 20.0,
+                foodLevel = 16,
+                saturation = 3.0,
+                experienceLevel = 2,
+                experienceProgress = 0.4,
+                effects = mapOf("speed" to 120)
+            )
+        )
         core1.setInventoryItem("Alex", 0, "iron_ingot")
         core1.spawnEntity("sheep", "test-world", 1.0, 65.0, 1.0)
         core1.saveState()
@@ -52,6 +67,11 @@ class GigaStandaloneCoreTest {
         assertTrue(core2.worlds().any { it.name == "test-world" })
         assertTrue(core2.entities("test-world").any { it.type == "sheep" })
         assertEquals("iron_ingot", core2.inventory("Alex")?.slots?.get(0))
+        assertEquals(true, core2.playerIsOp("Alex"))
+        assertEquals(true, core2.hasPlayerPermission("Alex", "plugin.debug"))
+        assertEquals("creative", core2.playerGameMode("Alex"))
+        assertEquals(18.0, core2.playerStatus("Alex")?.health)
+        assertEquals(120, core2.playerStatus("Alex")?.effects?.get("speed"))
         core2.stop()
     }
 
@@ -238,6 +258,34 @@ class GigaStandaloneCoreTest {
             assertEquals("rain", core.worldWeather("adventure"))
 
             core.joinPlayer("Alex", "adventure", 0.0, 64.0, 0.0)
+            assertTrue(core.setPlayerOp("Alex", true, cause = "test"))
+            assertEquals(true, core.playerIsOp("Alex"))
+            assertTrue(core.grantPlayerPermission("Alex", "plugin.debug", cause = "test"))
+            assertEquals(true, core.hasPlayerPermission("Alex", "plugin.debug"))
+            assertTrue(core.revokePlayerPermission("Alex", "plugin.debug", cause = "test"))
+            assertEquals(false, core.hasPlayerPermission("Alex", "plugin.debug"))
+            assertTrue(core.sendPlayerMessage("Alex", "hello", cause = "test"))
+            assertEquals("creative", core.setPlayerGameMode("Alex", "creative", "test"))
+            assertEquals("creative", core.playerGameMode("Alex"))
+            assertTrue(core.addPlayerEffect("Alex", "speed", 100, amplifier = 1, cause = "test"))
+            assertEquals(300, core.playerStatus("Alex")?.effects?.get("speed"))
+            assertTrue(core.removePlayerEffect("Alex", "speed", cause = "test"))
+            assertEquals(null, core.playerStatus("Alex")?.effects?.get("speed"))
+            val updatedStatus = core.setPlayerStatus(
+                "Alex",
+                StandalonePlayerStatus(
+                    health = 15.0,
+                    maxHealth = 20.0,
+                    foodLevel = 14,
+                    saturation = 2.0,
+                    experienceLevel = 4,
+                    experienceProgress = 0.8,
+                    effects = mapOf("regeneration" to 80)
+                ),
+                cause = "test"
+            )
+            assertNotNull(updatedStatus)
+            assertEquals(15.0, core.playerStatus("Alex")?.health)
             assertEquals(2, core.givePlayerItem("Alex", "iron_ingot", 2))
             assertEquals("iron_ingot", core.inventoryItem("Alex", 0))
 
@@ -261,6 +309,8 @@ class GigaStandaloneCoreTest {
             assertTrue(core.breakBlock("adventure", 1, 64, 1, dropLoot = false, cause = "test"))
             assertEquals(null, core.blockAt("adventure", 1, 64, 1))
             assertEquals(null, core.blockData("adventure", 1, 64, 1))
+            assertNotNull(core.kickPlayer("Alex", "bye", cause = "test"))
+            assertEquals(null, core.players().find { it.name == "Alex" })
         } finally {
             core.stop()
         }

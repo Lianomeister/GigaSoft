@@ -38,6 +38,7 @@ class GigaRuntime(
     private val maxPluginJarBytes = 64L * 1024L * 1024L
     private val loaded = ConcurrentHashMap<String, LoadedPlugin>()
     private val metrics = RuntimeMetrics()
+    private val isolatedSystems = ConcurrentHashMap<String, ConcurrentHashMap<String, SystemIsolationSnapshot>>()
     @Volatile
     private var lastScanRejected: Map<String, String> = emptyMap()
     @Volatile
@@ -195,7 +196,23 @@ class GigaRuntime(
 
     fun profile(pluginId: String): PluginRuntimeProfile? {
         val plugin = loaded[pluginId] ?: return null
-        return metrics.snapshot(pluginId, plugin.scheduler.activeTaskIds())
+        return metrics.snapshot(
+            pluginId = pluginId,
+            activeTaskIds = plugin.scheduler.activeTaskIds(),
+            isolatedSystems = isolatedSystems[pluginId].orEmpty().values.toList()
+        )
+    }
+
+    fun recordSystemIsolation(pluginId: String, snapshot: SystemIsolationSnapshot) {
+        isolatedSystems.computeIfAbsent(pluginId) { ConcurrentHashMap() }[snapshot.systemId] = snapshot
+    }
+
+    fun removeSystemIsolation(pluginId: String, systemId: String) {
+        isolatedSystems[pluginId]?.remove(systemId)
+    }
+
+    fun clearPluginIsolation(pluginId: String) {
+        isolatedSystems.remove(pluginId)
     }
 
     fun diagnostics(): RuntimeDiagnostics {
@@ -208,6 +225,17 @@ class GigaRuntime(
             .sortedBy { it.manifest.id }
             .associate { it.manifest.id to it.manifest.dependencies.map { dep -> dep.id }.sorted() }
 
+        val pluginPerformance = loaded.values
+            .sortedBy { it.manifest.id }
+            .associate { plugin ->
+                val profile = metrics.snapshot(plugin.manifest.id, plugin.scheduler.activeTaskIds())
+                plugin.manifest.id to PluginPerformanceDiagnostics(
+                    slowSystems = profile.slowSystems,
+                    adapterHotspots = profile.adapterHotspots,
+                    isolatedSystems = profile.isolatedSystems
+                )
+            }
+
         return RuntimeDiagnostics(
             loadedPlugins = loaded.keys.sorted(),
             currentLoadOrder = resolution.ordered.map { it.manifest.id },
@@ -217,7 +245,8 @@ class GigaRuntime(
             lastScanRejected = lastScanRejected.toMap(),
             lastScanVersionMismatches = lastScanVersionMismatches.toMap(),
             lastScanApiCompatibility = lastScanApiCompatibility.toMap(),
-            dependencyGraph = graph
+            dependencyGraph = graph,
+            pluginPerformance = pluginPerformance
         )
     }
 
@@ -363,7 +392,7 @@ class GigaRuntime(
                 }
             )
             val registry = RuntimeRegistry(manifest.id)
-            val commandRegistry = RuntimeCommandRegistry()
+            val commandRegistry = RuntimeCommandRegistry(pluginId = manifest.id)
             val eventBus = RuntimeEventBus(mode = eventDispatchMode)
             val storage = JsonStorageProvider(dataDirectory.resolve(manifest.id))
             val pluginLogger = GigaLogger { rootLogger.info("[${manifest.id}] $it") }
@@ -377,6 +406,7 @@ class GigaRuntime(
                 pluginId = manifest.id,
                 logger = pluginLogger,
                 securityConfig = adapterSecurity,
+                eventBus = eventBus,
                 invocationObserver = { adapterId, outcome ->
                     metrics.recordAdapterInvocation(manifest.id, adapterId, outcome)
                 }
@@ -415,6 +445,7 @@ class GigaRuntime(
 
     private fun unloadInternal(pluginId: String, deleteRuntimeJar: Boolean): Boolean {
         val plugin = loaded.remove(pluginId) ?: return false
+        clearPluginIsolation(pluginId)
         safely("disable $pluginId") { plugin.instance.onDisable(plugin.context) }
         safely("adapter shutdown $pluginId") {
             (plugin.context.adapters as? RuntimeModAdapterRegistry)?.shutdown()

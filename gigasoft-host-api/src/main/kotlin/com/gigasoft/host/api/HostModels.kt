@@ -51,6 +51,16 @@ data class HostPlayerSnapshot(
     val location: HostLocationRef
 )
 
+data class HostPlayerStatusSnapshot(
+    val health: Double,
+    val maxHealth: Double,
+    val foodLevel: Int,
+    val saturation: Double,
+    val experienceLevel: Int,
+    val experienceProgress: Double,
+    val effects: Map<String, Int> = emptyMap()
+)
+
 data class HostServerSnapshot(
     val name: String,
     val version: String,

@@ -21,6 +21,18 @@ class PluginApiExtensionsTest {
     }
 
     @Test
+    fun `event bus subscribeOnce only receives first event`() {
+        val bus = RuntimeLikeEventBus()
+        var calls = 0
+        bus.subscribeOnce<GigaTickEvent> { calls += it.tick.toInt() }
+
+        bus.publish(GigaTickEvent(2))
+        bus.publish(GigaTickEvent(3))
+
+        assertEquals(2, calls)
+    }
+
+    @Test
     fun `storage reified store resolves class automatically`() {
         val storage = RecordingStorageProvider()
         val store = storage.store<TestPayload>("plugin:data", version = 2)
@@ -57,6 +69,36 @@ class PluginApiExtensionsTest {
     }
 
     @Test
+    fun `command alias helpers register and resolve aliases`() {
+        val commands = RecordingCommandRegistry()
+        commands.registerWithAliases(
+            command = "hello",
+            aliases = listOf("hi", "hey")
+        ) { sender, _ -> "hello:$sender" }
+
+        assertEquals("hello:alice", commands.invoke("hi", sender = "alice", args = emptyList()))
+        assertEquals("hello:alice", commands.invoke("hey", sender = "alice", args = emptyList()))
+        assertEquals("hello", commands.resolve("hi"))
+    }
+
+    @Test
+    fun `validated command helper short-circuits with error response`() {
+        val commands = RecordingCommandRegistry()
+        commands.registerValidated(
+            command = "sum",
+            validator = { _, args ->
+                if (args.size < 2) CommandResult.error("need at least 2 args", code = "E_ARGS") else null
+            }
+        ) { _, _, args ->
+            val total = args.map(String::toInt).sum()
+            CommandResult.ok(total.toString())
+        }
+
+        assertEquals("[E_ARGS] need at least 2 args", commands.invoke("sum", sender = "alice", args = listOf("1")))
+        assertEquals("3", commands.invoke("sum", sender = "alice", args = listOf("1", "2")))
+    }
+
+    @Test
     fun `command result render uses message when no code is set`() {
         assertEquals("pong", CommandResult.ok("pong").render())
     }
@@ -81,7 +123,11 @@ class PluginApiExtensionsTest {
                 "size" to "  9000000000 ",
                 "ratio" to "1.25",
                 "enabled" to "YES",
-                "flag" to "0"
+                "flag" to "0",
+                "tags" to "alpha, beta ,,gamma",
+                "mode" to "safe",
+                "cfg.world.name" to "demo",
+                "cfg.world.seed" to "42"
             )
         )
 
@@ -92,6 +138,15 @@ class PluginApiExtensionsTest {
         assertEquals(1.25, invocation.payloadDouble("ratio"))
         assertEquals(true, invocation.payloadBool("enabled"))
         assertEquals(false, invocation.payloadBool("flag"))
+        assertEquals(listOf("alpha", "beta", "gamma"), invocation.payloadCsv("tags"))
+        assertEquals(TestMode.SAFE, invocation.payloadEnum<TestMode>("mode"))
+        assertEquals(
+            mapOf(
+                "world.name" to "demo",
+                "world.seed" to "42"
+            ),
+            invocation.payloadByPrefix("cfg.")
+        )
     }
 
     @Test
@@ -118,22 +173,68 @@ class PluginApiExtensionsTest {
         )
         assertFailsWith<IllegalArgumentException> { invocation.payloadRequired("name") }
         assertFailsWith<IllegalArgumentException> { invocation.payloadRequired("missing") }
+        assertFailsWith<IllegalArgumentException> { invocation.payloadIntRequired("name") }
+    }
+
+    @Test
+    fun `adapter payload required primitive helpers enforce valid values`() {
+        val invocation = AdapterInvocation(
+            action = "test",
+            payload = mapOf(
+                "count" to "5",
+                "longValue" to "12",
+                "ratio" to "1.5",
+                "enabled" to "true",
+                "broken" to "x",
+                "timeout" to "2m",
+                "kv" to "a=1; b = 2 ; invalid ; c=3",
+                "strictMode" to "FAST"
+            )
+        )
+        assertEquals(5, invocation.payloadIntRequired("count"))
+        assertEquals(12L, invocation.payloadLongRequired("longValue"))
+        assertEquals(1.5, invocation.payloadDoubleRequired("ratio"))
+        assertEquals(true, invocation.payloadBoolRequired("enabled"))
+        assertEquals(120_000L, invocation.payloadDurationMillis("timeout"))
+        assertEquals(mapOf("a" to "1", "b" to "2", "c" to "3"), invocation.payloadMap("kv"))
+        assertEquals(TestMode.FAST, invocation.payloadEnumRequired<TestMode>("strictMode"))
+        assertFailsWith<IllegalArgumentException> { invocation.payloadBoolRequired("broken") }
+        assertFailsWith<IllegalArgumentException> { invocation.payloadEnumRequired<TestMode>("broken") }
     }
 
     private data class TestPayload(val value: String)
+    private enum class TestMode {
+        SAFE,
+        FAST
+    }
 
     private class RuntimeLikeEventBus : EventBus {
-        private val listeners = linkedMapOf<Class<*>, MutableList<(Any) -> Unit>>()
+        private val listeners = linkedMapOf<Class<*>, MutableList<ListenerEntry>>()
 
         @Suppress("UNCHECKED_CAST")
         override fun <T : Any> subscribe(eventType: Class<T>, listener: (T) -> Unit) {
             val bucket = listeners.getOrPut(eventType) { mutableListOf() }
-            bucket += { event -> listener(event as T) }
+            bucket += ListenerEntry(
+                raw = listener as (Any) -> Unit,
+                callback = { event -> listener(event as T) }
+            )
+        }
+
+        override fun <T : Any> unsubscribe(eventType: Class<T>, listener: (T) -> Unit): Boolean {
+            val bucket = listeners[eventType] ?: return false
+            val before = bucket.size
+            bucket.removeIf { it.raw === listener || it.raw == listener }
+            return before != bucket.size
         }
 
         override fun publish(event: Any) {
-            listeners[event::class.java]?.forEach { it(event) }
+            listeners[event::class.java]?.toList()?.forEach { it.callback(event) }
         }
+
+        private data class ListenerEntry(
+            val raw: (Any) -> Unit,
+            val callback: (Any) -> Unit
+        )
     }
 
     private class RecordingStorageProvider : StorageProvider {
@@ -162,6 +263,7 @@ class PluginApiExtensionsTest {
 
     private class RecordingCommandRegistry : CommandRegistry {
         private val handlers = linkedMapOf<String, (PluginContext, String, List<String>) -> String>()
+        private val aliases = linkedMapOf<String, String>()
 
         override fun register(
             command: String,
@@ -179,8 +281,33 @@ class PluginApiExtensionsTest {
             handlers[command] = action
         }
 
+        override fun registerAlias(alias: String, command: String): Boolean {
+            if (!handlers.containsKey(command)) return false
+            if (handlers.containsKey(alias)) return false
+            val existed = aliases.putIfAbsent(alias, command)
+            return existed == null
+        }
+
+        override fun unregister(command: String): Boolean {
+            val removed = handlers.remove(command) != null
+            if (removed) {
+                aliases.entries.removeIf { (_, target) -> target == command }
+            }
+            return removed
+        }
+
+        override fun unregisterAlias(alias: String): Boolean = aliases.remove(alias) != null
+
+        override fun resolve(commandOrAlias: String): String? {
+            return when {
+                handlers.containsKey(commandOrAlias) -> commandOrAlias
+                else -> aliases[commandOrAlias]
+            }
+        }
+
         fun invoke(command: String, sender: String, args: List<String>): String {
-            val action = handlers[command] ?: return "missing"
+            val key = resolve(command) ?: command
+            val action = handlers[key] ?: return "missing"
             return action(
                 object : PluginContext {
                     override val manifest: PluginManifest = PluginManifest("test", "test", "1", "main")
@@ -196,11 +323,15 @@ class PluginApiExtensionsTest {
                         override fun registerBlock(definition: BlockDefinition) {}
                         override fun registerRecipe(definition: RecipeDefinition) {}
                         override fun registerMachine(definition: MachineDefinition) {}
+                        override fun registerTexture(definition: TextureDefinition) {}
+                        override fun registerModel(definition: ModelDefinition) {}
                         override fun registerSystem(id: String, system: TickSystem) {}
                         override fun items(): List<ItemDefinition> = emptyList()
                         override fun blocks(): List<BlockDefinition> = emptyList()
                         override fun recipes(): List<RecipeDefinition> = emptyList()
                         override fun machines(): List<MachineDefinition> = emptyList()
+                        override fun textures(): List<TextureDefinition> = emptyList()
+                        override fun models(): List<ModelDefinition> = emptyList()
                         override fun systems(): Map<String, TickSystem> = emptyMap()
                     }
                     override val adapters: ModAdapterRegistry = object : ModAdapterRegistry {
@@ -242,11 +373,15 @@ class PluginApiExtensionsTest {
                 override fun registerBlock(definition: BlockDefinition) {}
                 override fun registerRecipe(definition: RecipeDefinition) {}
                 override fun registerMachine(definition: MachineDefinition) {}
+                override fun registerTexture(definition: TextureDefinition) {}
+                override fun registerModel(definition: ModelDefinition) {}
                 override fun registerSystem(id: String, system: TickSystem) {}
                 override fun items(): List<ItemDefinition> = emptyList()
                 override fun blocks(): List<BlockDefinition> = emptyList()
                 override fun recipes(): List<RecipeDefinition> = emptyList()
                 override fun machines(): List<MachineDefinition> = emptyList()
+                override fun textures(): List<TextureDefinition> = emptyList()
+                override fun models(): List<ModelDefinition> = emptyList()
                 override fun systems(): Map<String, TickSystem> = emptyMap()
             }
             override val adapters: ModAdapterRegistry = object : ModAdapterRegistry {

@@ -12,18 +12,32 @@ import com.gigasoft.api.GigaWorldDataChangeEvent
 import com.gigasoft.api.GigaWorldWeatherChangeEvent
 import com.gigasoft.api.GigaPlayerJoinEvent
 import com.gigasoft.api.GigaPlayerLeaveEvent
+import com.gigasoft.api.GigaPlayerMessageEvent
 import com.gigasoft.api.GigaPlayerMoveEvent
+import com.gigasoft.api.GigaPlayerMovePreEvent
+import com.gigasoft.api.GigaPlayerMovePostEvent
+import com.gigasoft.api.GigaPlayerGameModeChangeEvent
+import com.gigasoft.api.GigaPlayerKickEvent
+import com.gigasoft.api.GigaPlayerOpChangeEvent
+import com.gigasoft.api.GigaPlayerPermissionChangeEvent
+import com.gigasoft.api.GigaPlayerStatusChangeEvent
+import com.gigasoft.api.GigaPlayerEffectChangeEvent
 import com.gigasoft.api.GigaPlayerTeleportEvent
 import com.gigasoft.api.GigaTickEvent
 import com.gigasoft.api.GigaWorldTimeChangeEvent
 import com.gigasoft.api.GigaEntityRemoveEvent
 import com.gigasoft.api.GigaWorldCreatedEvent
+import com.gigasoft.api.GigaEntitySpawnPreEvent
+import com.gigasoft.api.GigaEntitySpawnPostEvent
+import com.gigasoft.api.GigaBlockBreakPreEvent
+import com.gigasoft.api.GigaBlockBreakPostEvent
 import com.gigasoft.api.EventBus
 import com.gigasoft.api.HostAccess
 import com.gigasoft.api.HostEntitySnapshot
 import com.gigasoft.api.HostBlockSnapshot
 import com.gigasoft.api.HostLocationRef
 import com.gigasoft.api.HostPlayerSnapshot
+import com.gigasoft.api.HostPlayerStatusSnapshot
 import com.gigasoft.api.HostWorldSnapshot
 import com.gigasoft.api.PluginContext
 import com.gigasoft.api.TickSystem
@@ -36,6 +50,7 @@ import com.gigasoft.runtime.ReloadReport
 import com.gigasoft.runtime.RuntimeCommandRegistry
 import com.gigasoft.runtime.RuntimeDiagnostics
 import com.gigasoft.runtime.RuntimeRegistry
+import com.gigasoft.runtime.SystemIsolationSnapshot
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.CompletableFuture
@@ -55,6 +70,9 @@ data class StandaloneCoreConfig(
     val serverVersion: String = "1.1.0-SNAPSHOT",
     val maxPlayers: Int = 0,
     val autoSaveEveryTicks: Long = 200L,
+    val systemIsolationFailureThreshold: Int = 5,
+    val systemIsolationBaseCooldownTicks: Long = 40L,
+    val systemIsolationMaxCooldownTicks: Long = 800L,
     val adapterSecurity: AdapterSecurityConfig = AdapterSecurityConfig(),
     val eventDispatchMode: EventDispatchMode = EventDispatchMode.EXACT
 )
@@ -100,6 +118,13 @@ class GigaStandaloneCore(
     private val tickEventNanos = AtomicLong(0)
     private val tickSystemsNanos = AtomicLong(0)
     private val commandQueue = ConcurrentLinkedQueue<() -> Unit>()
+    private val systemIsolation = SystemFaultIsolationController(
+        SystemIsolationPolicy(
+            failureThreshold = config.systemIsolationFailureThreshold,
+            baseCooldownTicks = config.systemIsolationBaseCooldownTicks,
+            maxCooldownTicks = config.systemIsolationMaxCooldownTicks
+        )
+    )
     private val hostState = StandaloneHostState()
     private val statePersistence = StandaloneStatePersistence(config.dataDirectory.resolve("standalone-state.json"))
     @Volatile
@@ -134,6 +159,7 @@ class GigaStandaloneCore(
         tickEventNanos.set(0L)
         tickSystemsNanos.set(0L)
         commandQueue.clear()
+        systemIsolation.clear()
 
         Files.createDirectories(config.pluginsDirectory)
         Files.createDirectories(config.dataDirectory)
@@ -283,6 +309,77 @@ class GigaStandaloneCore(
         player
     }
 
+    fun sendPlayerMessage(name: String, message: String, cause: String = "plugin"): Boolean = mutate {
+        val player = hostState.findPlayer(name) ?: return@mutate false
+        val text = message.trim()
+        if (text.isEmpty()) return@mutate false
+        logger.info("[message:${player.name}] $text")
+        publishEvent(GigaPlayerMessageEvent(player.toHostSnapshot(), text, cause))
+        true
+    }
+
+    fun kickPlayer(name: String, reason: String = "Kicked by host", cause: String = "plugin"): StandalonePlayer? = mutate {
+        val player = hostState.leavePlayer(name) ?: return@mutate null
+        val text = reason.trim().ifBlank { "Kicked by host" }
+        publishEvent(StandalonePlayerLeaveEvent(player))
+        publishEvent(GigaPlayerLeaveEvent(player.toHostSnapshot()))
+        publishEvent(GigaPlayerKickEvent(player.toHostSnapshot(), text, cause))
+        player
+    }
+
+    fun playerIsOp(name: String): Boolean? = hostState.playerIsOp(name)
+
+    fun setPlayerOp(name: String, op: Boolean, cause: String = "plugin"): Boolean = mutate {
+        val player = hostState.findPlayer(name) ?: return@mutate false
+        val previous = hostState.playerIsOp(name) ?: return@mutate false
+        val updated = hostState.setPlayerOp(name, op) ?: return@mutate false
+        if (previous != updated) {
+            publishEvent(
+                GigaPlayerOpChangeEvent(
+                    player = player.toHostSnapshot(),
+                    previousOp = previous,
+                    currentOp = updated,
+                    cause = cause
+                )
+            )
+        }
+        true
+    }
+
+    fun playerPermissions(name: String): Set<String>? = hostState.playerPermissions(name)
+
+    fun hasPlayerPermission(name: String, permission: String): Boolean? = hostState.hasPlayerPermission(name, permission)
+
+    fun grantPlayerPermission(name: String, permission: String, cause: String = "plugin"): Boolean = mutate {
+        val player = hostState.findPlayer(name) ?: return@mutate false
+        val granted = hostState.grantPlayerPermission(name, permission)
+        if (!granted) return@mutate false
+        publishEvent(
+            GigaPlayerPermissionChangeEvent(
+                player = player.toHostSnapshot(),
+                permission = permission.trim(),
+                granted = true,
+                cause = cause
+            )
+        )
+        true
+    }
+
+    fun revokePlayerPermission(name: String, permission: String, cause: String = "plugin"): Boolean = mutate {
+        val player = hostState.findPlayer(name) ?: return@mutate false
+        val revoked = hostState.revokePlayerPermission(name, permission)
+        if (!revoked) return@mutate false
+        publishEvent(
+            GigaPlayerPermissionChangeEvent(
+                player = player.toHostSnapshot(),
+                permission = permission.trim(),
+                granted = false,
+                cause = cause
+            )
+        )
+        true
+    }
+
     fun movePlayer(
         name: String,
         x: Double,
@@ -299,14 +396,83 @@ class GigaStandaloneCore(
         world: String? = null,
         cause: String = "plugin"
     ): StandalonePlayer? = mutate {
-        if (!world.isNullOrBlank()) {
-            ensureWorldExistsAndPublish(world, 0L)
-        }
         val previous = hostState.findPlayer(name) ?: return@mutate null
-        val moved = hostState.movePlayer(name, x, y, z, world) ?: return@mutate null
+        val started = System.nanoTime()
+        val pre = GigaPlayerMovePreEvent(
+            player = previous.toHostSnapshot(),
+            targetWorld = world?.trim().orEmpty().ifEmpty { previous.world },
+            targetX = x,
+            targetY = y,
+            targetZ = z,
+            cause = cause
+        )
+        publishEvent(pre)
+        if (pre.cancelled) {
+            publishEvent(
+                GigaPlayerMovePostEvent(
+                    player = previous.toHostSnapshot(),
+                    previous = previous.toHostSnapshot(),
+                    current = null,
+                    targetWorld = pre.targetWorld,
+                    targetX = pre.targetX,
+                    targetY = pre.targetY,
+                    targetZ = pre.targetZ,
+                    cause = pre.cause,
+                    success = false,
+                    cancelled = true,
+                    durationNanos = System.nanoTime() - started,
+                    error = pre.cancelReason ?: "cancelled"
+                )
+            )
+            return@mutate null
+        }
+        if (pre.targetWorld.isNotBlank()) {
+            ensureWorldExistsAndPublish(pre.targetWorld, 0L)
+        }
+        val moved = hostState.movePlayer(
+            name = name,
+            x = pre.targetX,
+            y = pre.targetY,
+            z = pre.targetZ,
+            world = pre.targetWorld
+        )
+        if (moved == null) {
+            publishEvent(
+                GigaPlayerMovePostEvent(
+                    player = previous.toHostSnapshot(),
+                    previous = previous.toHostSnapshot(),
+                    current = null,
+                    targetWorld = pre.targetWorld,
+                    targetX = pre.targetX,
+                    targetY = pre.targetY,
+                    targetZ = pre.targetZ,
+                    cause = pre.cause,
+                    success = false,
+                    cancelled = false,
+                    durationNanos = System.nanoTime() - started,
+                    error = "move_failed"
+                )
+            )
+            return@mutate null
+        }
         publishEvent(StandalonePlayerMoveEvent(previous, moved))
         publishEvent(GigaPlayerMoveEvent(previous.toHostSnapshot(), moved.toHostSnapshot()))
-        publishEvent(GigaPlayerTeleportEvent(previous.toHostSnapshot(), moved.toHostSnapshot(), cause))
+        publishEvent(GigaPlayerTeleportEvent(previous.toHostSnapshot(), moved.toHostSnapshot(), pre.cause))
+        publishEvent(
+            GigaPlayerMovePostEvent(
+                player = moved.toHostSnapshot(),
+                previous = previous.toHostSnapshot(),
+                current = moved.toHostSnapshot(),
+                targetWorld = pre.targetWorld,
+                targetX = pre.targetX,
+                targetY = pre.targetY,
+                targetZ = pre.targetZ,
+                cause = pre.cause,
+                success = true,
+                cancelled = false,
+                durationNanos = System.nanoTime() - started
+            )
+        )
         moved
     }
 
@@ -321,21 +487,52 @@ class GigaStandaloneCore(
         y: Double,
         z: Double
     ): StandaloneEntity = mutate {
-        ensureWorldExistsAndPublish(world, 0L)
-        val entity = hostState.spawnEntity(type, world, x, y, z)
-        publishEvent(StandaloneEntitySpawnEvent(entity))
-        publishEvent(
-            GigaEntitySpawnEvent(
-                HostEntitySnapshot(
-                    uuid = entity.uuid,
-                    type = entity.type,
-                    location = HostLocationRef(
-                        world = entity.world,
-                        x = entity.x,
-                        y = entity.y,
-                        z = entity.z
-                    )
+        val started = System.nanoTime()
+        val pre = GigaEntitySpawnPreEvent(
+            entityType = type,
+            world = world,
+            x = x,
+            y = y,
+            z = z,
+            cause = "plugin"
+        )
+        publishEvent(pre)
+        if (pre.cancelled) {
+            val reason = pre.cancelReason ?: "cancelled"
+            publishEvent(
+                GigaEntitySpawnPostEvent(
+                    entityType = pre.entityType,
+                    world = pre.world,
+                    x = pre.x,
+                    y = pre.y,
+                    z = pre.z,
+                    cause = pre.cause,
+                    entity = null,
+                    success = false,
+                    cancelled = true,
+                    durationNanos = System.nanoTime() - started,
+                    error = reason
                 )
+            )
+            error("Entity spawn cancelled: $reason")
+        }
+        ensureWorldExistsAndPublish(pre.world, 0L)
+        val entity = hostState.spawnEntity(pre.entityType, pre.world, pre.x, pre.y, pre.z)
+        publishEvent(StandaloneEntitySpawnEvent(entity))
+        val entitySnapshot = entity.toHostSnapshot()
+        publishEvent(GigaEntitySpawnEvent(entitySnapshot))
+        publishEvent(
+            GigaEntitySpawnPostEvent(
+                entityType = pre.entityType,
+                world = pre.world,
+                x = pre.x,
+                y = pre.y,
+                z = pre.z,
+                cause = pre.cause,
+                entity = entitySnapshot,
+                success = true,
+                cancelled = false,
+                durationNanos = System.nanoTime() - started
             )
         )
         entity
@@ -432,6 +629,88 @@ class GigaStandaloneCore(
         hostState.givePlayerItem(owner, itemId, count)
     }
 
+    fun playerGameMode(name: String): String? = hostState.playerGameMode(name)
+
+    fun setPlayerGameMode(name: String, gameMode: String, cause: String = "plugin"): String? = mutate {
+        val player = hostState.findPlayer(name) ?: return@mutate null
+        val previous = hostState.playerGameMode(name) ?: return@mutate null
+        val updated = hostState.setPlayerGameMode(name, gameMode) ?: return@mutate null
+        if (!previous.equals(updated, ignoreCase = true)) {
+            publishEvent(
+                GigaPlayerGameModeChangeEvent(
+                    player = player.toHostSnapshot(),
+                    previousGameMode = previous,
+                    currentGameMode = updated,
+                    cause = cause
+                )
+            )
+        }
+        updated
+    }
+
+    fun playerStatus(name: String): StandalonePlayerStatus? = hostState.playerStatus(name)
+
+    fun setPlayerStatus(name: String, status: StandalonePlayerStatus, cause: String = "plugin"): StandalonePlayerStatus? = mutate {
+        val player = hostState.findPlayer(name) ?: return@mutate null
+        val previous = hostState.playerStatus(name) ?: return@mutate null
+        val updated = hostState.setPlayerStatus(name, status) ?: return@mutate null
+        if (previous != updated) {
+            publishEvent(
+                GigaPlayerStatusChangeEvent(
+                    player = player.toHostSnapshot(),
+                    previous = previous.toApiSnapshot(),
+                    current = updated.toApiSnapshot(),
+                    cause = cause
+                )
+            )
+        }
+        updated
+    }
+
+    fun addPlayerEffect(
+        name: String,
+        effectId: String,
+        durationTicks: Int,
+        amplifier: Int = 0,
+        cause: String = "plugin"
+    ): Boolean = mutate {
+        val player = hostState.findPlayer(name) ?: return@mutate false
+        val previous = hostState.playerStatus(name) ?: return@mutate false
+        val previousDuration = previous.effects[effectId]
+        val changed = hostState.addPlayerEffect(name, effectId, durationTicks, amplifier)
+        if (!changed) return@mutate false
+        val current = hostState.playerStatus(name) ?: return@mutate false
+        val currentDuration = current.effects[effectId]
+        publishEvent(
+            GigaPlayerEffectChangeEvent(
+                player = player.toHostSnapshot(),
+                effectId = effectId,
+                previousDurationTicks = previousDuration,
+                currentDurationTicks = currentDuration,
+                cause = cause
+            )
+        )
+        true
+    }
+
+    fun removePlayerEffect(name: String, effectId: String, cause: String = "plugin"): Boolean = mutate {
+        val player = hostState.findPlayer(name) ?: return@mutate false
+        val previous = hostState.playerStatus(name) ?: return@mutate false
+        val previousDuration = previous.effects[effectId] ?: return@mutate false
+        val changed = hostState.removePlayerEffect(name, effectId)
+        if (!changed) return@mutate false
+        publishEvent(
+            GigaPlayerEffectChangeEvent(
+                player = player.toHostSnapshot(),
+                effectId = effectId,
+                previousDurationTicks = previousDuration,
+                currentDurationTicks = null,
+                cause = cause
+            )
+        )
+        true
+    }
+
     fun blockAt(world: String, x: Int, y: Int, z: Int): StandaloneBlock? = hostState.blockAt(world, x, y, z)
 
     fun setBlock(world: String, x: Int, y: Int, z: Int, blockId: String, cause: String = "plugin"): StandaloneBlock? = mutate {
@@ -452,8 +731,54 @@ class GigaStandaloneCore(
     }
 
     fun breakBlock(world: String, x: Int, y: Int, z: Int, dropLoot: Boolean = true, cause: String = "plugin"): Boolean = mutate {
-        val previous = hostState.blockAt(world, x, y, z) ?: return@mutate false
-        val removed = hostState.breakBlock(world, x, y, z) ?: return@mutate false
+        val started = System.nanoTime()
+        val pre = GigaBlockBreakPreEvent(
+            world = world,
+            x = x,
+            y = y,
+            z = z,
+            dropLoot = dropLoot,
+            cause = cause
+        )
+        publishEvent(pre)
+        val previous = hostState.blockAt(pre.world, pre.x, pre.y, pre.z)
+        if (pre.cancelled) {
+            publishEvent(
+                GigaBlockBreakPostEvent(
+                    world = pre.world,
+                    x = pre.x,
+                    y = pre.y,
+                    z = pre.z,
+                    dropLoot = pre.dropLoot,
+                    cause = pre.cause,
+                    previousBlockId = previous?.blockId,
+                    success = false,
+                    cancelled = true,
+                    durationNanos = System.nanoTime() - started,
+                    error = pre.cancelReason ?: "cancelled"
+                )
+            )
+            return@mutate false
+        }
+        if (previous == null) {
+            publishEvent(
+                GigaBlockBreakPostEvent(
+                    world = pre.world,
+                    x = pre.x,
+                    y = pre.y,
+                    z = pre.z,
+                    dropLoot = pre.dropLoot,
+                    cause = pre.cause,
+                    previousBlockId = null,
+                    success = false,
+                    cancelled = false,
+                    durationNanos = System.nanoTime() - started,
+                    error = "block_not_found"
+                )
+            )
+            return@mutate false
+        }
+        val removed = hostState.breakBlock(pre.world, pre.x, pre.y, pre.z) ?: return@mutate false
         publishEvent(
             GigaBlockChangeEvent(
                 world = removed.world,
@@ -462,7 +787,21 @@ class GigaStandaloneCore(
                 z = removed.z,
                 previousBlockId = previous.blockId,
                 currentBlockId = null,
-                cause = if (dropLoot) "$cause:drop" else cause
+                cause = if (pre.dropLoot) "${pre.cause}:drop" else pre.cause
+            )
+        )
+        publishEvent(
+            GigaBlockBreakPostEvent(
+                world = removed.world,
+                x = removed.x,
+                y = removed.y,
+                z = removed.z,
+                dropLoot = pre.dropLoot,
+                cause = pre.cause,
+                previousBlockId = previous.blockId,
+                success = true,
+                cancelled = false,
+                durationNanos = System.nanoTime() - started
             )
         )
         true
@@ -557,20 +896,45 @@ class GigaStandaloneCore(
         val beforeSystems = System.nanoTime()
         for (entry in tickPlugins) {
             for ((systemId, system) in entry.systems) {
+                if (!systemIsolation.shouldRun(entry.pluginId, systemId, tick)) {
+                    runtime.recordSystemIsolation(
+                        pluginId = entry.pluginId,
+                        snapshot = systemIsolationSnapshot(entry.pluginId, systemId, tick)
+                    )
+                    continue
+                }
                 val started = System.nanoTime()
                 var success = true
                 try {
                     system.onTick(entry.context)
+                    systemIsolation.onSuccess(entry.pluginId, systemId)
                 } catch (t: Throwable) {
                     success = false
                     tickFailure = true
-                    logger.info("System ${entry.pluginId}:$systemId failed: ${t.message}")
+                    val error = t.message ?: t.javaClass.simpleName
+                    val cooldown = systemIsolation.onFailure(
+                        pluginId = entry.pluginId,
+                        systemId = systemId,
+                        tick = tick,
+                        error = error
+                    )
+                    if (cooldown > 0L) {
+                        logger.info(
+                            "System ${entry.pluginId}:$systemId isolated for $cooldown ticks after repeated failures (lastError=$error)"
+                        )
+                    } else {
+                        logger.info("System ${entry.pluginId}:$systemId failed: $error")
+                    }
                 } finally {
                     runtime.recordSystemTick(
                         pluginId = entry.pluginId,
                         systemId = systemId,
                         durationNanos = System.nanoTime() - started,
                         success = success
+                    )
+                    runtime.recordSystemIsolation(
+                        pluginId = entry.pluginId,
+                        snapshot = systemIsolationSnapshot(entry.pluginId, systemId, tick)
                     )
                 }
             }
@@ -636,10 +1000,32 @@ class GigaStandaloneCore(
             override fun serverInfo() = hostBridge.serverInfo().toApi()
             override fun broadcast(message: String): Boolean = runCatching { hostBridge.broadcast(message) }.isSuccess
             override fun findPlayer(name: String): HostPlayerSnapshot? = this@GigaStandaloneCore.findPlayer(name)
+            override fun sendPlayerMessage(name: String, message: String): Boolean {
+                return this@GigaStandaloneCore.sendPlayerMessage(name, message, cause = "plugin")
+            }
+            override fun kickPlayer(name: String, reason: String): Boolean {
+                return this@GigaStandaloneCore.kickPlayer(name, reason, cause = "plugin") != null
+            }
+            override fun playerIsOp(name: String): Boolean? = this@GigaStandaloneCore.playerIsOp(name)
+            override fun setPlayerOp(name: String, op: Boolean): Boolean {
+                return this@GigaStandaloneCore.setPlayerOp(name, op, cause = "plugin")
+            }
+            override fun playerPermissions(name: String): Set<String>? = this@GigaStandaloneCore.playerPermissions(name)
+            override fun hasPlayerPermission(name: String, permission: String): Boolean? {
+                return this@GigaStandaloneCore.hasPlayerPermission(name, permission)
+            }
+            override fun grantPlayerPermission(name: String, permission: String): Boolean {
+                return this@GigaStandaloneCore.grantPlayerPermission(name, permission, cause = "plugin")
+            }
+            override fun revokePlayerPermission(name: String, permission: String): Boolean {
+                return this@GigaStandaloneCore.revokePlayerPermission(name, permission, cause = "plugin")
+            }
             override fun worlds(): List<HostWorldSnapshot> = this@GigaStandaloneCore.worlds().map { it.toHostSnapshot() }
             override fun entities(world: String?): List<HostEntitySnapshot> = this@GigaStandaloneCore.entities(world).map { it.toHostSnapshot() }
             override fun spawnEntity(type: String, location: HostLocationRef): HostEntitySnapshot? {
-                return this@GigaStandaloneCore.spawnEntity(type, location.world, location.x, location.y, location.z).toHostSnapshot()
+                return runCatching {
+                    this@GigaStandaloneCore.spawnEntity(type, location.world, location.x, location.y, location.z).toHostSnapshot()
+                }.getOrNull()
             }
             override fun playerInventory(name: String) = hostBridge.playerInventory(name).toApi()
             override fun setPlayerInventoryItem(name: String, slot: Int, itemId: String): Boolean {
@@ -677,6 +1063,24 @@ class GigaStandaloneCore(
             override fun inventoryItem(name: String, slot: Int): String? = this@GigaStandaloneCore.inventoryItem(name, slot)
             override fun givePlayerItem(name: String, itemId: String, count: Int): Int {
                 return this@GigaStandaloneCore.givePlayerItem(name, itemId, count)
+            }
+            override fun playerGameMode(name: String): String? {
+                return this@GigaStandaloneCore.playerGameMode(name)
+            }
+            override fun setPlayerGameMode(name: String, gameMode: String): Boolean {
+                return this@GigaStandaloneCore.setPlayerGameMode(name, gameMode, cause = "plugin") != null
+            }
+            override fun playerStatus(name: String): HostPlayerStatusSnapshot? {
+                return this@GigaStandaloneCore.playerStatus(name)?.toApiSnapshot()
+            }
+            override fun setPlayerStatus(name: String, status: HostPlayerStatusSnapshot): HostPlayerStatusSnapshot? {
+                return this@GigaStandaloneCore.setPlayerStatus(name, status.toStandalone(), cause = "plugin")?.toApiSnapshot()
+            }
+            override fun addPlayerEffect(name: String, effectId: String, durationTicks: Int, amplifier: Int): Boolean {
+                return this@GigaStandaloneCore.addPlayerEffect(name, effectId, durationTicks, amplifier, cause = "plugin")
+            }
+            override fun removePlayerEffect(name: String, effectId: String): Boolean {
+                return this@GigaStandaloneCore.removePlayerEffect(name, effectId, cause = "plugin")
             }
             override fun blockAt(world: String, x: Int, y: Int, z: Int): HostBlockSnapshot? {
                 return this@GigaStandaloneCore.blockAt(world, x, y, z)?.toHostSnapshot()
@@ -718,7 +1122,7 @@ class GigaStandaloneCore(
     }
 
     private fun refreshTickPluginsSnapshot() {
-        tickPlugins = runtime.loadedPluginsView()
+        val refreshed = runtime.loadedPluginsView()
             .sortedBy { it.manifest.id.lowercase() }
             .map { plugin ->
                 val runtimeRegistry = plugin.context.registry as? RuntimeRegistry
@@ -734,6 +1138,22 @@ class GigaStandaloneCore(
                     systems = systems
                 )
             }
+        tickPlugins = refreshed
+        pruneSystemIsolationState(refreshed)
+    }
+
+    private fun systemIsolationSnapshot(pluginId: String, systemId: String, tick: Long): SystemIsolationSnapshot {
+        return systemIsolation.snapshot(pluginId = pluginId, systemId = systemId, tick = tick)
+    }
+
+    private fun pruneSystemIsolationState(snapshots: List<TickPluginSnapshot>) {
+        val activeSystems = snapshots
+            .flatMap { entry -> entry.systems.map { (systemId, _) -> SystemKey(entry.pluginId, systemId) } }
+            .toSet()
+        val removed = systemIsolation.pruneTo(activeSystems)
+        removed.forEach { key ->
+            runtime.removeSystemIsolation(pluginId = key.pluginId, systemId = key.systemId)
+        }
     }
 
     private fun maybeRefreshTickPluginsSnapshot() {
@@ -825,6 +1245,30 @@ class GigaStandaloneCore(
             y = y,
             z = z,
             blockId = blockId
+        )
+    }
+
+    private fun StandalonePlayerStatus.toApiSnapshot(): HostPlayerStatusSnapshot {
+        return HostPlayerStatusSnapshot(
+            health = health,
+            maxHealth = maxHealth,
+            foodLevel = foodLevel,
+            saturation = saturation,
+            experienceLevel = experienceLevel,
+            experienceProgress = experienceProgress,
+            effects = effects
+        )
+    }
+
+    private fun HostPlayerStatusSnapshot.toStandalone(): StandalonePlayerStatus {
+        return StandalonePlayerStatus(
+            health = health,
+            maxHealth = maxHealth,
+            foodLevel = foodLevel,
+            saturation = saturation,
+            experienceLevel = experienceLevel,
+            experienceProgress = experienceProgress,
+            effects = effects
         )
     }
 

@@ -8,6 +8,7 @@ import com.gigasoft.host.api.HostBlockSnapshot
 import com.gigasoft.host.api.HostLocationRef
 import com.gigasoft.host.api.HostServerSnapshot
 import com.gigasoft.host.api.HostPlayerSnapshot
+import com.gigasoft.host.api.HostPlayerStatusSnapshot
 import com.gigasoft.host.api.HostWorldSnapshot
 
 class StandaloneHostBridge(
@@ -44,6 +45,45 @@ class StandaloneHostBridge(
                 z = player.z
             )
         )
+    }
+
+    override fun sendPlayerMessage(name: String, message: String): Boolean {
+        val player = hostState.findPlayer(name) ?: return false
+        val text = message.trim()
+        if (text.isEmpty()) return false
+        logger.info("[message:${player.name}] $text")
+        return true
+    }
+
+    override fun kickPlayer(name: String, reason: String): Boolean {
+        val player = hostState.leavePlayer(name) ?: return false
+        val text = reason.trim().ifBlank { "Kicked by host" }
+        logger.info("[kick:${player.name}] $text")
+        return true
+    }
+
+    override fun playerIsOp(name: String): Boolean? {
+        return hostState.playerIsOp(name)
+    }
+
+    override fun setPlayerOp(name: String, op: Boolean): Boolean {
+        return hostState.setPlayerOp(name, op) != null
+    }
+
+    override fun playerPermissions(name: String): Set<String>? {
+        return hostState.playerPermissions(name)
+    }
+
+    override fun hasPlayerPermission(name: String, permission: String): Boolean? {
+        return hostState.hasPlayerPermission(name, permission)
+    }
+
+    override fun grantPlayerPermission(name: String, permission: String): Boolean {
+        return hostState.grantPlayerPermission(name, permission)
+    }
+
+    override fun revokePlayerPermission(name: String, permission: String): Boolean {
+        return hostState.revokePlayerPermission(name, permission)
     }
 
     override fun worlds(): List<HostWorldSnapshot> {
@@ -173,6 +213,59 @@ class StandaloneHostBridge(
                 z = moved.z
             )
         )
+    }
+
+    override fun playerGameMode(name: String): String? {
+        return hostState.playerGameMode(name)
+    }
+
+    override fun setPlayerGameMode(name: String, gameMode: String): Boolean {
+        return hostState.setPlayerGameMode(name, gameMode) != null
+    }
+
+    override fun playerStatus(name: String): HostPlayerStatusSnapshot? {
+        val status = hostState.playerStatus(name) ?: return null
+        return HostPlayerStatusSnapshot(
+            health = status.health,
+            maxHealth = status.maxHealth,
+            foodLevel = status.foodLevel,
+            saturation = status.saturation,
+            experienceLevel = status.experienceLevel,
+            experienceProgress = status.experienceProgress,
+            effects = status.effects
+        )
+    }
+
+    override fun setPlayerStatus(name: String, status: HostPlayerStatusSnapshot): HostPlayerStatusSnapshot? {
+        val updated = hostState.setPlayerStatus(
+            name = name,
+            status = StandalonePlayerStatus(
+                health = status.health,
+                maxHealth = status.maxHealth,
+                foodLevel = status.foodLevel,
+                saturation = status.saturation,
+                experienceLevel = status.experienceLevel,
+                experienceProgress = status.experienceProgress,
+                effects = status.effects
+            )
+        ) ?: return null
+        return HostPlayerStatusSnapshot(
+            health = updated.health,
+            maxHealth = updated.maxHealth,
+            foodLevel = updated.foodLevel,
+            saturation = updated.saturation,
+            experienceLevel = updated.experienceLevel,
+            experienceProgress = updated.experienceProgress,
+            effects = updated.effects
+        )
+    }
+
+    override fun addPlayerEffect(name: String, effectId: String, durationTicks: Int, amplifier: Int): Boolean {
+        return hostState.addPlayerEffect(name, effectId, durationTicks, amplifier)
+    }
+
+    override fun removePlayerEffect(name: String, effectId: String): Boolean {
+        return hostState.removePlayerEffect(name, effectId)
     }
 
     override fun inventoryItem(name: String, slot: Int): String? {

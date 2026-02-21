@@ -7,6 +7,7 @@ import com.gigasoft.api.HostInventorySnapshot
 import com.gigasoft.api.HostLocationRef
 import com.gigasoft.api.HostPermissions
 import com.gigasoft.api.HostPlayerSnapshot
+import com.gigasoft.api.HostPlayerStatusSnapshot
 import com.gigasoft.api.HostServerSnapshot
 import com.gigasoft.api.HostWorldSnapshot
 
@@ -31,6 +32,46 @@ internal class RuntimeHostAccess(
     override fun findPlayer(name: String): HostPlayerSnapshot? {
         if (!allowed(HostPermissions.PLAYER_READ)) return null
         return delegate.findPlayer(name)
+    }
+
+    override fun sendPlayerMessage(name: String, message: String): Boolean {
+        if (!allowed(HostPermissions.PLAYER_MESSAGE)) return false
+        return delegate.sendPlayerMessage(name, message)
+    }
+
+    override fun kickPlayer(name: String, reason: String): Boolean {
+        if (!allowed(HostPermissions.PLAYER_KICK)) return false
+        return delegate.kickPlayer(name, reason)
+    }
+
+    override fun playerIsOp(name: String): Boolean? {
+        if (!allowed(HostPermissions.PLAYER_OP_READ)) return null
+        return delegate.playerIsOp(name)
+    }
+
+    override fun setPlayerOp(name: String, op: Boolean): Boolean {
+        if (!allowed(HostPermissions.PLAYER_OP_WRITE)) return false
+        return delegate.setPlayerOp(name, op)
+    }
+
+    override fun playerPermissions(name: String): Set<String>? {
+        if (!allowed(HostPermissions.PLAYER_PERMISSION_READ)) return null
+        return delegate.playerPermissions(name)
+    }
+
+    override fun hasPlayerPermission(name: String, permission: String): Boolean? {
+        if (!allowed(HostPermissions.PLAYER_PERMISSION_READ)) return null
+        return delegate.hasPlayerPermission(name, permission)
+    }
+
+    override fun grantPlayerPermission(name: String, permission: String): Boolean {
+        if (!allowed(HostPermissions.PLAYER_PERMISSION_WRITE)) return false
+        return delegate.grantPlayerPermission(name, permission)
+    }
+
+    override fun revokePlayerPermission(name: String, permission: String): Boolean {
+        if (!allowed(HostPermissions.PLAYER_PERMISSION_WRITE)) return false
+        return delegate.revokePlayerPermission(name, permission)
     }
 
     override fun worlds(): List<HostWorldSnapshot> {
@@ -116,6 +157,36 @@ internal class RuntimeHostAccess(
     override fun movePlayer(name: String, location: HostLocationRef): HostPlayerSnapshot? {
         if (!allowed(HostPermissions.PLAYER_MOVE)) return null
         return delegate.movePlayer(name, location)
+    }
+
+    override fun playerGameMode(name: String): String? {
+        if (!allowed(HostPermissions.PLAYER_GAMEMODE_READ)) return null
+        return delegate.playerGameMode(name)
+    }
+
+    override fun setPlayerGameMode(name: String, gameMode: String): Boolean {
+        if (!allowed(HostPermissions.PLAYER_GAMEMODE_WRITE)) return false
+        return delegate.setPlayerGameMode(name, gameMode)
+    }
+
+    override fun playerStatus(name: String): HostPlayerStatusSnapshot? {
+        if (!allowed(HostPermissions.PLAYER_STATUS_READ)) return null
+        return delegate.playerStatus(name)
+    }
+
+    override fun setPlayerStatus(name: String, status: HostPlayerStatusSnapshot): HostPlayerStatusSnapshot? {
+        if (!allowed(HostPermissions.PLAYER_STATUS_WRITE)) return null
+        return delegate.setPlayerStatus(name, status)
+    }
+
+    override fun addPlayerEffect(name: String, effectId: String, durationTicks: Int, amplifier: Int): Boolean {
+        if (!allowed(HostPermissions.PLAYER_EFFECT_WRITE)) return false
+        return delegate.addPlayerEffect(name, effectId, durationTicks, amplifier)
+    }
+
+    override fun removePlayerEffect(name: String, effectId: String): Boolean {
+        if (!allowed(HostPermissions.PLAYER_EFFECT_WRITE)) return false
+        return delegate.removePlayerEffect(name, effectId)
     }
 
     override fun inventoryItem(name: String, slot: Int): String? {

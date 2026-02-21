@@ -39,22 +39,27 @@ Register:
 - `registerBlock`
 - `registerRecipe`
 - `registerMachine`
+- `registerTexture`
+- `registerModel`
 - `registerSystem`
 
 Read views:
 
-- `items()`, `blocks()`, `recipes()`, `machines()`, `systems()`
+- `items()`, `blocks()`, `recipes()`, `machines()`, `textures()`, `models()`, `systems()`
 
 ## EventBus
 
 - `subscribe(eventType, listener)`
+- `unsubscribe(eventType, listener)`
 - `publish(event)`
 - 1.1 helper: `subscribe<T> { ... }` (reified typed subscription)
+- 1.1 helper: `subscribeOnce<T> { ... }`
 
 Dispatch mode:
 
 - `exact` (default): listener type must match exact event class
 - `polymorphic`: superclass/interface listeners receive subtype events
+- `hybrid`: exact listeners first, then superclass/interface listeners (deterministic order)
 
 Built-in events:
 
@@ -62,23 +67,50 @@ Built-in events:
 - `GigaPlayerJoinEvent`
 - `GigaPlayerLeaveEvent`
 - `GigaPlayerMoveEvent`
+- `GigaPlayerMovePreEvent` (cancel capable, mutable target/cause)
+- `GigaPlayerMovePostEvent`
 - `GigaWorldCreatedEvent`
 - `GigaEntitySpawnEvent`
+- `GigaEntitySpawnPreEvent` (cancel capable, mutable type/location/cause)
+- `GigaEntitySpawnPostEvent`
 - `GigaInventoryChangeEvent`
 - `GigaEntityRemoveEvent`
 - `GigaPlayerTeleportEvent`
+- `GigaPlayerGameModeChangeEvent`
+- `GigaPlayerMessageEvent`
+- `GigaPlayerKickEvent`
+- `GigaPlayerOpChangeEvent`
+- `GigaPlayerPermissionChangeEvent`
 - `GigaWorldTimeChangeEvent`
 - `GigaWorldDataChangeEvent`
 - `GigaWorldWeatherChangeEvent`
+- `GigaPlayerStatusChangeEvent`
+- `GigaPlayerEffectChangeEvent`
 - `GigaBlockChangeEvent`
+- `GigaBlockBreakPreEvent` (cancel capable, mutable target/dropLoot/cause)
+- `GigaBlockBreakPostEvent`
 - `GigaBlockDataChangeEvent`
 - `GigaEntityDataChangeEvent`
+- `GigaTextureRegisteredEvent`
+- `GigaModelRegisteredEvent`
+- `GigaCommandPreExecuteEvent` (cancel/override capable)
+- `GigaCommandPostExecuteEvent`
+- `GigaAdapterPreInvokeEvent` (cancel/override capable)
+- `GigaAdapterPostInvokeEvent`
 
 ## HostAccess
 
 - `serverInfo()`
 - `broadcast(message)`
 - `findPlayer(name)`
+- `sendPlayerMessage(name, message)`
+- `kickPlayer(name, reason)`
+- `playerIsOp(name)`
+- `setPlayerOp(name, op)`
+- `playerPermissions(name)`
+- `hasPlayerPermission(name, permission)`
+- `grantPlayerPermission(name, permission)`
+- `revokePlayerPermission(name, permission)`
 - `worlds()`
 - `entities(world?)`
 - `spawnEntity(type, location)`
@@ -103,6 +135,12 @@ Built-in events:
 - `worldWeather(name)`
 - `setWorldWeather(name, weather)`
 - `movePlayer(name, location)`
+- `playerGameMode(name)`
+- `setPlayerGameMode(name, gameMode)`
+- `playerStatus(name)`
+- `setPlayerStatus(name, status)`
+- `addPlayerEffect(name, effectId, durationTicks, amplifier)`
+- `removePlayerEffect(name, effectId)`
 
 Note:
 
@@ -115,6 +153,12 @@ Host permission enforcement:
   - `host.server.read`
   - `host.server.broadcast`
   - `host.player.read`
+  - `host.player.message`
+  - `host.player.kick`
+  - `host.player.op.read`
+  - `host.player.op.write`
+  - `host.player.permission.read`
+  - `host.player.permission.write`
   - `host.world.read`
   - `host.world.write`
   - `host.world.data.read`
@@ -129,6 +173,11 @@ Host permission enforcement:
   - `host.inventory.read`
   - `host.inventory.write`
   - `host.player.move`
+  - `host.player.gamemode.read`
+  - `host.player.gamemode.write`
+  - `host.player.status.read`
+  - `host.player.status.write`
+  - `host.player.effect.write`
   - `host.block.read`
   - `host.block.write`
   - `host.block.data.read`
@@ -136,7 +185,7 @@ Host permission enforcement:
 
 ## Adapters
 
-Models:
+Core types:
 
 - `AdapterInvocation(action, payload)`
 - `AdapterResponse(success, payload, message)`
@@ -152,6 +201,13 @@ Models:
 - `payloadLong(key)`
 - `payloadDouble(key)`
 - `payloadBool(key)` (`true/false`, `1/0`, `yes/no`, `on/off`)
+- `payloadCsv(key, separator=',')`
+- `payloadEnum<YourEnum>(key)`
+- `payloadEnumRequired<YourEnum>(key)`
+- `payloadIntRequired(key)`, `payloadLongRequired(key)`, `payloadDoubleRequired(key)`, `payloadBoolRequired(key)`
+- `payloadByPrefix(prefix, stripPrefix=true)`
+- `payloadDurationMillis(key)` (`1500`, `500ms`, `2s`, `3m`, `1h`)
+- `payloadMap(key)` (e.g. `"a=1;b=2"` -> map)
 
 Registry operations:
 
@@ -164,6 +220,13 @@ Runtime policies:
 
 - `SAFE`: validation, quota, concurrency and timeout guardrails
 - `FAST`: lower overhead mode for trusted setups
+
+## Assets (Textures/Models)
+
+- `TextureDefinition(id, path, category, animated)`
+- `ModelDefinition(id, format, geometryPath, textures, metadata, material, doubleSided, scale, collision, bounds, lods, animations)`
+- `ModelBounds(minX, minY, minZ, maxX, maxY, maxZ)`
+- `ModelLod(distance, geometryPath, format)`
 
 ## Storage
 
@@ -190,6 +253,10 @@ Additional lifecycle-safe operations:
 
 - `registerOrReplace(command, description, action)`
 - `unregister(command)`
+- `registerAlias(alias, command)`
+- `unregisterAlias(alias)`
+- `resolve(commandOrAlias)`
+- `registeredCommands()`
 
 Action signature:
 
@@ -199,14 +266,55 @@ Action signature:
 
 - `register(command, description) { sender, args -> ... }`
 - `registerOrReplace(command, description) { sender, args -> ... }`
+- `registerWithAliases(command, description, aliases) { ... }`
+- `registerOrReplaceWithAliases(command, description, aliases) { ... }`
+- `registerValidated(command, description, validator) { ... }`
+- `registerOrReplaceValidated(command, description, validator) { ... }`
 - `registerResult(command, description) { ... -> CommandResult }`
 - `registerOrReplaceResult(command, description) { ... -> CommandResult }`
+
+Recommended registration flow:
+
+- register canonical command id once (`register` / `registerOrReplace`)
+- attach short aliases (`registerAlias` or `registerWithAliases`)
+- resolve before custom routing (`resolve(...)`)
+- remove command on unload (`unregister` also drops linked aliases in runtime)
 
 `CommandResult`:
 
 - `CommandResult.ok(message, code?)`
 - `CommandResult.error(message, code?)`
 - `render()` converts to legacy command string output (`[CODE] message` when code is set).
+
+Command lifecycle events:
+
+- `GigaCommandPreExecuteEvent`
+  - mutable: `cancelled`, `cancelReason`, `overrideResponse`
+- `GigaCommandPostExecuteEvent`
+  - includes `success`, `response`, `durationNanos`, `error`
+
+Adapter lifecycle events:
+
+- `GigaAdapterPreInvokeEvent`
+  - mutable: `cancelled`, `cancelReason`, `overrideResponse`
+- `GigaAdapterPostInvokeEvent`
+  - includes `outcome`, `response`, `durationNanos`
+
+Gameplay lifecycle events:
+
+- `GigaPlayerMovePreEvent`
+  - mutable: `targetWorld`, `targetX`, `targetY`, `targetZ`, `cause`, `cancelled`, `cancelReason`
+- `GigaPlayerMovePostEvent`
+  - includes `success`, `cancelled`, `current`, `durationNanos`, `error`
+- `GigaEntitySpawnPreEvent`
+  - mutable: `entityType`, `world`, `x`, `y`, `z`, `cause`, `cancelled`, `cancelReason`
+  - cancellation aborts spawn (host adapter call resolves as failure / `null`)
+- `GigaEntitySpawnPostEvent`
+  - includes `success`, `cancelled`, `entity`, `durationNanos`, `error`
+- `GigaBlockBreakPreEvent`
+  - mutable: `world`, `x`, `y`, `z`, `dropLoot`, `cause`, `cancelled`, `cancelReason`
+- `GigaBlockBreakPostEvent`
+  - includes `success`, `cancelled`, `previousBlockId`, `durationNanos`, `error`
 
 ## Plugin Permission Helpers
 
@@ -228,6 +336,12 @@ Action signature:
   - `blocks { }`
   - `recipes { }`
   - `machines { }`
+  - `textures { }`
+  - `models { }` including extended model attributes:
+    - `material`, `doubleSided`, `scale`, `collision`
+    - `bounds` (`ModelBounds`)
+    - `lods` (`ModelLod`)
+    - `animations` map
   - `systems { }`
   - `commands { }`
   - `adapters { }`

@@ -20,7 +20,58 @@ data class PluginRuntimeProfile(
     val activeTaskIds: List<String>,
     val systems: Map<String, MetricSnapshot>,
     val tasks: Map<String, MetricSnapshot>,
-    val adapters: Map<String, AdapterMetricSnapshot>
+    val adapters: Map<String, AdapterMetricSnapshot>,
+    val slowSystems: List<SlowSystemSnapshot>,
+    val adapterHotspots: List<AdapterHotspotSnapshot>,
+    val isolatedSystems: List<SystemIsolationSnapshot>,
+    val diagnosticsThresholds: ProfileDiagnosticsThresholds
+)
+
+data class SystemIsolationSnapshot(
+    val systemId: String,
+    val isolated: Boolean,
+    val remainingTicks: Long,
+    val consecutiveFailures: Int,
+    val isolationLevel: Int,
+    val isolationCount: Long,
+    val skippedTicks: Long,
+    val isolateUntilTick: Long,
+    val lastFailureTick: Long,
+    val lastError: String?
+)
+
+data class ProfileDiagnosticsThresholds(
+    val minSystemRuns: Long = 20,
+    val slowSystemAverageNanos: Long = 2_000_000L,
+    val slowSystemMaxNanos: Long = 10_000_000L,
+    val systemFailureRateThreshold: Double = 0.05,
+    val minAdapterInvocations: Long = 20,
+    val adapterTimeoutRateThreshold: Double = 0.02,
+    val adapterFailureRateThreshold: Double = 0.05,
+    val adapterDeniedRateThreshold: Double = 0.25
+)
+
+data class SlowSystemSnapshot(
+    val systemId: String,
+    val runs: Long,
+    val failures: Long,
+    val averageNanos: Long,
+    val maxNanos: Long,
+    val failureRate: Double,
+    val reasons: List<String>
+)
+
+data class AdapterHotspotSnapshot(
+    val adapterId: String,
+    val total: Long,
+    val accepted: Long,
+    val denied: Long,
+    val timeouts: Long,
+    val failures: Long,
+    val deniedRate: Double,
+    val timeoutRate: Double,
+    val failureRate: Double,
+    val reasons: List<String>
 )
 
 enum class AdapterInvocationOutcome {
@@ -41,6 +92,7 @@ data class AdapterMetricSnapshot(
 }
 
 class RuntimeMetrics {
+    private val thresholds = ProfileDiagnosticsThresholds()
     private val systemMetrics = ConcurrentHashMap<String, ConcurrentHashMap<String, MutableMetric>>()
     private val taskMetrics = ConcurrentHashMap<String, ConcurrentHashMap<String, MutableMetric>>()
     private val adapterMetrics = ConcurrentHashMap<String, ConcurrentHashMap<String, MutableAdapterMetric>>()
@@ -66,7 +118,11 @@ class RuntimeMetrics {
         metric.record(outcome)
     }
 
-    fun snapshot(pluginId: String, activeTaskIds: List<String>): PluginRuntimeProfile {
+    fun snapshot(
+        pluginId: String,
+        activeTaskIds: List<String>,
+        isolatedSystems: List<SystemIsolationSnapshot> = emptyList()
+    ): PluginRuntimeProfile {
         val systems = systemMetrics[pluginId].orEmpty()
             .mapValues { it.value.snapshot() }
             .toSortedMap()
@@ -77,14 +133,96 @@ class RuntimeMetrics {
             .mapValues { it.value.snapshot() }
             .toSortedMap()
         val sortedTaskIds = activeTaskIds.sorted()
+        val slowSystems = detectSlowSystems(systems, thresholds)
+        val adapterHotspots = detectAdapterHotspots(adapters, thresholds)
         return PluginRuntimeProfile(
             pluginId = pluginId,
             activeTasks = sortedTaskIds.size,
             activeTaskIds = sortedTaskIds,
             systems = systems,
             tasks = tasks,
-            adapters = adapters
+            adapters = adapters,
+            slowSystems = slowSystems,
+            adapterHotspots = adapterHotspots,
+            isolatedSystems = isolatedSystems.sortedByDescending { it.remainingTicks },
+            diagnosticsThresholds = thresholds
         )
+    }
+
+    private fun detectSlowSystems(
+        systems: Map<String, MetricSnapshot>,
+        thresholds: ProfileDiagnosticsThresholds
+    ): List<SlowSystemSnapshot> {
+        return systems.entries
+            .mapNotNull { (systemId, metric) ->
+                if (metric.runs < thresholds.minSystemRuns) return@mapNotNull null
+                val failureRate = if (metric.runs <= 0L) 0.0 else metric.failures.toDouble() / metric.runs.toDouble()
+                val reasons = mutableListOf<String>()
+                if (metric.averageNanos >= thresholds.slowSystemAverageNanos) {
+                    reasons += "average_nanos>=${thresholds.slowSystemAverageNanos}"
+                }
+                if (metric.maxNanos >= thresholds.slowSystemMaxNanos) {
+                    reasons += "max_nanos>=${thresholds.slowSystemMaxNanos}"
+                }
+                if (failureRate >= thresholds.systemFailureRateThreshold) {
+                    reasons += "failure_rate>=${thresholds.systemFailureRateThreshold}"
+                }
+                if (reasons.isEmpty()) return@mapNotNull null
+                SlowSystemSnapshot(
+                    systemId = systemId,
+                    runs = metric.runs,
+                    failures = metric.failures,
+                    averageNanos = metric.averageNanos,
+                    maxNanos = metric.maxNanos,
+                    failureRate = failureRate,
+                    reasons = reasons
+                )
+            }
+            .sortedWith(
+                compareByDescending<SlowSystemSnapshot> { it.averageNanos }
+                    .thenByDescending { it.maxNanos }
+                    .thenByDescending { it.failureRate }
+            )
+    }
+
+    private fun detectAdapterHotspots(
+        adapters: Map<String, AdapterMetricSnapshot>,
+        thresholds: ProfileDiagnosticsThresholds
+    ): List<AdapterHotspotSnapshot> {
+        return adapters.entries
+            .mapNotNull { (adapterId, metric) ->
+                if (metric.total < thresholds.minAdapterInvocations) return@mapNotNull null
+                val deniedRate = if (metric.total <= 0L) 0.0 else metric.denied.toDouble() / metric.total.toDouble()
+                val timeoutRate = if (metric.total <= 0L) 0.0 else metric.timeouts.toDouble() / metric.total.toDouble()
+                val failureRate = if (metric.total <= 0L) 0.0 else metric.failures.toDouble() / metric.total.toDouble()
+                val reasons = mutableListOf<String>()
+                if (timeoutRate >= thresholds.adapterTimeoutRateThreshold) {
+                    reasons += "timeout_rate>=${thresholds.adapterTimeoutRateThreshold}"
+                }
+                if (failureRate >= thresholds.adapterFailureRateThreshold) {
+                    reasons += "failure_rate>=${thresholds.adapterFailureRateThreshold}"
+                }
+                if (deniedRate >= thresholds.adapterDeniedRateThreshold) {
+                    reasons += "denied_rate>=${thresholds.adapterDeniedRateThreshold}"
+                }
+                if (reasons.isEmpty()) return@mapNotNull null
+                AdapterHotspotSnapshot(
+                    adapterId = adapterId,
+                    total = metric.total,
+                    accepted = metric.accepted,
+                    denied = metric.denied,
+                    timeouts = metric.timeouts,
+                    failures = metric.failures,
+                    deniedRate = deniedRate,
+                    timeoutRate = timeoutRate,
+                    failureRate = failureRate,
+                    reasons = reasons
+                )
+            }
+            .sortedWith(
+                compareByDescending<AdapterHotspotSnapshot> { maxOf(it.timeoutRate, it.failureRate, it.deniedRate) }
+                    .thenByDescending { it.total }
+            )
     }
 
     private class MutableMetric {

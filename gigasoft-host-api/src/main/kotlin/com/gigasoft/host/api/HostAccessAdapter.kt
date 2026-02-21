@@ -6,6 +6,7 @@ import com.gigasoft.api.HostInventorySnapshot as ApiHostInventorySnapshot
 import com.gigasoft.api.HostBlockSnapshot as ApiHostBlockSnapshot
 import com.gigasoft.api.HostLocationRef as ApiHostLocationRef
 import com.gigasoft.api.HostPlayerSnapshot as ApiHostPlayerSnapshot
+import com.gigasoft.api.HostPlayerStatusSnapshot as ApiHostPlayerStatusSnapshot
 import com.gigasoft.api.HostServerSnapshot as ApiHostServerSnapshot
 import com.gigasoft.api.HostWorldSnapshot as ApiHostWorldSnapshot
 
@@ -22,6 +23,38 @@ fun HostBridgePort.asHostAccess(): HostAccess {
 
     override fun findPlayer(name: String): ApiHostPlayerSnapshot? {
         return bridge.findPlayer(name)?.toApi()
+    }
+
+    override fun sendPlayerMessage(name: String, message: String): Boolean {
+        return bridge.sendPlayerMessage(name, message)
+    }
+
+    override fun kickPlayer(name: String, reason: String): Boolean {
+        return bridge.kickPlayer(name, reason)
+    }
+
+    override fun playerIsOp(name: String): Boolean? {
+        return bridge.playerIsOp(name)
+    }
+
+    override fun setPlayerOp(name: String, op: Boolean): Boolean {
+        return bridge.setPlayerOp(name, op)
+    }
+
+    override fun playerPermissions(name: String): Set<String>? {
+        return bridge.playerPermissions(name)
+    }
+
+    override fun hasPlayerPermission(name: String, permission: String): Boolean? {
+        return bridge.hasPlayerPermission(name, permission)
+    }
+
+    override fun grantPlayerPermission(name: String, permission: String): Boolean {
+        return bridge.grantPlayerPermission(name, permission)
+    }
+
+    override fun revokePlayerPermission(name: String, permission: String): Boolean {
+        return bridge.revokePlayerPermission(name, permission)
     }
 
     override fun worlds(): List<ApiHostWorldSnapshot> {
@@ -92,6 +125,30 @@ fun HostBridgePort.asHostAccess(): HostAccess {
         return bridge.movePlayer(name, location.toHost())?.toApi()
     }
 
+    override fun playerGameMode(name: String): String? {
+        return bridge.playerGameMode(name)
+    }
+
+    override fun setPlayerGameMode(name: String, gameMode: String): Boolean {
+        return bridge.setPlayerGameMode(name, gameMode)
+    }
+
+    override fun playerStatus(name: String): ApiHostPlayerStatusSnapshot? {
+        return bridge.playerStatus(name)?.toApi()
+    }
+
+    override fun setPlayerStatus(name: String, status: ApiHostPlayerStatusSnapshot): ApiHostPlayerStatusSnapshot? {
+        return bridge.setPlayerStatus(name, status.toHost())?.toApi()
+    }
+
+    override fun addPlayerEffect(name: String, effectId: String, durationTicks: Int, amplifier: Int): Boolean {
+        return bridge.addPlayerEffect(name, effectId, durationTicks, amplifier)
+    }
+
+    override fun removePlayerEffect(name: String, effectId: String): Boolean {
+        return bridge.removePlayerEffect(name, effectId)
+    }
+
     override fun inventoryItem(name: String, slot: Int): String? {
         return bridge.inventoryItem(name, slot)
     }
@@ -132,6 +189,30 @@ private fun ApiHostLocationRef.toHost(): HostLocationRef {
 
 private fun HostPlayerSnapshot.toApi(): ApiHostPlayerSnapshot {
     return ApiHostPlayerSnapshot(uuid = uuid, name = name, location = location.toApi())
+}
+
+private fun HostPlayerStatusSnapshot.toApi(): ApiHostPlayerStatusSnapshot {
+    return ApiHostPlayerStatusSnapshot(
+        health = health,
+        maxHealth = maxHealth,
+        foodLevel = foodLevel,
+        saturation = saturation,
+        experienceLevel = experienceLevel,
+        experienceProgress = experienceProgress,
+        effects = effects
+    )
+}
+
+private fun ApiHostPlayerStatusSnapshot.toHost(): HostPlayerStatusSnapshot {
+    return HostPlayerStatusSnapshot(
+        health = health,
+        maxHealth = maxHealth,
+        foodLevel = foodLevel,
+        saturation = saturation,
+        experienceLevel = experienceLevel,
+        experienceProgress = experienceProgress,
+        effects = effects
+    )
 }
 
 private fun HostWorldSnapshot.toApi(): ApiHostWorldSnapshot {

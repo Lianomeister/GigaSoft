@@ -9,7 +9,9 @@ enum class AdapterExecutionMode {
 
 enum class EventDispatchMode {
     EXACT,
-    POLYMORPHIC
+    POLYMORPHIC,
+    // Dispatches exact listeners first, then matching supertypes/interfaces in deterministic order.
+    HYBRID
 }
 
 data class AdapterSecurityConfig(

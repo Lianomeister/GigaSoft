@@ -10,11 +10,15 @@ class RuntimeRegistry(private val pluginId: String) : RegistryFacade {
     private val blocks = CopyOnWriteArrayList<BlockDefinition>()
     private val recipes = CopyOnWriteArrayList<RecipeDefinition>()
     private val machines = CopyOnWriteArrayList<MachineDefinition>()
+    private val textures = CopyOnWriteArrayList<TextureDefinition>()
+    private val models = CopyOnWriteArrayList<ModelDefinition>()
     private val systems = ConcurrentHashMap<String, TickSystem>()
     private val itemIds = ConcurrentHashMap.newKeySet<String>()
     private val blockIds = ConcurrentHashMap.newKeySet<String>()
     private val recipeIds = ConcurrentHashMap.newKeySet<String>()
     private val machineIds = ConcurrentHashMap.newKeySet<String>()
+    private val textureIds = ConcurrentHashMap.newKeySet<String>()
+    private val modelIds = ConcurrentHashMap.newKeySet<String>()
     @Volatile
     private var systemsSnapshotCache: List<Pair<String, TickSystem>> = emptyList()
     @Volatile
@@ -41,6 +45,16 @@ class RuntimeRegistry(private val pluginId: String) : RegistryFacade {
         machines += definition
     }
 
+    override fun registerTexture(definition: TextureDefinition) {
+        ensureUnique(textureIds, definition.id, "texture")
+        textures += definition
+    }
+
+    override fun registerModel(definition: ModelDefinition) {
+        ensureUnique(modelIds, definition.id, "model")
+        models += definition
+    }
+
     override fun registerSystem(id: String, system: TickSystem) {
         val existing = systems.putIfAbsent(id, system)
         require(existing == null) { "Duplicate system id '$id' in plugin '$pluginId'" }
@@ -52,6 +66,8 @@ class RuntimeRegistry(private val pluginId: String) : RegistryFacade {
     override fun blocks(): List<BlockDefinition> = blocks.toList()
     override fun recipes(): List<RecipeDefinition> = recipes.toList()
     override fun machines(): List<MachineDefinition> = machines.toList()
+    override fun textures(): List<TextureDefinition> = textures.toList()
+    override fun models(): List<ModelDefinition> = models.toList()
     override fun systems(): Map<String, TickSystem> = systems.toMap()
     fun systemsView(): Set<Map.Entry<String, TickSystem>> = systems.entries
     fun systemsVersion(): Long = systemsVersionCounter.get()

@@ -45,8 +45,11 @@
         <a href="#best-practices">Best Practices</a>
         <a href="#plugin-context">PluginContext</a>
         <a href="#dsl">DSL</a>
+        <a href="#models">Models</a>
         <a href="#events">Events</a>
+        <a href="#dispatch-modes">Dispatch Modes</a>
         <a href="#adapters">Adapters</a>
+        <a href="#payload-helpers">Payload Helpers</a>
         <a href="#lifecycle">Lifecycle</a>
         <a href="#commands">Commands</a>
         <a href="#debugging">Debugging</a>
@@ -68,6 +71,8 @@
           <span class="pill">Host-neutral</span>
           <span class="pill">Hot Reload</span>
           <span class="pill">Adapter Security</span>
+          <span class="pill">Gameplay Pre/Post Events</span>
+          <span class="pill">Hybrid Dispatch</span>
         </div>
       </section>
 
@@ -78,7 +83,7 @@
         </div>
         <article class="api-card">
           <p>
-            The public API is frozen for the 1.x line. Changes are additive; breaking changes only land in the next major.
+            The public API is stable for the 1.x line. New 1.1 features are additive; breaking changes only land in the next major.
           </p>
           <ul>
             <li><a href="../docs/api/v1.0.0.md">API Contract v1.0.0</a></li>
@@ -155,7 +160,9 @@
             <h3>Advanced</h3>
             <ul>
               <li><a href="../docs/tutorials/events.md">Events</a></li>
+              <li><a href="../docs/tutorials/cancelable-gameplay-events.md">Cancelable Gameplay Events</a></li>
               <li><a href="../docs/tutorials/adapters.md">Adapters</a></li>
+              <li><a href="../docs/tutorials/payload-helper-patterns.md">Payload Helper Patterns</a></li>
               <li><a href="../docs/tutorials/persistence.md">Persistence</a></li>
               <li><a href="../docs/tutorials/reload-safe-coding.md">Reload-safe Coding</a></li>
               <li><a href="../docs/tutorials/reload-workflow.md">Reload Workflow</a></li>
@@ -248,6 +255,35 @@ if (alex != null) {
         </article>
       </section>
 
+      <section id="models" class="doc-section reveal" data-api-item="models textures modelbounds modellod material collision animations">
+        <div class="section-head">
+          <p class="eyebrow">ASSETS</p>
+          <h2>Models, LOD & Materials</h2>
+        </div>
+        <article class="api-card">
+          <div class="api-card-head">
+            <h3>Extended Model Definition</h3>
+            <button class="copy-btn" data-copy-target="code-models">Copy</button>
+          </div>
+          <pre><code id="code-models">models {
+    model(
+        id = "crusher_model",
+        geometryPath = "assets/factory/models/block/crusher.json",
+        textures = mapOf("side" to "crusher_side"),
+        material = "cutout",
+        doubleSided = false,
+        scale = 1.0,
+        collision = true,
+        bounds = ModelBounds(0.0, 0.0, 0.0, 1.0, 1.0, 1.0),
+        lods = listOf(
+            ModelLod(distance = 24.0, geometryPath = "assets/factory/models/block/crusher_lod1.json")
+        ),
+        animations = mapOf("idle" to "assets/factory/animations/crusher_idle.json")
+    )
+}</code></pre>
+        </article>
+      </section>
+
       <section id="events" class="doc-section reveal" data-api-item="events subscribe publish giga tick player join leave move">
         <div class="section-head">
           <p class="eyebrow">EVENTS</p>
@@ -264,6 +300,9 @@ if (alex != null) {
               <li><code>GigaWorldCreatedEvent</code></li>
               <li><code>GigaEntitySpawnEvent</code></li>
               <li><code>GigaInventoryChangeEvent</code></li>
+              <li><code>GigaPlayerMovePre/PostEvent</code></li>
+              <li><code>GigaEntitySpawnPre/PostEvent</code></li>
+              <li><code>GigaBlockBreakPre/PostEvent</code></li>
             </ul>
           </article>
 
@@ -275,6 +314,31 @@ if (alex != null) {
             <pre><code id="code-events">ctx.events.subscribe(GigaPlayerJoinEvent::class.java) { event ->
     ctx.logger.info("Player joined: ${event.player.name}")
 }</code></pre>
+          </article>
+        </div>
+      </section>
+
+      <section id="dispatch-modes" class="doc-section reveal" data-api-item="event dispatch exact polymorphic hybrid order">
+        <div class="section-head">
+          <p class="eyebrow">EVENT SYSTEM</p>
+          <h2>Dispatch Modes</h2>
+        </div>
+        <div class="api-grid">
+          <article class="api-card">
+            <h3>Modes</h3>
+            <ul>
+              <li><code>exact</code>: only exact event-class listeners</li>
+              <li><code>polymorphic</code>: superclasses/interfaces also receive events</li>
+              <li><code>hybrid</code>: exact listeners first, then polymorphic listeners</li>
+            </ul>
+          </article>
+          <article class="api-card">
+            <div class="api-card-head">
+              <h3>Standalone Config</h3>
+              <button class="copy-btn" data-copy-target="code-dispatch">Copy</button>
+            </div>
+            <pre><code id="code-dispatch"># standalone.example.properties
+eventDispatchMode=hybrid</code></pre>
           </article>
         </div>
       </section>
@@ -312,6 +376,28 @@ if (!response.success) {
 }</code></pre>
           </article>
         </div>
+      </section>
+
+      <section id="payload-helpers" class="doc-section reveal" data-api-item="adapter payload helpers payloadcsv payloadenum payloadbyprefix payloadrequired">
+        <div class="section-head">
+          <p class="eyebrow">ADAPTER DX</p>
+          <h2>Payload Helpers</h2>
+        </div>
+        <article class="api-card">
+          <div class="api-card-head">
+            <h3>Typed Payload Parsing</h3>
+            <button class="copy-btn" data-copy-target="code-payload">Copy</button>
+          </div>
+          <pre><code id="code-payload">val player = invocation.payloadRequired("player")
+val amount = invocation.payloadIntRequired("amount")
+val flags = invocation.payloadCsv("flags")
+val mode = invocation.payloadEnum<MyMode>("mode")
+val worldCfg = invocation.payloadByPrefix("world.")
+
+if (mode == null) {
+    return AdapterResponse(success = false, message = "invalid mode")
+}</code></pre>
+        </article>
       </section>
 
       <section id="lifecycle" class="doc-section reveal" data-api-item="lifecycle onenable ondisable reload report diagnostics profile">

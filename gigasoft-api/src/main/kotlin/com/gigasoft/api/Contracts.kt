@@ -23,6 +23,14 @@ interface HostAccess {
     fun serverInfo(): HostServerSnapshot?
     fun broadcast(message: String): Boolean
     fun findPlayer(name: String): HostPlayerSnapshot?
+    fun sendPlayerMessage(name: String, message: String): Boolean = false
+    fun kickPlayer(name: String, reason: String = "Kicked by host"): Boolean = false
+    fun playerIsOp(name: String): Boolean? = null
+    fun setPlayerOp(name: String, op: Boolean): Boolean = false
+    fun playerPermissions(name: String): Set<String>? = null
+    fun hasPlayerPermission(name: String, permission: String): Boolean? = null
+    fun grantPlayerPermission(name: String, permission: String): Boolean = false
+    fun revokePlayerPermission(name: String, permission: String): Boolean = false
     fun worlds(): List<HostWorldSnapshot>
     fun entities(world: String? = null): List<HostEntitySnapshot>
     fun spawnEntity(type: String, location: HostLocationRef): HostEntitySnapshot?
@@ -40,6 +48,12 @@ interface HostAccess {
     fun entityData(uuid: String): Map<String, String>? = null
     fun setEntityData(uuid: String, data: Map<String, String>): Map<String, String>? = null
     fun movePlayer(name: String, location: HostLocationRef): HostPlayerSnapshot? = null
+    fun playerGameMode(name: String): String? = null
+    fun setPlayerGameMode(name: String, gameMode: String): Boolean = false
+    fun playerStatus(name: String): HostPlayerStatusSnapshot? = null
+    fun setPlayerStatus(name: String, status: HostPlayerStatusSnapshot): HostPlayerStatusSnapshot? = null
+    fun addPlayerEffect(name: String, effectId: String, durationTicks: Int, amplifier: Int = 0): Boolean = false
+    fun removePlayerEffect(name: String, effectId: String): Boolean = false
     fun inventoryItem(name: String, slot: Int): String? = null
     fun givePlayerItem(name: String, itemId: String, count: Int = 1): Int = 0
     fun blockAt(world: String, x: Int, y: Int, z: Int): HostBlockSnapshot? = null
@@ -79,7 +93,18 @@ object HostPermissions {
     const val INVENTORY_READ = "host.inventory.read"
     const val INVENTORY_WRITE = "host.inventory.write"
     const val PLAYER_READ = "host.player.read"
+    const val PLAYER_MESSAGE = "host.player.message"
+    const val PLAYER_KICK = "host.player.kick"
+    const val PLAYER_OP_READ = "host.player.op.read"
+    const val PLAYER_OP_WRITE = "host.player.op.write"
+    const val PLAYER_PERMISSION_READ = "host.player.permission.read"
+    const val PLAYER_PERMISSION_WRITE = "host.player.permission.write"
     const val PLAYER_MOVE = "host.player.move"
+    const val PLAYER_GAMEMODE_READ = "host.player.gamemode.read"
+    const val PLAYER_GAMEMODE_WRITE = "host.player.gamemode.write"
+    const val PLAYER_STATUS_READ = "host.player.status.read"
+    const val PLAYER_STATUS_WRITE = "host.player.status.write"
+    const val PLAYER_EFFECT_WRITE = "host.player.effect.write"
     const val BLOCK_READ = "host.block.read"
     const val BLOCK_WRITE = "host.block.write"
     const val BLOCK_DATA_READ = "host.block.data.read"
@@ -97,6 +122,16 @@ data class HostPlayerSnapshot(
     val uuid: String,
     val name: String,
     val location: HostLocationRef
+)
+
+data class HostPlayerStatusSnapshot(
+    val health: Double,
+    val maxHealth: Double,
+    val foodLevel: Int,
+    val saturation: Double,
+    val experienceLevel: Int,
+    val experienceProgress: Double,
+    val effects: Map<String, Int> = emptyMap()
 )
 
 data class HostWorldSnapshot(
@@ -150,12 +185,65 @@ data class GigaPlayerMoveEvent(
     val current: HostPlayerSnapshot
 )
 
+class GigaPlayerMovePreEvent(
+    val player: HostPlayerSnapshot,
+    var targetWorld: String,
+    var targetX: Double,
+    var targetY: Double,
+    var targetZ: Double,
+    var cause: String = "plugin"
+) {
+    var cancelled: Boolean = false
+    var cancelReason: String? = null
+}
+
+data class GigaPlayerMovePostEvent(
+    val player: HostPlayerSnapshot,
+    val previous: HostPlayerSnapshot,
+    val current: HostPlayerSnapshot?,
+    val targetWorld: String,
+    val targetX: Double,
+    val targetY: Double,
+    val targetZ: Double,
+    val cause: String,
+    val success: Boolean,
+    val cancelled: Boolean,
+    val durationNanos: Long,
+    val error: String? = null
+)
+
 data class GigaWorldCreatedEvent(
     val world: HostWorldSnapshot
 )
 
 data class GigaEntitySpawnEvent(
     val entity: HostEntitySnapshot
+)
+
+class GigaEntitySpawnPreEvent(
+    var entityType: String,
+    var world: String,
+    var x: Double,
+    var y: Double,
+    var z: Double,
+    var cause: String = "plugin"
+) {
+    var cancelled: Boolean = false
+    var cancelReason: String? = null
+}
+
+data class GigaEntitySpawnPostEvent(
+    val entityType: String,
+    val world: String,
+    val x: Double,
+    val y: Double,
+    val z: Double,
+    val cause: String,
+    val entity: HostEntitySnapshot?,
+    val success: Boolean,
+    val cancelled: Boolean,
+    val durationNanos: Long,
+    val error: String? = null
 )
 
 data class GigaEntityRemoveEvent(
@@ -172,6 +260,39 @@ data class GigaInventoryChangeEvent(
 data class GigaPlayerTeleportEvent(
     val previous: HostPlayerSnapshot,
     val current: HostPlayerSnapshot,
+    val cause: String = "plugin"
+)
+
+data class GigaPlayerGameModeChangeEvent(
+    val player: HostPlayerSnapshot,
+    val previousGameMode: String,
+    val currentGameMode: String,
+    val cause: String = "plugin"
+)
+
+data class GigaPlayerMessageEvent(
+    val player: HostPlayerSnapshot,
+    val message: String,
+    val cause: String = "plugin"
+)
+
+data class GigaPlayerKickEvent(
+    val player: HostPlayerSnapshot,
+    val reason: String,
+    val cause: String = "plugin"
+)
+
+data class GigaPlayerOpChangeEvent(
+    val player: HostPlayerSnapshot,
+    val previousOp: Boolean,
+    val currentOp: Boolean,
+    val cause: String = "plugin"
+)
+
+data class GigaPlayerPermissionChangeEvent(
+    val player: HostPlayerSnapshot,
+    val permission: String,
+    val granted: Boolean,
     val cause: String = "plugin"
 )
 
@@ -195,6 +316,21 @@ data class GigaWorldWeatherChangeEvent(
     val cause: String = "plugin"
 )
 
+data class GigaPlayerStatusChangeEvent(
+    val player: HostPlayerSnapshot,
+    val previous: HostPlayerStatusSnapshot,
+    val current: HostPlayerStatusSnapshot,
+    val cause: String = "plugin"
+)
+
+data class GigaPlayerEffectChangeEvent(
+    val player: HostPlayerSnapshot,
+    val effectId: String,
+    val previousDurationTicks: Int?,
+    val currentDurationTicks: Int?,
+    val cause: String = "plugin"
+)
+
 data class GigaBlockChangeEvent(
     val world: String,
     val x: Int,
@@ -203,6 +339,32 @@ data class GigaBlockChangeEvent(
     val previousBlockId: String?,
     val currentBlockId: String?,
     val cause: String = "plugin"
+)
+
+class GigaBlockBreakPreEvent(
+    var world: String,
+    var x: Int,
+    var y: Int,
+    var z: Int,
+    var dropLoot: Boolean = true,
+    var cause: String = "plugin"
+) {
+    var cancelled: Boolean = false
+    var cancelReason: String? = null
+}
+
+data class GigaBlockBreakPostEvent(
+    val world: String,
+    val x: Int,
+    val y: Int,
+    val z: Int,
+    val dropLoot: Boolean,
+    val cause: String,
+    val previousBlockId: String?,
+    val success: Boolean,
+    val cancelled: Boolean,
+    val durationNanos: Long,
+    val error: String? = null
 )
 
 data class GigaBlockDataChangeEvent(
@@ -222,6 +384,59 @@ data class GigaEntityDataChangeEvent(
     val cause: String = "plugin"
 )
 
+data class GigaTextureRegisteredEvent(
+    val texture: TextureDefinition
+)
+
+data class GigaModelRegisteredEvent(
+    val model: ModelDefinition
+)
+
+class GigaCommandPreExecuteEvent(
+    val pluginId: String,
+    val command: String,
+    val sender: String,
+    val args: List<String>,
+    val rawCommandLine: String
+) {
+    var cancelled: Boolean = false
+    var cancelReason: String? = null
+    var overrideResponse: String? = null
+}
+
+data class GigaCommandPostExecuteEvent(
+    val pluginId: String,
+    val command: String,
+    val sender: String,
+    val args: List<String>,
+    val rawCommandLine: String,
+    val response: String,
+    val success: Boolean,
+    val durationNanos: Long,
+    val error: String? = null
+)
+
+class GigaAdapterPreInvokeEvent(
+    val pluginId: String,
+    val adapterId: String,
+    val action: String,
+    val payload: Map<String, String>
+) {
+    var cancelled: Boolean = false
+    var cancelReason: String? = null
+    var overrideResponse: AdapterResponse? = null
+}
+
+data class GigaAdapterPostInvokeEvent(
+    val pluginId: String,
+    val adapterId: String,
+    val action: String,
+    val payload: Map<String, String>,
+    val response: AdapterResponse,
+    val outcome: String,
+    val durationNanos: Long
+)
+
 fun interface GigaLogger {
     fun info(message: String)
 }
@@ -238,12 +453,16 @@ interface RegistryFacade {
     fun registerBlock(definition: BlockDefinition)
     fun registerRecipe(definition: RecipeDefinition)
     fun registerMachine(definition: MachineDefinition)
+    fun registerTexture(definition: TextureDefinition)
+    fun registerModel(definition: ModelDefinition)
     fun registerSystem(id: String, system: TickSystem)
 
     fun items(): List<ItemDefinition>
     fun blocks(): List<BlockDefinition>
     fun recipes(): List<RecipeDefinition>
     fun machines(): List<MachineDefinition>
+    fun textures(): List<TextureDefinition>
+    fun models(): List<ModelDefinition>
     fun systems(): Map<String, TickSystem>
 }
 
@@ -283,6 +502,10 @@ interface CommandRegistry {
     }
 
     fun unregister(command: String): Boolean = false
+    fun registerAlias(alias: String, command: String): Boolean = false
+    fun unregisterAlias(alias: String): Boolean = false
+    fun resolve(commandOrAlias: String): String? = null
+    fun registeredCommands(): Map<String, String> = emptyMap()
 }
 
 data class CommandResult(
@@ -303,6 +526,7 @@ data class CommandResult(
 
 interface EventBus {
     fun <T : Any> subscribe(eventType: Class<T>, listener: (T) -> Unit)
+    fun <T : Any> unsubscribe(eventType: Class<T>, listener: (T) -> Unit): Boolean = false
     fun publish(event: Any)
 }
 

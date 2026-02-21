@@ -6,7 +6,10 @@
 2. `docs/tutorials/events.md`
 3. `docs/tutorials/adapters.md`
 4. `docs/tutorials/persistence.md`
-5. `docs/tutorials/reload-safe-coding.md`
+5. `docs/tutorials/textures-models.md`
+6. `docs/tutorials/cancelable-gameplay-events.md`
+7. `docs/tutorials/payload-helper-patterns.md`
+8. `docs/tutorials/reload-safe-coding.md`
 
 ## API
 

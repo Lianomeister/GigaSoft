@@ -80,8 +80,10 @@ class GigaPluginDsl(private val ctx: PluginContext) {
     private val blockDefs = mutableListOf<BlockDefinition>()
     private val recipeDefs = mutableListOf<RecipeDefinition>()
     private val machineDefs = mutableListOf<MachineDefinition>()
+    private val textureDefs = mutableListOf<TextureDefinition>()
+    private val modelDefs = mutableListOf<ModelDefinition>()
     private val systems = linkedMapOf<String, TickSystem>()
-    private val commandDefs = mutableListOf<Triple<String, String, (PluginContext, String, List<String>) -> String>>()
+    private val commandDefs = mutableListOf<CommandDsl.CommandDefinition>()
     private val adapterDefs = mutableListOf<ModAdapter>()
 
     fun items(block: ItemDsl.() -> Unit) {
@@ -98,6 +100,14 @@ class GigaPluginDsl(private val ctx: PluginContext) {
 
     fun machines(block: MachineDsl.() -> Unit) {
         machineDefs += MachineDsl().apply(block).machines
+    }
+
+    fun textures(block: TextureDsl.() -> Unit) {
+        textureDefs += TextureDsl().apply(block).textures
+    }
+
+    fun models(block: ModelDsl.() -> Unit) {
+        modelDefs += ModelDsl().apply(block).models
     }
 
     fun systems(block: SystemDsl.() -> Unit) {
@@ -117,8 +127,23 @@ class GigaPluginDsl(private val ctx: PluginContext) {
         blockDefs.forEach(ctx.registry::registerBlock)
         recipeDefs.forEach(ctx.registry::registerRecipe)
         machineDefs.forEach(ctx.registry::registerMachine)
+        textureDefs.forEach {
+            ctx.registry.registerTexture(it)
+            ctx.events.publish(GigaTextureRegisteredEvent(it))
+        }
+        modelDefs.forEach {
+            ctx.registry.registerModel(it)
+            ctx.events.publish(GigaModelRegisteredEvent(it))
+        }
         systems.forEach(ctx.registry::registerSystem)
-        commandDefs.forEach { (cmd, description, action) -> ctx.commands.registerOrReplace(cmd, description, action) }
+        commandDefs.forEach { command ->
+            ctx.commands.registerOrReplaceWithAliases(
+                command = command.name,
+                description = command.description,
+                aliases = command.aliases,
+                action = command.action
+            )
+        }
         adapterDefs.forEach(ctx.adapters::register)
     }
 }
@@ -151,6 +176,58 @@ class MachineDsl {
     }
 }
 
+class TextureDsl {
+    internal val textures = mutableListOf<TextureDefinition>()
+
+    fun texture(
+        id: String,
+        path: String,
+        category: String = "item",
+        animated: Boolean = false
+    ) {
+        textures += TextureDefinition(
+            id = id,
+            path = path,
+            category = category,
+            animated = animated
+        )
+    }
+}
+
+class ModelDsl {
+    internal val models = mutableListOf<ModelDefinition>()
+
+    fun model(
+        id: String,
+        geometryPath: String,
+        format: String = "json",
+        textures: Map<String, String> = emptyMap(),
+        metadata: Map<String, String> = emptyMap(),
+        material: String = "opaque",
+        doubleSided: Boolean = false,
+        scale: Double = 1.0,
+        collision: Boolean = true,
+        bounds: ModelBounds? = null,
+        lods: List<ModelLod> = emptyList(),
+        animations: Map<String, String> = emptyMap()
+    ) {
+        models += ModelDefinition(
+            id = id,
+            format = format,
+            geometryPath = geometryPath,
+            textures = textures,
+            metadata = metadata,
+            material = material,
+            doubleSided = doubleSided,
+            scale = scale,
+            collision = collision,
+            bounds = bounds,
+            lods = lods,
+            animations = animations
+        )
+    }
+}
+
 class SystemDsl {
     internal val systems = linkedMapOf<String, TickSystem>()
     fun system(id: String, block: (PluginContext) -> Unit) {
@@ -159,13 +236,40 @@ class SystemDsl {
 }
 
 class CommandDsl {
-    internal val commands = mutableListOf<Triple<String, String, (PluginContext, String, List<String>) -> String>>()
+    internal data class CommandDefinition(
+        val name: String,
+        val description: String,
+        val aliases: List<String>,
+        val action: (PluginContext, String, List<String>) -> String
+    )
+
+    internal val commands = mutableListOf<CommandDefinition>()
+
     fun command(
         name: String,
         description: String = "",
         action: (ctx: PluginContext, sender: String, args: List<String>) -> String
     ) {
-        commands += Triple(name, description, action)
+        commands += CommandDefinition(
+            name = name,
+            description = description,
+            aliases = emptyList(),
+            action = action
+        )
+    }
+
+    fun command(
+        name: String,
+        description: String = "",
+        aliases: List<String> = emptyList(),
+        action: (ctx: PluginContext, sender: String, args: List<String>) -> String
+    ) {
+        commands += CommandDefinition(
+            name = name,
+            description = description,
+            aliases = aliases,
+            action = action
+        )
     }
 }
 

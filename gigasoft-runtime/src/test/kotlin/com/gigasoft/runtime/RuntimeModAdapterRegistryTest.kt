@@ -2,6 +2,8 @@ package com.gigasoft.runtime
 
 import com.gigasoft.api.AdapterInvocation
 import com.gigasoft.api.AdapterResponse
+import com.gigasoft.api.GigaAdapterPostInvokeEvent
+import com.gigasoft.api.GigaAdapterPreInvokeEvent
 import com.gigasoft.api.ModAdapter
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.CopyOnWriteArrayList
@@ -229,6 +231,43 @@ class RuntimeModAdapterRegistryTest {
         val second = registry.invoke("slow", AdapterInvocation("ping"))
         assertTrue(first.success)
         assertTrue(second.success)
+    }
+
+    @Test
+    fun `adapter pre event can cancel invocation`() {
+        val bus = RuntimeEventBus(mode = EventDispatchMode.EXACT)
+        val registry = RuntimeModAdapterRegistry(
+            pluginId = "demo",
+            logger = logger(),
+            eventBus = bus
+        )
+        registry.register(adapter("bridge"))
+        bus.subscribe(GigaAdapterPreInvokeEvent::class.java) {
+            it.cancelled = true
+            it.cancelReason = "adapter disabled by policy"
+        }
+
+        val result = registry.invoke("bridge", AdapterInvocation("ping"))
+        assertFalse(result.success)
+        assertTrue(result.message?.contains("disabled by policy") == true)
+    }
+
+    @Test
+    fun `adapter post event is published`() {
+        val bus = RuntimeEventBus(mode = EventDispatchMode.EXACT)
+        val registry = RuntimeModAdapterRegistry(
+            pluginId = "demo",
+            logger = logger(),
+            eventBus = bus
+        )
+        registry.register(adapter("bridge"))
+        var post: GigaAdapterPostInvokeEvent? = null
+        bus.subscribe(GigaAdapterPostInvokeEvent::class.java) { post = it }
+
+        val result = registry.invoke("bridge", AdapterInvocation("ping"))
+        assertTrue(result.success)
+        assertEquals("bridge", post?.adapterId)
+        assertEquals("ACCEPTED", post?.outcome)
     }
 
     private fun logger() = com.gigasoft.api.GigaLogger { }

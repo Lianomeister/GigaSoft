@@ -20,6 +20,10 @@ body {
   min-height: 100%;
 }
 
+html {
+  scroll-padding-top: 14px;
+}
+
 body {
   font-family: "Space Grotesk", sans-serif;
   color: var(--ink);
@@ -187,8 +191,9 @@ body {
 
 #docs-nav a.active {
   color: var(--ink);
-  border-color: var(--line);
-  background: rgba(11, 31, 43, 0.75);
+  border-color: rgba(0, 208, 132, 0.6);
+  background: rgba(11, 31, 43, 0.85);
+  box-shadow: inset 2px 0 0 var(--accent);
 }
 
 .content {
@@ -202,6 +207,7 @@ body {
   border-radius: 1rem;
   background: rgba(16, 38, 53, 0.8);
   padding: 1.2rem;
+  scroll-margin-top: 14px;
   transition: transform 240ms ease, border-color 240ms ease, box-shadow 240ms ease;
 }
 
@@ -243,6 +249,14 @@ h2 {
   color: var(--muted);
   max-width: 68ch;
   margin-top: 0.7rem;
+}
+
+a {
+  color: #8cd8ff;
+}
+
+a:hover {
+  color: #b8e8ff;
 }
 
 .pill-row {

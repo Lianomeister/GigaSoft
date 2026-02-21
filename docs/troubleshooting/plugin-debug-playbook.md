@@ -28,6 +28,9 @@ What to check:
 - run `reload <your-plugin-id>`
 - inspect `profile <your-plugin-id> --json`
 - verify no duplicate scheduled tasks after repeated reload
+- inspect `profile.<id>.slowSystems` for hot system loops
+- inspect `profile.<id>.adapterHotspots` for denial/timeout/failure pressure
+- inspect `profile.<id>.isolatedSystems` for fault-isolated systems in cooldown windows
 
 If duplicates exist:
 
@@ -43,6 +46,7 @@ If duplicates exist:
   - `deny`
   - `timeout`
   - `fail`
+  - plus `adapterHotspots` reasons (`timeout_rate`, `failure_rate`, `denied_rate`)
 
 When denied/timeouts occur:
 

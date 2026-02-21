@@ -29,6 +29,7 @@ const updateScrollProgress = () => {
 
 updateScrollProgress();
 window.addEventListener("scroll", updateScrollProgress, { passive: true });
+const navActivationOffset = 14;
 
 let parallaxX = 0;
 let parallaxY = 0;
@@ -61,23 +62,33 @@ if (isDesktop && !reducedMotion) {
   root.style.setProperty("--parallax-y", "0px");
 }
 
-const navObserver = new IntersectionObserver(
-  (entries) => {
-    entries.forEach((entry) => {
-      if (!entry.isIntersecting) return;
-      const id = entry.target.getAttribute("id");
-      navLinks.forEach((link) => {
-        link.classList.toggle("active", link.getAttribute("href") === `#${id}`);
-      });
-    });
-  },
-  {
-    rootMargin: "-35% 0px -55% 0px",
-    threshold: 0
-  }
-);
+const setActiveNavLink = (id) => {
+  navLinks.forEach((link) => {
+    link.classList.toggle("active", link.getAttribute("href") === `#${id}`);
+  });
+};
 
-sections.forEach((section) => navObserver.observe(section));
+const setActiveNavByScrollTop = () => {
+  if (sections.length === 0) return;
+  const visibleSections = Array.from(sections).filter((section) => !section.classList.contains("hidden"));
+  if (visibleSections.length === 0) return;
+
+  const topAligned = visibleSections.filter((section) => section.getBoundingClientRect().top <= navActivationOffset);
+  if (topAligned.length > 0) {
+    const active = topAligned.reduce((best, section) => {
+      return section.getBoundingClientRect().top > best.getBoundingClientRect().top ? section : best;
+    });
+    setActiveNavLink(active.id);
+    return;
+  }
+
+  const nextAtTop = visibleSections.reduce((best, section) => {
+    return section.getBoundingClientRect().top < best.getBoundingClientRect().top ? section : best;
+  });
+  setActiveNavLink(nextAtTop.id);
+};
+
+window.addEventListener("scroll", setActiveNavByScrollTop, { passive: true });
 
 if (searchInput) {
   searchInput.addEventListener("input", () => {
@@ -87,8 +98,19 @@ if (searchInput) {
       const visible = q.length === 0 || text.includes(q);
       section.classList.toggle("hidden", !visible);
     });
+    setActiveNavByScrollTop();
   });
 }
+
+window.addEventListener("keydown", (event) => {
+  if (!searchInput) return;
+  if (event.key !== "/" || event.metaKey || event.ctrlKey || event.altKey) return;
+  const tag = document.activeElement?.tagName?.toLowerCase();
+  if (tag === "input" || tag === "textarea") return;
+  event.preventDefault();
+  searchInput.focus();
+  searchInput.select();
+});
 
 navLinks.forEach((link) => {
   link.addEventListener("click", (event) => {
@@ -104,10 +126,29 @@ navLinks.forEach((link) => {
       if (searchInput) searchInput.value = "";
     }
 
-    target.scrollIntoView({ behavior: "smooth", block: "start" });
+    setActiveNavLink(target.id);
+    scrollToSection(target, "smooth");
     history.replaceState(null, "", href);
   });
 });
+
+const jumpToHashSection = () => {
+  const hash = decodeURIComponent(window.location.hash || "");
+  if (!hash || hash.length < 2) return;
+  const target = document.querySelector(hash);
+  if (!target) return;
+  if (target.classList.contains("hidden")) {
+    sections.forEach((section) => section.classList.remove("hidden"));
+    if (searchInput) searchInput.value = "";
+  }
+  scrollToSection(target, "auto");
+  setActiveNavByScrollTop();
+};
+
+window.addEventListener("hashchange", jumpToHashSection);
+window.addEventListener("load", jumpToHashSection);
+window.addEventListener("load", setActiveNavByScrollTop);
+window.addEventListener("resize", setActiveNavByScrollTop);
 
 document.querySelectorAll(".copy-btn").forEach((button) => {
   button.addEventListener("click", async () => {
@@ -137,3 +178,19 @@ document.querySelectorAll(".copy-btn").forEach((button) => {
 window.addEventListener("beforeunload", () => {
   if (rafId) cancelAnimationFrame(rafId);
 });
+
+function scrollToSection(target, behavior) {
+  const offset = navActivationOffset;
+  const getTop = () => Math.max(0, window.scrollY + target.getBoundingClientRect().top - offset);
+  const firstTop = getTop();
+  window.scrollTo({ top: firstTop, behavior });
+
+  // Re-align after reveal/font/layout updates so anchor jumps stay precise.
+  window.setTimeout(() => {
+    const correctedTop = getTop();
+    if (Math.abs(window.scrollY - correctedTop) > 2) {
+      window.scrollTo({ top: correctedTop, behavior: "auto" });
+    }
+    setActiveNavByScrollTop();
+  }, behavior === "smooth" ? 320 : 0);
+}

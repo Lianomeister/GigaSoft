@@ -34,6 +34,16 @@ data class StandaloneInventory(
     val slots: Map<Int, String>
 )
 
+data class StandalonePlayerStatus(
+    val health: Double,
+    val maxHealth: Double,
+    val foodLevel: Int,
+    val saturation: Double,
+    val experienceLevel: Int,
+    val experienceProgress: Double,
+    val effects: Map<String, Int>
+)
+
 data class StandaloneBlock(
     val world: String,
     val x: Int,
@@ -88,6 +98,10 @@ class StandaloneHostState(
     private val entityData = LinkedHashMap<String, MutableMap<String, String>>()
     private val worldEntityCounts = LinkedHashMap<String, Int>()
     private val playersByName = LinkedHashMap<String, StandalonePlayer>()
+    private val playerOpByName = LinkedHashMap<String, Boolean>()
+    private val playerPermissionsByName = LinkedHashMap<String, MutableSet<String>>()
+    private val playerGameModesByName = LinkedHashMap<String, String>()
+    private val playerStatusByName = LinkedHashMap<String, StandalonePlayerStatus>()
     private val inventoriesByOwner = LinkedHashMap<String, MutableMap<Int, String>>()
     private val blocks = LinkedHashMap<String, StandaloneBlock>()
     private val blockData = LinkedHashMap<String, MutableMap<String, String>>()
@@ -226,6 +240,10 @@ class StandaloneHostState(
             )
             playersByName[key] = nextPlayer
             playersDirty = true
+            playerOpByName.putIfAbsent(key, false)
+            playerPermissionsByName.computeIfAbsent(key) { linkedSetOf() }
+            playerGameModesByName.putIfAbsent(key, "survival")
+            playerStatusByName.putIfAbsent(key, defaultPlayerStatus())
             inventoriesByOwner.computeIfAbsent(key) { mutableMapOf() }
             entities[nextPlayer.uuid] = StandaloneEntity(
                 uuid = nextPlayer.uuid,
@@ -255,6 +273,10 @@ class StandaloneHostState(
                 }
                 playersDirty = true
                 entitiesAllDirty = true
+                playerOpByName.remove(canonicalKey(player.name))
+                playerPermissionsByName.remove(canonicalKey(player.name))
+                playerGameModesByName.remove(canonicalKey(player.name))
+                playerStatusByName.remove(canonicalKey(player.name))
             }
             player
         }
@@ -464,6 +486,14 @@ class StandaloneHostState(
                     .filterValues { it.isNotEmpty() }
                     .toSortedMap()
                     .mapValues { (_, values) -> values.toSortedMap() },
+                playerOps = playerOpByName.toSortedMap(),
+                playerPermissions = playerPermissionsByName
+                    .toSortedMap()
+                    .mapValues { (_, perms) -> perms.toSortedSet() },
+                playerGameModes = playerGameModesByName.toSortedMap(),
+                playerStatus = playerStatusByName.toSortedMap().mapValues { (_, value) ->
+                    value.copy(effects = value.effects.toSortedMap())
+                },
                 inventories = inventoriesByOwner.toSortedMap().mapValues { (_, slots) -> slots.toSortedMap() },
                 blocks = blocks.values.sortedWith(
                     compareBy<StandaloneBlock, String>(String.CASE_INSENSITIVE_ORDER) { it.world }
@@ -501,6 +531,10 @@ class StandaloneHostState(
             worldWeather.clear()
             worldEntityCounts.clear()
             playersByName.clear()
+            playerOpByName.clear()
+            playerPermissionsByName.clear()
+            playerGameModesByName.clear()
+            playerStatusByName.clear()
             inventoriesByOwner.clear()
             blocks.clear()
             blockData.clear()
@@ -523,6 +557,10 @@ class StandaloneHostState(
                 val key = canonicalKey(name)
                 if (!playersByName.containsKey(key)) {
                     playersByName[key] = player.copy(name = name, uuid = uuid, world = world)
+                    playerOpByName.putIfAbsent(key, false)
+                    playerPermissionsByName.computeIfAbsent(key) { linkedSetOf() }
+                    playerGameModesByName.putIfAbsent(key, "survival")
+                    playerStatusByName.putIfAbsent(key, defaultPlayerStatus())
                 }
             }
 
@@ -602,6 +640,43 @@ class StandaloneHostState(
                     }
                 }
                 inventoriesByOwner[ownerKey] = sanitized.toMutableMap()
+            }
+
+            snapshot.playerStatus.forEach { (ownerRaw, status) ->
+                val owner = ownerRaw.trim()
+                if (owner.isEmpty()) return@forEach
+                val key = canonicalKey(owner)
+                if (!playersByName.containsKey(key)) return@forEach
+                playerStatusByName[key] = sanitizePlayerStatus(status)
+            }
+
+            snapshot.playerOps.forEach { (ownerRaw, op) ->
+                val owner = ownerRaw.trim()
+                if (owner.isEmpty()) return@forEach
+                val key = canonicalKey(owner)
+                if (!playersByName.containsKey(key)) return@forEach
+                playerOpByName[key] = op
+            }
+
+            snapshot.playerPermissions.forEach { (ownerRaw, rawPermissions) ->
+                val owner = ownerRaw.trim()
+                if (owner.isEmpty()) return@forEach
+                val key = canonicalKey(owner)
+                if (!playersByName.containsKey(key)) return@forEach
+                val sanitized = rawPermissions.mapNotNull { permission ->
+                    val value = permission.trim()
+                    if (value.isEmpty()) null else value
+                }.toSortedSet()
+                playerPermissionsByName[key] = sanitized.toMutableSet()
+            }
+
+            snapshot.playerGameModes.forEach { (ownerRaw, modeRaw) ->
+                val owner = ownerRaw.trim()
+                if (owner.isEmpty()) return@forEach
+                val key = canonicalKey(owner)
+                if (!playersByName.containsKey(key)) return@forEach
+                val mode = normalizeGameMode(modeRaw) ?: return@forEach
+                playerGameModesByName[key] = mode
             }
 
             snapshot.blocks.forEach { block ->
@@ -855,6 +930,149 @@ class StandaloneHostState(
         }
     }
 
+    fun playerIsOp(name: String): Boolean? {
+        val playerName = name.trim()
+        if (playerName.isEmpty()) return null
+        return synchronized(stateLock) {
+            val key = canonicalKey(playerName)
+            if (!playersByName.containsKey(key)) return@synchronized null
+            playerOpByName[key] ?: false
+        }
+    }
+
+    fun setPlayerOp(name: String, op: Boolean): Boolean? {
+        val playerName = name.trim()
+        if (playerName.isEmpty()) return null
+        return synchronized(stateLock) {
+            val key = canonicalKey(playerName)
+            if (!playersByName.containsKey(key)) return@synchronized null
+            playerOpByName[key] = op
+            op
+        }
+    }
+
+    fun playerPermissions(name: String): Set<String>? {
+        val playerName = name.trim()
+        if (playerName.isEmpty()) return null
+        return synchronized(stateLock) {
+            val key = canonicalKey(playerName)
+            if (!playersByName.containsKey(key)) return@synchronized null
+            playerPermissionsByName[key]?.toSortedSet() ?: emptySet()
+        }
+    }
+
+    fun hasPlayerPermission(name: String, permission: String): Boolean? {
+        val playerName = name.trim()
+        val value = permission.trim()
+        if (playerName.isEmpty() || value.isEmpty()) return null
+        return synchronized(stateLock) {
+            val key = canonicalKey(playerName)
+            if (!playersByName.containsKey(key)) return@synchronized null
+            val permissions = playerPermissionsByName[key] ?: return@synchronized false
+            permissions.any { it.equals(value, ignoreCase = true) }
+        }
+    }
+
+    fun grantPlayerPermission(name: String, permission: String): Boolean {
+        val playerName = name.trim()
+        val value = permission.trim()
+        if (playerName.isEmpty() || value.isEmpty()) return false
+        return synchronized(stateLock) {
+            val key = canonicalKey(playerName)
+            if (!playersByName.containsKey(key)) return@synchronized false
+            val permissions = playerPermissionsByName.computeIfAbsent(key) { linkedSetOf() }
+            if (permissions.any { it.equals(value, ignoreCase = true) }) return@synchronized false
+            permissions.add(value)
+        }
+    }
+
+    fun revokePlayerPermission(name: String, permission: String): Boolean {
+        val playerName = name.trim()
+        val value = permission.trim()
+        if (playerName.isEmpty() || value.isEmpty()) return false
+        return synchronized(stateLock) {
+            val key = canonicalKey(playerName)
+            if (!playersByName.containsKey(key)) return@synchronized false
+            val permissions = playerPermissionsByName[key] ?: return@synchronized false
+            val existing = permissions.firstOrNull { it.equals(value, ignoreCase = true) } ?: return@synchronized false
+            permissions.remove(existing)
+        }
+    }
+
+    fun playerGameMode(name: String): String? {
+        val playerName = name.trim()
+        if (playerName.isEmpty()) return null
+        return synchronized(stateLock) {
+            val key = canonicalKey(playerName)
+            if (!playersByName.containsKey(key)) return@synchronized null
+            playerGameModesByName[key] ?: "survival"
+        }
+    }
+
+    fun setPlayerGameMode(name: String, gameMode: String): String? {
+        val playerName = name.trim()
+        if (playerName.isEmpty()) return null
+        val normalized = normalizeGameMode(gameMode) ?: return null
+        return synchronized(stateLock) {
+            val key = canonicalKey(playerName)
+            if (!playersByName.containsKey(key)) return@synchronized null
+            playerGameModesByName[key] = normalized
+            normalized
+        }
+    }
+
+    fun playerStatus(name: String): StandalonePlayerStatus? {
+        val playerName = name.trim()
+        if (playerName.isEmpty()) return null
+        return synchronized(stateLock) {
+            val key = canonicalKey(playerName)
+            if (!playersByName.containsKey(key)) return@synchronized null
+            playerStatusByName[key] ?: defaultPlayerStatus()
+        }
+    }
+
+    fun setPlayerStatus(name: String, status: StandalonePlayerStatus): StandalonePlayerStatus? {
+        val playerName = name.trim()
+        if (playerName.isEmpty()) return null
+        return synchronized(stateLock) {
+            val key = canonicalKey(playerName)
+            if (!playersByName.containsKey(key)) return@synchronized null
+            val sanitized = sanitizePlayerStatus(status)
+            playerStatusByName[key] = sanitized
+            sanitized
+        }
+    }
+
+    fun addPlayerEffect(name: String, effectId: String, durationTicks: Int, amplifier: Int): Boolean {
+        val playerName = name.trim()
+        val effect = effectId.trim()
+        if (playerName.isEmpty() || effect.isEmpty() || durationTicks <= 0 || amplifier < 0) return false
+        return synchronized(stateLock) {
+            val key = canonicalKey(playerName)
+            val current = playerStatusByName[key] ?: return@synchronized false
+            val appliedDuration = durationTicks + (amplifier * 200)
+            val updatedEffects = LinkedHashMap(current.effects)
+            updatedEffects[effect] = appliedDuration
+            playerStatusByName[key] = current.copy(effects = updatedEffects.toSortedMap())
+            true
+        }
+    }
+
+    fun removePlayerEffect(name: String, effectId: String): Boolean {
+        val playerName = name.trim()
+        val effect = effectId.trim()
+        if (playerName.isEmpty() || effect.isEmpty()) return false
+        return synchronized(stateLock) {
+            val key = canonicalKey(playerName)
+            val current = playerStatusByName[key] ?: return@synchronized false
+            if (!current.effects.containsKey(effect)) return@synchronized false
+            val updatedEffects = LinkedHashMap(current.effects)
+            updatedEffects.remove(effect)
+            playerStatusByName[key] = current.copy(effects = updatedEffects.toSortedMap())
+            true
+        }
+    }
+
     private fun firstFreeInventorySlotUnsafe(slots: Map<Int, String>): Int? {
         for (slot in 0..35) {
             if (!slots.containsKey(slot)) return slot
@@ -873,5 +1091,56 @@ class StandaloneHostState(
             "thunder", "storm" -> "thunder"
             else -> null
         }
+    }
+
+    private fun normalizeGameMode(value: String): String? {
+        return when (value.trim().lowercase()) {
+            "survival", "s" -> "survival"
+            "creative", "c" -> "creative"
+            "adventure", "a" -> "adventure"
+            "spectator", "sp" -> "spectator"
+            else -> null
+        }
+    }
+
+    private fun defaultPlayerStatus(): StandalonePlayerStatus {
+        return StandalonePlayerStatus(
+            health = 20.0,
+            maxHealth = 20.0,
+            foodLevel = 20,
+            saturation = 5.0,
+            experienceLevel = 0,
+            experienceProgress = 0.0,
+            effects = emptyMap()
+        )
+    }
+
+    private fun sanitizePlayerStatus(input: StandalonePlayerStatus): StandalonePlayerStatus {
+        val maxHealth = input.maxHealth.coerceAtLeast(1.0)
+        val health = input.health.coerceIn(0.0, maxHealth)
+        val food = input.foodLevel.coerceIn(0, 20)
+        val saturation = input.saturation.coerceIn(0.0, 20.0)
+        val level = input.experienceLevel.coerceAtLeast(0)
+        val progress = input.experienceProgress.coerceIn(0.0, 1.0)
+        val sanitizedEffects = input.effects
+            .mapNotNull { (effectId, duration) ->
+                val effect = effectId.trim()
+                if (effect.isEmpty() || duration <= 0) {
+                    null
+                } else {
+                    effect to duration
+                }
+            }
+            .toMap()
+            .toSortedMap()
+        return StandalonePlayerStatus(
+            health = health,
+            maxHealth = maxHealth,
+            foodLevel = food,
+            saturation = saturation,
+            experienceLevel = level,
+            experienceProgress = progress,
+            effects = sanitizedEffects
+        )
     }
 }

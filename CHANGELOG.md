@@ -16,16 +16,53 @@
   - typed command responses via `CommandResult` and `registerResult` / `registerOrReplaceResult`.
   - typed adapter payload parsing helpers on `AdapterInvocation` (`payloadString/Trimmed/Required/Int/Long/Double/Bool`).
   - expanded host gameplay API surface for mod-like plugins:
+    - `sendPlayerMessage`, `kickPlayer`,
+    - `playerIsOp`, `setPlayerOp`,
+    - `playerPermissions`, `hasPlayerPermission`, `grantPlayerPermission`, `revokePlayerPermission`,
     - `createWorld`, `worldTime`, `setWorldTime`,
     - `worldData`, `setWorldData`,
     - `worldWeather`, `setWorldWeather`,
     - `findEntity`, `removeEntity`,
     - `entityData`, `setEntityData`,
     - `movePlayer`,
+    - `playerGameMode`, `setPlayerGameMode`,
+    - `playerStatus`, `setPlayerStatus`,
+    - `addPlayerEffect`, `removePlayerEffect`,
     - `inventoryItem`, `givePlayerItem`,
     - `blockAt`, `setBlock`, `breakBlock`,
     - `blockData`, `setBlockData`.
-  - new gameplay events: `GigaEntityRemoveEvent`, `GigaEntityDataChangeEvent`, `GigaPlayerTeleportEvent`, `GigaWorldTimeChangeEvent`, `GigaWorldDataChangeEvent`, `GigaWorldWeatherChangeEvent`, `GigaBlockChangeEvent`, `GigaBlockDataChangeEvent`.
+  - plugin asset pipeline for custom visuals:
+    - new registry contracts `registerTexture` / `registerModel`,
+    - new model types `TextureDefinition` / `ModelDefinition`,
+    - DSL blocks `textures {}` / `models {}` for plugin-side declaration,
+    - richer model contracts (`ModelBounds`, `ModelLod`, material/scale/collision/animations metadata).
+  - runtime diagnostics for plugin performance tuning:
+    - `PluginRuntimeProfile.slowSystems` with threshold-based reasons,
+    - `PluginRuntimeProfile.adapterHotspots` with denied/timeout/failure rates,
+    - `PluginRuntimeProfile.isolatedSystems` for system cooldown/isolation state in long-running sessions,
+    - `RuntimeDiagnostics.pluginPerformance` cross-plugin hotspot summary.
+  - core fault isolation hardening:
+    - repeated system failures trigger bounded cooldown isolation with exponential backoff,
+    - isolation state is surfaced in `doctor`/`profile` output for plugin-side debugging.
+  - plugin lifecycle events expanded:
+    - command lifecycle: `GigaCommandPreExecuteEvent`, `GigaCommandPostExecuteEvent`,
+    - adapter lifecycle: `GigaAdapterPreInvokeEvent`, `GigaAdapterPostInvokeEvent`,
+    - gameplay lifecycle: `GigaPlayerMovePre/PostEvent`, `GigaEntitySpawnPre/PostEvent`, `GigaBlockBreakPre/PostEvent`,
+    - pre events support cancel/override-style policy control for runtime actions.
+  - event dispatch expansion:
+    - new `HYBRID` mode (exact listeners first, then polymorphic listeners in deterministic order).
+  - payload helper expansion on `AdapterInvocation`:
+    - `payloadCsv`, `payloadEnum`, `payloadByPrefix`,
+    - required numeric/boolean helpers (`payloadIntRequired`, `payloadLongRequired`, `payloadDoubleRequired`, `payloadBoolRequired`),
+    - `payloadEnumRequired`, `payloadDurationMillis`, `payloadMap`.
+  - event bus ergonomics:
+    - `EventBus.unsubscribe(...)`,
+    - `subscribeOnce<T> { ... }` helper for one-shot listeners.
+  - command registration expansion:
+    - `CommandRegistry.registerAlias` / `unregisterAlias` / `resolve` / `registeredCommands`,
+    - high-level helpers `registerWithAliases`, `registerOrReplaceWithAliases`,
+    - validation-aware helpers `registerValidated`, `registerOrReplaceValidated`.
+  - new gameplay events: `GigaEntityRemoveEvent`, `GigaEntityDataChangeEvent`, `GigaPlayerTeleportEvent`, `GigaPlayerGameModeChangeEvent`, `GigaPlayerMessageEvent`, `GigaPlayerKickEvent`, `GigaPlayerOpChangeEvent`, `GigaPlayerPermissionChangeEvent`, `GigaWorldTimeChangeEvent`, `GigaWorldDataChangeEvent`, `GigaWorldWeatherChangeEvent`, `GigaPlayerStatusChangeEvent`, `GigaPlayerEffectChangeEvent`, `GigaBlockChangeEvent`, `GigaBlockDataChangeEvent`, plus asset events `GigaTextureRegisteredEvent` and `GigaModelRegisteredEvent`.
 
 ### Planned
 - Network v1.1 improvements (session throughput and backpressure tuning).

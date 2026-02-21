@@ -2,6 +2,9 @@ package com.gigasoft.runtime
 
 import com.gigasoft.api.AdapterInvocation
 import com.gigasoft.api.AdapterResponse
+import com.gigasoft.api.EventBus
+import com.gigasoft.api.GigaAdapterPostInvokeEvent
+import com.gigasoft.api.GigaAdapterPreInvokeEvent
 import com.gigasoft.api.GigaLogger
 import com.gigasoft.api.ModAdapter
 import com.gigasoft.api.ModAdapterRegistry
@@ -18,6 +21,7 @@ class RuntimeModAdapterRegistry(
     private val pluginId: String,
     private val logger: GigaLogger,
     private val securityConfig: AdapterSecurityConfig = AdapterSecurityConfig(),
+    private val eventBus: EventBus? = null,
     private val invocationObserver: (adapterId: String, outcome: AdapterInvocationOutcome) -> Unit = { _, _ -> }
 ) : ModAdapterRegistry {
     private val adapters = ConcurrentHashMap<String, ModAdapter>()
@@ -73,23 +77,48 @@ class RuntimeModAdapterRegistry(
     override fun find(id: String): ModAdapter? = adapters[id]
 
     override fun invoke(adapterId: String, invocation: AdapterInvocation): AdapterResponse {
+        val started = System.nanoTime()
+        val pre = GigaAdapterPreInvokeEvent(
+            pluginId = pluginId,
+            adapterId = adapterId,
+            action = invocation.action,
+            payload = invocation.payload
+        )
+        eventBus?.publish(pre)
+        if (pre.cancelled) {
+            val response = pre.overrideResponse
+                ?: AdapterResponse(success = false, message = pre.cancelReason ?: "Adapter invocation cancelled")
+            invocationObserver(adapterId, AdapterInvocationOutcome.DENIED)
+            audit(adapterId, invocation, "DENIED", response.message ?: "Adapter invocation cancelled")
+            publishPost(adapterId, invocation, response, "DENIED", started)
+            return response
+        }
+        pre.overrideResponse?.let { response ->
+            invocationObserver(adapterId, AdapterInvocationOutcome.ACCEPTED)
+            audit(adapterId, invocation, "ACCEPTED", "Adapter invocation overridden by pre event")
+            publishPost(adapterId, invocation, response, "ACCEPTED", started)
+            return response
+        }
+
         val adapter = adapters[adapterId]
             ?: return denied(
                 adapterId,
                 invocation,
-                "Unknown adapter '$adapterId' in plugin '$pluginId'"
+                "Unknown adapter '$adapterId' in plugin '$pluginId'",
+                started
             )
 
         val validationError = validateInvocation(adapter, invocation)
         if (validationError != null) {
-            return denied(adapterId, invocation, validationError)
+            return denied(adapterId, invocation, validationError, started)
         }
 
         if (!rateLimit(adapterId)) {
             return denied(
                 adapterId,
                 invocation,
-                "Adapter '$adapterId' rate limit exceeded in plugin '$pluginId'"
+                "Adapter '$adapterId' rate limit exceeded in plugin '$pluginId'",
+                started
             )
         }
 
@@ -97,7 +126,8 @@ class RuntimeModAdapterRegistry(
             return denied(
                 adapterId,
                 invocation,
-                "Adapter '$adapterId' concurrency limit exceeded in plugin '$pluginId'"
+                "Adapter '$adapterId' concurrency limit exceeded in plugin '$pluginId'",
+                started
             )
         }
 
@@ -112,6 +142,7 @@ class RuntimeModAdapterRegistry(
                 val response = adapter.invoke(invocation)
                 invocationObserver(adapterId, AdapterInvocationOutcome.ACCEPTED)
                 audit(adapterId, invocation, "ACCEPTED", "Adapter invocation accepted")
+                publishPost(adapterId, invocation, response, "ACCEPTED", started)
                 response
             } catch (t: Throwable) {
                 invocationObserver(adapterId, AdapterInvocationOutcome.FAILED)
@@ -120,6 +151,7 @@ class RuntimeModAdapterRegistry(
                     message = "Adapter '$adapterId' failed: ${t.message}"
                 )
                 audit(adapterId, invocation, "FAILED", response.message.orEmpty())
+                publishPost(adapterId, invocation, response, "FAILED", started)
                 response
             } finally {
                 releaseOnce()
@@ -131,6 +163,7 @@ class RuntimeModAdapterRegistry(
             val response = future.get(invocationTimeoutMillis, TimeUnit.MILLISECONDS)
             invocationObserver(adapterId, AdapterInvocationOutcome.ACCEPTED)
             audit(adapterId, invocation, "ACCEPTED", "Adapter invocation accepted")
+            publishPost(adapterId, invocation, response, "ACCEPTED", started)
             response
         } catch (_: TimeoutException) {
             // Best effort interruption of slow adapter work.
@@ -141,6 +174,7 @@ class RuntimeModAdapterRegistry(
                 message = "Adapter '$adapterId' timed out after ${invocationTimeoutMillis}ms"
             )
             audit(adapterId, invocation, "TIMEOUT", response.message.orEmpty())
+            publishPost(adapterId, invocation, response, "TIMEOUT", started)
             response
         } catch (t: Throwable) {
             invocationObserver(adapterId, AdapterInvocationOutcome.FAILED)
@@ -149,6 +183,7 @@ class RuntimeModAdapterRegistry(
                 message = "Adapter '$adapterId' failed: ${t.message}"
             )
             audit(adapterId, invocation, "FAILED", response.message.orEmpty())
+            publishPost(adapterId, invocation, response, "FAILED", started)
             response
         } finally {
             releaseOnce()
@@ -187,10 +222,32 @@ class RuntimeModAdapterRegistry(
         return null
     }
 
-    private fun denied(adapterId: String, invocation: AdapterInvocation, message: String): AdapterResponse {
+    private fun denied(adapterId: String, invocation: AdapterInvocation, message: String, started: Long): AdapterResponse {
         invocationObserver(adapterId, AdapterInvocationOutcome.DENIED)
         audit(adapterId, invocation, "DENIED", message)
-        return AdapterResponse(success = false, message = message)
+        val response = AdapterResponse(success = false, message = message)
+        publishPost(adapterId, invocation, response, "DENIED", started)
+        return response
+    }
+
+    private fun publishPost(
+        adapterId: String,
+        invocation: AdapterInvocation,
+        response: AdapterResponse,
+        outcome: String,
+        started: Long
+    ) {
+        eventBus?.publish(
+            GigaAdapterPostInvokeEvent(
+                pluginId = pluginId,
+                adapterId = adapterId,
+                action = invocation.action,
+                payload = invocation.payload,
+                response = response,
+                outcome = outcome,
+                durationNanos = System.nanoTime() - started
+            )
+        )
     }
 
     private fun rateLimit(adapterId: String): Boolean {

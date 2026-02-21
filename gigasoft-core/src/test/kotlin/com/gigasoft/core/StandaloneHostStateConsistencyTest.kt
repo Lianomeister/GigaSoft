@@ -57,6 +57,37 @@ class StandaloneHostStateConsistencyTest {
         assertEquals("rain", state.setWorldWeather("mod_world", "rain"))
 
         state.joinPlayer("Alex", "mod_world", 0.0, 64.0, 0.0)
+        assertEquals(false, state.playerIsOp("Alex"))
+        assertEquals(true, state.setPlayerOp("Alex", true))
+        assertEquals(true, state.playerIsOp("Alex"))
+        assertEquals(emptySet(), state.playerPermissions("Alex"))
+        assertTrue(state.grantPlayerPermission("Alex", "plugin.debug"))
+        assertEquals(true, state.hasPlayerPermission("Alex", "plugin.debug"))
+        assertTrue(state.revokePlayerPermission("Alex", "plugin.debug"))
+        assertEquals(false, state.hasPlayerPermission("Alex", "plugin.debug"))
+        assertEquals("survival", state.playerGameMode("Alex"))
+        assertEquals("creative", state.setPlayerGameMode("Alex", "creative"))
+        assertEquals("creative", state.playerGameMode("Alex"))
+        assertEquals(20.0, state.playerStatus("Alex")?.health)
+        assertTrue(state.addPlayerEffect("Alex", "speed", 120, amplifier = 1))
+        assertEquals(320, state.playerStatus("Alex")?.effects?.get("speed"))
+        assertTrue(state.removePlayerEffect("Alex", "speed"))
+        assertEquals(null, state.playerStatus("Alex")?.effects?.get("speed"))
+        val updatedStatus = state.setPlayerStatus(
+            "Alex",
+            StandalonePlayerStatus(
+                health = 17.5,
+                maxHealth = 20.0,
+                foodLevel = 18,
+                saturation = 4.0,
+                experienceLevel = 3,
+                experienceProgress = 0.25,
+                effects = mapOf("regeneration" to 80)
+            )
+        )
+        assertNotNull(updatedStatus)
+        assertEquals(17.5, state.playerStatus("Alex")?.health)
+        assertEquals(80, state.playerStatus("Alex")?.effects?.get("regeneration"))
         val given = state.givePlayerItem("Alex", "copper_ingot", 3)
         assertEquals(3, given)
         assertEquals("copper_ingot", state.inventoryItem("Alex", 0))

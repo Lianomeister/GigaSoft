@@ -12,6 +12,16 @@ Standalone console diagnostics are expected to be machine-readable:
 
 - full profile object when present
 - `{ "pluginId": "<id>", "found": false }` when not present
+- includes hotspot diagnostics for plugin tuning:
+  - `slowSystems`
+  - `adapterHotspots`
+  - `isolatedSystems`
+
+`doctor --json` includes cross-plugin hotspot overview:
+
+- `pluginPerformance.<pluginId>.slowSystems`
+- `pluginPerformance.<pluginId>.adapterHotspots`
+- `pluginPerformance.<pluginId>.isolatedSystems`
 
 ## Pipelines
 
@@ -21,6 +31,14 @@ Standalone console diagnostics are expected to be machine-readable:
   - `./gradlew --no-daemon smokeTest`
 - Soak:
   - `./gradlew --no-daemon soakTest`
+
+## Kotlin Compiler Stability
+
+- Default build setting uses in-process Kotlin compilation (`kotlin.compiler.execution.strategy=in-process` in `gradle.properties`).
+- Reason: avoids intermittent Kotlin daemon incremental-cache file-lock issues seen on Windows during repeated smoke/soak runs.
+- If local cache behavior still looks inconsistent, run:
+  - `./gradlew --stop`
+  - then rerun with `--no-daemon`.
 
 ## CI Workflows
 

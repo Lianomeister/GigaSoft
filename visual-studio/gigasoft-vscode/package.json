@@ -2,7 +2,7 @@
   "name": "gigasoft-vscode",
   "displayName": "GigaSoft Plugin Tools",
   "description": "VS Code support for GigaSoft plugin development.",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "publisher": "lianomeister",
   "engines": {
     "vscode": "^1.95.0"
@@ -13,7 +13,9 @@
     "Linters"
   ],
   "activationEvents": [
+    "onLanguage:yaml",
     "onCommand:gigasoft.createPluginTemplate",
+    "onCommand:gigasoft.createAssetTemplate",
     "onCommand:gigasoft.validateManifest",
     "onCommand:gigasoft.checkForUpdates",
     "workspaceContains:**/gigaplugin.yml"
@@ -24,6 +26,10 @@
       {
         "command": "gigasoft.createPluginTemplate",
         "title": "GigaSoft: Create Plugin Template"
+      },
+      {
+        "command": "gigasoft.createAssetTemplate",
+        "title": "GigaSoft: Create Texture/Model Asset Template"
       },
       {
         "command": "gigasoft.validateManifest",
@@ -77,7 +83,13 @@
   },
   "scripts": {
     "lint": "echo \"No lint configured\"",
-    "test": "echo \"No tests configured\""
+    "test": "echo \"No tests configured\"",
+    "package": "npx @vscode/vsce package --no-dependencies",
+    "package:pre": "npx @vscode/vsce package --pre-release --no-dependencies",
+    "publish:check": "npx @vscode/vsce package --no-dependencies && echo \"VSIX package created successfully\""
+  },
+  "devDependencies": {
+    "@vscode/vsce": "^3.6.2"
   },
   "repository": {
     "type": "git",
