@@ -5,6 +5,8 @@ import com.gigasoft.core.GigaStandaloneCore
 import com.gigasoft.core.StandaloneCoreConfig
 import com.gigasoft.runtime.AdapterExecutionMode
 import com.gigasoft.runtime.AdapterSecurityConfig
+import com.gigasoft.runtime.EventDispatchMode
+import com.gigasoft.runtime.MetricSnapshot
 import com.gigasoft.net.StandaloneNetConfig
 import com.gigasoft.net.StandaloneNetServer
 import com.gigasoft.net.SessionActionResult
@@ -31,12 +33,20 @@ fun main(args: Array<String>) {
                 maxPayloadValueChars = launchConfig.adapterMaxPayloadValueChars,
                 maxPayloadTotalChars = launchConfig.adapterMaxPayloadTotalChars,
                 maxCallsPerMinute = launchConfig.adapterRateLimitPerMinute,
+                maxCallsPerMinutePerPlugin = launchConfig.adapterRateLimitPerMinutePerPlugin,
+                maxConcurrentInvocationsPerAdapter = launchConfig.adapterMaxConcurrentInvocationsPerAdapter,
                 invocationTimeoutMillis = launchConfig.adapterTimeoutMillis,
+                auditLogEnabled = launchConfig.adapterAuditLogEnabled,
+                auditLogSuccesses = launchConfig.adapterAuditLogSuccesses,
                 executionMode = when (launchConfig.adapterExecutionMode.lowercase()) {
                     "fast" -> AdapterExecutionMode.FAST
                     else -> AdapterExecutionMode.SAFE
                 }
-            )
+            ),
+            eventDispatchMode = when (launchConfig.eventDispatchMode.lowercase()) {
+                "polymorphic" -> EventDispatchMode.POLYMORPHIC
+                else -> EventDispatchMode.EXACT
+            }
         )
     )
 
@@ -48,6 +58,17 @@ fun main(args: Array<String>) {
                 sharedSecret = launchConfig.netSharedSecret,
                 adminSecret = launchConfig.netAdminSecret,
                 sessionTtlSeconds = launchConfig.netSessionTtlSeconds,
+                maxTextLineBytes = launchConfig.netMaxTextLineBytes,
+                readTimeoutMillis = launchConfig.netReadTimeoutMillis,
+                maxConcurrentSessions = launchConfig.netMaxConcurrentSessions,
+                maxSessionsPerIp = launchConfig.netMaxSessionsPerIp,
+                maxRequestsPerMinutePerConnection = launchConfig.netMaxRequestsPerMinutePerConnection,
+                maxRequestsPerMinutePerIp = launchConfig.netMaxRequestsPerMinutePerIp,
+                maxJsonPayloadEntries = launchConfig.netMaxJsonPayloadEntries,
+                maxJsonPayloadKeyChars = launchConfig.netMaxJsonPayloadKeyChars,
+                maxJsonPayloadValueChars = launchConfig.netMaxJsonPayloadValueChars,
+                maxJsonPayloadTotalChars = launchConfig.netMaxJsonPayloadTotalChars,
+                auditLogEnabled = launchConfig.netAuditLogEnabled,
                 textFlushEveryResponses = launchConfig.netTextFlushEveryResponses,
                 frameFlushEveryResponses = launchConfig.netFrameFlushEveryResponses
             ),
@@ -181,8 +202,8 @@ fun main(args: Array<String>) {
 
     core.start()
     netServer?.start()
-    println("GigaSoft standalone core is running (name=${launchConfig.serverName} version=${launchConfig.serverVersion} maxPlayers=${launchConfig.maxPlayers} tickMs=${launchConfig.tickPeriodMillis} autosaveTicks=${launchConfig.autoSaveEveryTicks} netPort=${if (netServer == null) "disabled" else launchConfig.netPort} netAuthRequired=${launchConfig.netAuthRequired} netSessionTtlSeconds=${launchConfig.netSessionTtlSeconds} netTextFlushEvery=${launchConfig.netTextFlushEveryResponses} netFrameFlushEvery=${launchConfig.netFrameFlushEveryResponses} adapterMode=${launchConfig.adapterExecutionMode} adapterTimeoutMs=${launchConfig.adapterTimeoutMillis} adapterRateLimitPerMinute=${launchConfig.adapterRateLimitPerMinute}).")
-    println("Commands: help, status, save, load, plugins, worlds, world create, entities, entity spawn, players, player join|leave|move, inventory, scan, reload <id|all>, doctor [--json], profile <id> [--json], run <plugin> <command...>, adapters <plugin> [--json], adapter invoke <plugin> <adapterId> <action> [k=v ...] [--json], stop")
+    println("GigaSoft standalone core is running (name=${launchConfig.serverName} version=${launchConfig.serverVersion} maxPlayers=${launchConfig.maxPlayers} tickMs=${launchConfig.tickPeriodMillis} autosaveTicks=${launchConfig.autoSaveEveryTicks} netPort=${if (netServer == null) "disabled" else launchConfig.netPort} netAuthRequired=${launchConfig.netAuthRequired} netSessionTtlSeconds=${launchConfig.netSessionTtlSeconds} netMaxTextLineBytes=${launchConfig.netMaxTextLineBytes} netReadTimeoutMs=${launchConfig.netReadTimeoutMillis} netMaxConcurrentSessions=${launchConfig.netMaxConcurrentSessions} netMaxSessionsPerIp=${launchConfig.netMaxSessionsPerIp} netRpmConnection=${launchConfig.netMaxRequestsPerMinutePerConnection} netRpmIp=${launchConfig.netMaxRequestsPerMinutePerIp} netTextFlushEvery=${launchConfig.netTextFlushEveryResponses} netFrameFlushEvery=${launchConfig.netFrameFlushEveryResponses} adapterMode=${launchConfig.adapterExecutionMode} adapterTimeoutMs=${launchConfig.adapterTimeoutMillis} adapterRateLimitPerMinute=${launchConfig.adapterRateLimitPerMinute} adapterRateLimitPerMinutePerPlugin=${launchConfig.adapterRateLimitPerMinutePerPlugin} adapterMaxConcurrentPerAdapter=${launchConfig.adapterMaxConcurrentInvocationsPerAdapter} eventDispatchMode=${launchConfig.eventDispatchMode}).")
+    println("Commands: help, status [--json], save, load, plugins, worlds, world create, entities, entity spawn, players, player join|leave|move, inventory, scan, reload <id|all>, doctor [--json], profile <id> [--json], run <plugin> <command...>, adapters <plugin> [--json], adapter invoke <plugin> <adapterId> <action> [k=v ...] [--json], stop")
 
     while (true) {
         print("> ")
@@ -190,21 +211,10 @@ fun main(args: Array<String>) {
         if (line.isEmpty()) continue
         val parts = line.split(" ").filter { it.isNotBlank() }
         when (parts.first().lowercase()) {
-            "help" -> println("Commands: help, status, save, load, plugins, worlds, world create, entities, entity spawn, players, player join|leave|move, inventory, scan, reload <id|all>, doctor [--json], profile <id> [--json], run <plugin> <command...>, adapters <plugin> [--json], adapter invoke <plugin> <adapterId> <action> [k=v ...] [--json], stop")
+            "help" -> println("Commands: help, status [--json], save, load, plugins, worlds, world create, entities, entity spawn, players, player join|leave|move, inventory, scan, reload <id|all>, doctor [--json], profile <id> [--json], run <plugin> <command...>, adapters <plugin> [--json], adapter invoke <plugin> <adapterId> <action> [k=v ...] [--json], stop")
             "status" -> {
+                val jsonMode = parts.any { it.equals("--json", ignoreCase = true) }
                 val s = core.status()
-                println("running=${s.running} uptimeMs=${s.uptimeMillis} ticks=${s.tickCount} avgTickNs=${s.averageTickDurationNanos} lastTickNs=${s.lastTickDurationNanos} tickFailures=${s.tickFailures} plugins=${s.loadedPlugins} players=${s.onlinePlayers} worlds=${s.worlds} entities=${s.entities}")
-                println("tickPhases.avgNs queue=${s.averageQueueDrainNanos} world=${s.averageWorldTickNanos} events=${s.averageEventPublishNanos} systems=${s.averageSystemsNanos}")
-                if (netServer != null) {
-                    val nm = netServer.metrics()
-                    println("net req=${nm.totalRequests} json=${nm.jsonRequests} legacy=${nm.legacyRequests} avgReqNs=${nm.averageRequestNanos}")
-                    val top = nm.actionMetrics.entries
-                        .sortedByDescending { it.value.totalNanos }
-                        .take(3)
-                    top.forEach { (action, metric) ->
-                        println("net.action[$action]=count:${metric.count},fail:${metric.failures},avgNs:${metric.averageNanos},maxNs:${metric.maxNanos}")
-                    }
-                }
                 val topSystems = core.plugins()
                     .map { it.substringBefore('@') }
                     .mapNotNull { id -> core.profile(id) }
@@ -215,9 +225,25 @@ fun main(args: Array<String>) {
                     }
                     .sortedByDescending { it.second }
                     .take(3)
-                if (topSystems.isNotEmpty()) {
-                    topSystems.forEach { (id, _, metric) ->
-                        println("core.system[$id]=runs:${metric.runs},fail:${metric.failures},avgNs:${metric.averageNanos},maxNs:${metric.maxNanos}")
+                if (jsonMode) {
+                    println(objectMapper.writeValueAsString(statusView(core = core, netServer = netServer, topSystems = topSystems)))
+                } else {
+                    println("running=${s.running} uptimeMs=${s.uptimeMillis} ticks=${s.tickCount} avgTickNs=${s.averageTickDurationNanos} lastTickNs=${s.lastTickDurationNanos} tickFailures=${s.tickFailures} plugins=${s.loadedPlugins} players=${s.onlinePlayers} worlds=${s.worlds} entities=${s.entities}")
+                    println("tickPhases.avgNs queue=${s.averageQueueDrainNanos} world=${s.averageWorldTickNanos} events=${s.averageEventPublishNanos} systems=${s.averageSystemsNanos}")
+                    if (netServer != null) {
+                        val nm = netServer.metrics()
+                        println("net req=${nm.totalRequests} json=${nm.jsonRequests} legacy=${nm.legacyRequests} avgReqNs=${nm.averageRequestNanos}")
+                        val top = nm.actionMetrics.entries
+                            .sortedByDescending { it.value.totalNanos }
+                            .take(3)
+                        top.forEach { (action, metric) ->
+                            println("net.action[$action]=count:${metric.count},fail:${metric.failures},avgNs:${metric.averageNanos},maxNs:${metric.maxNanos}")
+                        }
+                    }
+                    if (topSystems.isNotEmpty()) {
+                        topSystems.forEach { (id, _, metric) ->
+                            println("core.system[$id]=runs:${metric.runs},fail:${metric.failures},avgNs:${metric.averageNanos},maxNs:${metric.maxNanos}")
+                        }
                     }
                 }
             }
@@ -396,12 +422,16 @@ fun main(args: Array<String>) {
                     println("Usage: profile <id>")
                     continue
                 }
+                val jsonMode = parts.any { it.equals("--json", ignoreCase = true) }
                 val p = core.profile(id)
                 if (p == null) {
-                    println("No profile for plugin '$id'")
+                    if (jsonMode) {
+                        println(objectMapper.writeValueAsString(mapOf("pluginId" to id, "found" to false)))
+                    } else {
+                        println("No profile for plugin '$id'")
+                    }
                     continue
                 }
-                val jsonMode = parts.any { it.equals("--json", ignoreCase = true) }
                 if (jsonMode) {
                     println(objectMapper.writeValueAsString(p))
                 } else {
@@ -495,4 +525,69 @@ private fun parsePayload(rawPairs: List<String>): Map<String, String> {
             if (key.isBlank()) null else key to value
         }
     }.toMap()
+}
+
+internal fun statusView(
+    core: GigaStandaloneCore,
+    netServer: StandaloneNetServer?,
+    topSystems: List<Triple<String, Long, MetricSnapshot>>
+): Map<String, Any?> {
+    val s = core.status()
+    val net = netServer?.metrics()
+    val topNetActions = net?.actionMetrics
+        ?.entries
+        ?.sortedByDescending { it.value.totalNanos }
+        ?.take(3)
+        ?.map { (action, metric) ->
+            mapOf(
+                "action" to action,
+                "count" to metric.count,
+                "failures" to metric.failures,
+                "averageNanos" to metric.averageNanos,
+                "maxNanos" to metric.maxNanos
+            )
+        }
+        ?: emptyList()
+    val topCoreSystems = topSystems.map { (id, _, metric) ->
+        mapOf(
+            "id" to id,
+            "runs" to metric.runs,
+            "failures" to metric.failures,
+            "averageNanos" to metric.averageNanos,
+            "maxNanos" to metric.maxNanos
+        )
+    }
+    return linkedMapOf<String, Any?>(
+        "core" to linkedMapOf(
+            "running" to s.running,
+            "uptimeMillis" to s.uptimeMillis,
+            "tickCount" to s.tickCount,
+            "averageTickDurationNanos" to s.averageTickDurationNanos,
+            "lastTickDurationNanos" to s.lastTickDurationNanos,
+            "tickFailures" to s.tickFailures,
+            "loadedPlugins" to s.loadedPlugins,
+            "onlinePlayers" to s.onlinePlayers,
+            "worlds" to s.worlds,
+            "entities" to s.entities,
+            "queuedMutations" to s.queuedMutations,
+            "tickPhasesAverageNanos" to linkedMapOf(
+                "queue" to s.averageQueueDrainNanos,
+                "world" to s.averageWorldTickNanos,
+                "events" to s.averageEventPublishNanos,
+                "systems" to s.averageSystemsNanos
+            )
+        ),
+        "net" to if (net == null) {
+            null as Any?
+        } else {
+            linkedMapOf(
+                "totalRequests" to net.totalRequests,
+                "jsonRequests" to net.jsonRequests,
+                "legacyRequests" to net.legacyRequests,
+                "averageRequestNanos" to net.averageRequestNanos,
+                "topActions" to topNetActions
+            )
+        },
+        "topCoreSystems" to topCoreSystems
+    )
 }

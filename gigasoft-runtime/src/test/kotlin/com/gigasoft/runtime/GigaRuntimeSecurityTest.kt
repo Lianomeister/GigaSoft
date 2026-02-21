@@ -51,6 +51,34 @@ class GigaRuntimeSecurityTest {
         kotlin.test.assertTrue(loaded.isEmpty())
     }
 
+    @Test
+    fun `scanAndLoad skips non file jar entries and continues`() {
+        val root = Files.createTempDirectory("giga-security-scan-non-file")
+        val pluginsDir = root.resolve("plugins")
+        val dataDir = root.resolve("data")
+        Files.createDirectories(pluginsDir)
+        Files.createDirectories(dataDir)
+
+        Files.createDirectories(pluginsDir.resolve("folder.jar"))
+        createManifestJar(
+            pluginsDir.resolve("bad.jar"),
+            """
+            id: bad id
+            name: bad
+            version: 1.0.0
+            main: com.example.Bad
+            apiVersion: 1
+            dependencies: []
+            permissions: []
+            """.trimIndent()
+        )
+
+        val runtime = GigaRuntime(pluginsDir, dataDir)
+        val loaded = runtime.scanAndLoad()
+
+        kotlin.test.assertTrue(loaded.isEmpty())
+    }
+
     private fun createPluginJar(targetJar: Path): Path {
         createManifestJar(
             targetJar,

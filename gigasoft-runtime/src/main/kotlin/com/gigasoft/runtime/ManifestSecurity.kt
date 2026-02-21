@@ -26,8 +26,10 @@ object ManifestSecurity {
         require(manifest.permissions.size <= maxPermissions) {
             "Too many permissions (${manifest.permissions.size} > $maxPermissions)"
         }
+        val seenPermissions = mutableSetOf<String>()
         manifest.permissions.forEach { permission ->
             require(permissionRegex.matches(permission)) { "Invalid permission '$permission'" }
+            require(seenPermissions.add(permission)) { "Duplicate permission '$permission'" }
         }
         validateDependencies(manifest.id, manifest.dependencies)
     }

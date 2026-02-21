@@ -98,4 +98,20 @@ class ManifestSecurityTest {
             )
         }
     }
+
+    @Test
+    fun `rejects duplicate permissions`() {
+        assertFailsWith<IllegalArgumentException> {
+            ManifestSecurity.validate(
+                PluginManifest(
+                    id = "demo",
+                    name = "Demo",
+                    version = "1.0.0",
+                    main = "com.example.Demo",
+                    apiVersion = "1",
+                    permissions = listOf("host.server.read", "host.server.read")
+                )
+            )
+        }
+    }
 }

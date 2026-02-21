@@ -1,0 +1,554 @@
+public final class com/gigasoft/api/AdapterDsl {
+	public fun <init> ()V
+	public final fun adapter (Lcom/gigasoft/api/ModAdapter;)V
+	public final fun adapter (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/Set;Lkotlin/jvm/functions/Function1;)V
+	public static synthetic fun adapter$default (Lcom/gigasoft/api/AdapterDsl;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/Set;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
+}
+
+public final class com/gigasoft/api/AdapterInvocation {
+	public fun <init> (Ljava/lang/String;Ljava/util/Map;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/util/Map;
+	public final fun copy (Ljava/lang/String;Ljava/util/Map;)Lcom/gigasoft/api/AdapterInvocation;
+	public static synthetic fun copy$default (Lcom/gigasoft/api/AdapterInvocation;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)Lcom/gigasoft/api/AdapterInvocation;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAction ()Ljava/lang/String;
+	public final fun getPayload ()Ljava/util/Map;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/gigasoft/api/AdapterResponse {
+	public fun <init> (ZLjava/util/Map;Ljava/lang/String;)V
+	public synthetic fun <init> (ZLjava/util/Map;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Z
+	public final fun component2 ()Ljava/util/Map;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun copy (ZLjava/util/Map;Ljava/lang/String;)Lcom/gigasoft/api/AdapterResponse;
+	public static synthetic fun copy$default (Lcom/gigasoft/api/AdapterResponse;ZLjava/util/Map;Ljava/lang/String;ILjava/lang/Object;)Lcom/gigasoft/api/AdapterResponse;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getMessage ()Ljava/lang/String;
+	public final fun getPayload ()Ljava/util/Map;
+	public final fun getSuccess ()Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/gigasoft/api/BlockDefinition {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;)Lcom/gigasoft/api/BlockDefinition;
+	public static synthetic fun copy$default (Lcom/gigasoft/api/BlockDefinition;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/gigasoft/api/BlockDefinition;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDisplayName ()Ljava/lang/String;
+	public final fun getId ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/gigasoft/api/BlockDsl {
+	public fun <init> ()V
+	public final fun block (Ljava/lang/String;Ljava/lang/String;)V
+}
+
+public final class com/gigasoft/api/CommandDsl {
+	public fun <init> ()V
+	public final fun command (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function3;)V
+	public static synthetic fun command$default (Lcom/gigasoft/api/CommandDsl;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function3;ILjava/lang/Object;)V
+}
+
+public abstract interface class com/gigasoft/api/CommandRegistry {
+	public abstract fun register (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function3;)V
+	public abstract fun registerOrReplace (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function3;)V
+	public abstract fun unregister (Ljava/lang/String;)Z
+}
+
+public final class com/gigasoft/api/CommandRegistry$DefaultImpls {
+	public static synthetic fun register$default (Lcom/gigasoft/api/CommandRegistry;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function3;ILjava/lang/Object;)V
+	public static fun registerOrReplace (Lcom/gigasoft/api/CommandRegistry;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function3;)V
+	public static synthetic fun registerOrReplace$default (Lcom/gigasoft/api/CommandRegistry;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function3;ILjava/lang/Object;)V
+	public static fun unregister (Lcom/gigasoft/api/CommandRegistry;Ljava/lang/String;)Z
+}
+
+public final class com/gigasoft/api/DependencySpec {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;)Lcom/gigasoft/api/DependencySpec;
+	public static synthetic fun copy$default (Lcom/gigasoft/api/DependencySpec;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/gigasoft/api/DependencySpec;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getId ()Ljava/lang/String;
+	public final fun getVersionRange ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/gigasoft/api/DslGigaPlugin : com/gigasoft/api/GigaPlugin {
+	public fun <init> (Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function1;)V
+	public final fun manifest ()Lcom/gigasoft/api/PluginManifest;
+	public fun onDisable (Lcom/gigasoft/api/PluginContext;)V
+	public fun onEnable (Lcom/gigasoft/api/PluginContext;)V
+	public fun onReload (Lcom/gigasoft/api/PluginContext;)V
+}
+
+public final class com/gigasoft/api/DslKt {
+	public static final fun dependency (Ljava/lang/String;Ljava/lang/String;)Lcom/gigasoft/api/DependencySpec;
+	public static synthetic fun dependency$default (Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/gigasoft/api/DependencySpec;
+	public static final fun dependencySpec (Ljava/lang/String;)Lcom/gigasoft/api/DependencySpec;
+	public static final fun gigaPlugin (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;Lkotlin/jvm/functions/Function1;)Lcom/gigasoft/api/DslGigaPlugin;
+	public static synthetic fun gigaPlugin$default (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcom/gigasoft/api/DslGigaPlugin;
+}
+
+public abstract interface class com/gigasoft/api/EventBus {
+	public abstract fun publish (Ljava/lang/Object;)V
+	public abstract fun subscribe (Ljava/lang/Class;Lkotlin/jvm/functions/Function1;)V
+}
+
+public final class com/gigasoft/api/GigaApiVersion {
+	public static final field CONTRACTS_FROZEN Z
+	public static final field CONTRACT_VERSION Ljava/lang/String;
+	public static final field INSTANCE Lcom/gigasoft/api/GigaApiVersion;
+	public static final field MANIFEST_API_VERSION Ljava/lang/String;
+}
+
+public final class com/gigasoft/api/GigaEntitySpawnEvent {
+	public fun <init> (Lcom/gigasoft/api/HostEntitySnapshot;)V
+	public final fun component1 ()Lcom/gigasoft/api/HostEntitySnapshot;
+	public final fun copy (Lcom/gigasoft/api/HostEntitySnapshot;)Lcom/gigasoft/api/GigaEntitySpawnEvent;
+	public static synthetic fun copy$default (Lcom/gigasoft/api/GigaEntitySpawnEvent;Lcom/gigasoft/api/HostEntitySnapshot;ILjava/lang/Object;)Lcom/gigasoft/api/GigaEntitySpawnEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getEntity ()Lcom/gigasoft/api/HostEntitySnapshot;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/gigasoft/api/GigaInventoryChangeEvent {
+	public fun <init> (Ljava/lang/String;ILjava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()I
+	public final fun component3 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;ILjava/lang/String;)Lcom/gigasoft/api/GigaInventoryChangeEvent;
+	public static synthetic fun copy$default (Lcom/gigasoft/api/GigaInventoryChangeEvent;Ljava/lang/String;ILjava/lang/String;ILjava/lang/Object;)Lcom/gigasoft/api/GigaInventoryChangeEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getItemId ()Ljava/lang/String;
+	public final fun getOwner ()Ljava/lang/String;
+	public final fun getSlot ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class com/gigasoft/api/GigaLogger {
+	public abstract fun info (Ljava/lang/String;)V
+}
+
+public final class com/gigasoft/api/GigaPlayerJoinEvent {
+	public fun <init> (Lcom/gigasoft/api/HostPlayerSnapshot;)V
+	public final fun component1 ()Lcom/gigasoft/api/HostPlayerSnapshot;
+	public final fun copy (Lcom/gigasoft/api/HostPlayerSnapshot;)Lcom/gigasoft/api/GigaPlayerJoinEvent;
+	public static synthetic fun copy$default (Lcom/gigasoft/api/GigaPlayerJoinEvent;Lcom/gigasoft/api/HostPlayerSnapshot;ILjava/lang/Object;)Lcom/gigasoft/api/GigaPlayerJoinEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getPlayer ()Lcom/gigasoft/api/HostPlayerSnapshot;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/gigasoft/api/GigaPlayerLeaveEvent {
+	public fun <init> (Lcom/gigasoft/api/HostPlayerSnapshot;)V
+	public final fun component1 ()Lcom/gigasoft/api/HostPlayerSnapshot;
+	public final fun copy (Lcom/gigasoft/api/HostPlayerSnapshot;)Lcom/gigasoft/api/GigaPlayerLeaveEvent;
+	public static synthetic fun copy$default (Lcom/gigasoft/api/GigaPlayerLeaveEvent;Lcom/gigasoft/api/HostPlayerSnapshot;ILjava/lang/Object;)Lcom/gigasoft/api/GigaPlayerLeaveEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getPlayer ()Lcom/gigasoft/api/HostPlayerSnapshot;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/gigasoft/api/GigaPlayerMoveEvent {
+	public fun <init> (Lcom/gigasoft/api/HostPlayerSnapshot;Lcom/gigasoft/api/HostPlayerSnapshot;)V
+	public final fun component1 ()Lcom/gigasoft/api/HostPlayerSnapshot;
+	public final fun component2 ()Lcom/gigasoft/api/HostPlayerSnapshot;
+	public final fun copy (Lcom/gigasoft/api/HostPlayerSnapshot;Lcom/gigasoft/api/HostPlayerSnapshot;)Lcom/gigasoft/api/GigaPlayerMoveEvent;
+	public static synthetic fun copy$default (Lcom/gigasoft/api/GigaPlayerMoveEvent;Lcom/gigasoft/api/HostPlayerSnapshot;Lcom/gigasoft/api/HostPlayerSnapshot;ILjava/lang/Object;)Lcom/gigasoft/api/GigaPlayerMoveEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCurrent ()Lcom/gigasoft/api/HostPlayerSnapshot;
+	public final fun getPrevious ()Lcom/gigasoft/api/HostPlayerSnapshot;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class com/gigasoft/api/GigaPlugin {
+	public abstract fun onDisable (Lcom/gigasoft/api/PluginContext;)V
+	public abstract fun onEnable (Lcom/gigasoft/api/PluginContext;)V
+	public abstract fun onReload (Lcom/gigasoft/api/PluginContext;)V
+}
+
+public final class com/gigasoft/api/GigaPlugin$DefaultImpls {
+	public static fun onReload (Lcom/gigasoft/api/GigaPlugin;Lcom/gigasoft/api/PluginContext;)V
+}
+
+public final class com/gigasoft/api/GigaPluginDsl {
+	public fun <init> (Lcom/gigasoft/api/PluginContext;)V
+	public final fun adapters (Lkotlin/jvm/functions/Function1;)V
+	public final fun blocks (Lkotlin/jvm/functions/Function1;)V
+	public final fun commands (Lkotlin/jvm/functions/Function1;)V
+	public final fun install ()V
+	public final fun items (Lkotlin/jvm/functions/Function1;)V
+	public final fun machines (Lkotlin/jvm/functions/Function1;)V
+	public final fun recipes (Lkotlin/jvm/functions/Function1;)V
+	public final fun systems (Lkotlin/jvm/functions/Function1;)V
+}
+
+public final class com/gigasoft/api/GigaTickEvent {
+	public fun <init> (J)V
+	public final fun component1 ()J
+	public final fun copy (J)Lcom/gigasoft/api/GigaTickEvent;
+	public static synthetic fun copy$default (Lcom/gigasoft/api/GigaTickEvent;JILjava/lang/Object;)Lcom/gigasoft/api/GigaTickEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getTick ()J
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/gigasoft/api/GigaWorldCreatedEvent {
+	public fun <init> (Lcom/gigasoft/api/HostWorldSnapshot;)V
+	public final fun component1 ()Lcom/gigasoft/api/HostWorldSnapshot;
+	public final fun copy (Lcom/gigasoft/api/HostWorldSnapshot;)Lcom/gigasoft/api/GigaWorldCreatedEvent;
+	public static synthetic fun copy$default (Lcom/gigasoft/api/GigaWorldCreatedEvent;Lcom/gigasoft/api/HostWorldSnapshot;ILjava/lang/Object;)Lcom/gigasoft/api/GigaWorldCreatedEvent;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getWorld ()Lcom/gigasoft/api/HostWorldSnapshot;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class com/gigasoft/api/HostAccess {
+	public static final field Companion Lcom/gigasoft/api/HostAccess$Companion;
+	public abstract fun broadcast (Ljava/lang/String;)Z
+	public abstract fun entities (Ljava/lang/String;)Ljava/util/List;
+	public abstract fun findPlayer (Ljava/lang/String;)Lcom/gigasoft/api/HostPlayerSnapshot;
+	public abstract fun playerInventory (Ljava/lang/String;)Lcom/gigasoft/api/HostInventorySnapshot;
+	public abstract fun serverInfo ()Lcom/gigasoft/api/HostServerSnapshot;
+	public abstract fun setPlayerInventoryItem (Ljava/lang/String;ILjava/lang/String;)Z
+	public abstract fun spawnEntity (Ljava/lang/String;Lcom/gigasoft/api/HostLocationRef;)Lcom/gigasoft/api/HostEntitySnapshot;
+	public abstract fun worlds ()Ljava/util/List;
+}
+
+public final class com/gigasoft/api/HostAccess$Companion {
+	public final fun unavailable ()Lcom/gigasoft/api/HostAccess;
+}
+
+public final class com/gigasoft/api/HostAccess$DefaultImpls {
+	public static synthetic fun entities$default (Lcom/gigasoft/api/HostAccess;Ljava/lang/String;ILjava/lang/Object;)Ljava/util/List;
+}
+
+public final class com/gigasoft/api/HostEntitySnapshot {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Lcom/gigasoft/api/HostLocationRef;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Lcom/gigasoft/api/HostLocationRef;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Lcom/gigasoft/api/HostLocationRef;)Lcom/gigasoft/api/HostEntitySnapshot;
+	public static synthetic fun copy$default (Lcom/gigasoft/api/HostEntitySnapshot;Ljava/lang/String;Ljava/lang/String;Lcom/gigasoft/api/HostLocationRef;ILjava/lang/Object;)Lcom/gigasoft/api/HostEntitySnapshot;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getLocation ()Lcom/gigasoft/api/HostLocationRef;
+	public final fun getType ()Ljava/lang/String;
+	public final fun getUuid ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/gigasoft/api/HostInventorySnapshot {
+	public fun <init> (Ljava/lang/String;II)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()I
+	public final fun component3 ()I
+	public final fun copy (Ljava/lang/String;II)Lcom/gigasoft/api/HostInventorySnapshot;
+	public static synthetic fun copy$default (Lcom/gigasoft/api/HostInventorySnapshot;Ljava/lang/String;IIILjava/lang/Object;)Lcom/gigasoft/api/HostInventorySnapshot;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getNonEmptySlots ()I
+	public final fun getOwner ()Ljava/lang/String;
+	public final fun getSize ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/gigasoft/api/HostLocationRef {
+	public fun <init> (Ljava/lang/String;DDD)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()D
+	public final fun component3 ()D
+	public final fun component4 ()D
+	public final fun copy (Ljava/lang/String;DDD)Lcom/gigasoft/api/HostLocationRef;
+	public static synthetic fun copy$default (Lcom/gigasoft/api/HostLocationRef;Ljava/lang/String;DDDILjava/lang/Object;)Lcom/gigasoft/api/HostLocationRef;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getWorld ()Ljava/lang/String;
+	public final fun getX ()D
+	public final fun getY ()D
+	public final fun getZ ()D
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/gigasoft/api/HostPermissions {
+	public static final field ENTITY_READ Ljava/lang/String;
+	public static final field ENTITY_SPAWN Ljava/lang/String;
+	public static final field INSTANCE Lcom/gigasoft/api/HostPermissions;
+	public static final field INVENTORY_READ Ljava/lang/String;
+	public static final field INVENTORY_WRITE Ljava/lang/String;
+	public static final field PLAYER_READ Ljava/lang/String;
+	public static final field SERVER_BROADCAST Ljava/lang/String;
+	public static final field SERVER_READ Ljava/lang/String;
+	public static final field WORLD_READ Ljava/lang/String;
+}
+
+public final class com/gigasoft/api/HostPlayerSnapshot {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Lcom/gigasoft/api/HostLocationRef;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Lcom/gigasoft/api/HostLocationRef;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Lcom/gigasoft/api/HostLocationRef;)Lcom/gigasoft/api/HostPlayerSnapshot;
+	public static synthetic fun copy$default (Lcom/gigasoft/api/HostPlayerSnapshot;Ljava/lang/String;Ljava/lang/String;Lcom/gigasoft/api/HostLocationRef;ILjava/lang/Object;)Lcom/gigasoft/api/HostPlayerSnapshot;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getLocation ()Lcom/gigasoft/api/HostLocationRef;
+	public final fun getName ()Ljava/lang/String;
+	public final fun getUuid ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/gigasoft/api/HostServerSnapshot {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;III)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;IIIILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()I
+	public final fun component5 ()I
+	public final fun component6 ()I
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;III)Lcom/gigasoft/api/HostServerSnapshot;
+	public static synthetic fun copy$default (Lcom/gigasoft/api/HostServerSnapshot;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;IIIILjava/lang/Object;)Lcom/gigasoft/api/HostServerSnapshot;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getMaxPlayers ()I
+	public final fun getName ()Ljava/lang/String;
+	public final fun getOnlinePlayers ()I
+	public final fun getPlatformVersion ()Ljava/lang/String;
+	public final fun getVersion ()Ljava/lang/String;
+	public final fun getWorldCount ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/gigasoft/api/HostWorldSnapshot {
+	public fun <init> (Ljava/lang/String;I)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()I
+	public final fun copy (Ljava/lang/String;I)Lcom/gigasoft/api/HostWorldSnapshot;
+	public static synthetic fun copy$default (Lcom/gigasoft/api/HostWorldSnapshot;Ljava/lang/String;IILjava/lang/Object;)Lcom/gigasoft/api/HostWorldSnapshot;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getEntityCount ()I
+	public final fun getName ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/gigasoft/api/InteractionContext {
+	public fun <init> (Ljava/lang/String;Ljava/util/Map;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/util/Map;
+	public final fun copy (Ljava/lang/String;Ljava/util/Map;)Lcom/gigasoft/api/InteractionContext;
+	public static synthetic fun copy$default (Lcom/gigasoft/api/InteractionContext;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)Lcom/gigasoft/api/InteractionContext;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getActor ()Ljava/lang/String;
+	public final fun getMetadata ()Ljava/util/Map;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/gigasoft/api/ItemDefinition {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;)Lcom/gigasoft/api/ItemDefinition;
+	public static synthetic fun copy$default (Lcom/gigasoft/api/ItemDefinition;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/gigasoft/api/ItemDefinition;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDisplayName ()Ljava/lang/String;
+	public final fun getId ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/gigasoft/api/ItemDsl {
+	public fun <init> ()V
+	public final fun item (Ljava/lang/String;Ljava/lang/String;)V
+}
+
+public abstract interface class com/gigasoft/api/MachineBehavior {
+	public abstract fun onInteract (Lcom/gigasoft/api/MachineState;Lcom/gigasoft/api/InteractionContext;Lcom/gigasoft/api/PluginContext;)V
+	public abstract fun onStateChange (Lcom/gigasoft/api/MachineState;Lcom/gigasoft/api/MachineState;Lcom/gigasoft/api/PluginContext;)V
+	public abstract fun onTick (Lcom/gigasoft/api/MachineState;Lcom/gigasoft/api/PluginContext;)V
+}
+
+public final class com/gigasoft/api/MachineBehavior$DefaultImpls {
+	public static fun onInteract (Lcom/gigasoft/api/MachineBehavior;Lcom/gigasoft/api/MachineState;Lcom/gigasoft/api/InteractionContext;Lcom/gigasoft/api/PluginContext;)V
+	public static fun onStateChange (Lcom/gigasoft/api/MachineBehavior;Lcom/gigasoft/api/MachineState;Lcom/gigasoft/api/MachineState;Lcom/gigasoft/api/PluginContext;)V
+}
+
+public final class com/gigasoft/api/MachineDefinition {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Lcom/gigasoft/api/MachineBehavior;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Lcom/gigasoft/api/MachineBehavior;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Lcom/gigasoft/api/MachineBehavior;)Lcom/gigasoft/api/MachineDefinition;
+	public static synthetic fun copy$default (Lcom/gigasoft/api/MachineDefinition;Ljava/lang/String;Ljava/lang/String;Lcom/gigasoft/api/MachineBehavior;ILjava/lang/Object;)Lcom/gigasoft/api/MachineDefinition;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBehavior ()Lcom/gigasoft/api/MachineBehavior;
+	public final fun getDisplayName ()Ljava/lang/String;
+	public final fun getId ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/gigasoft/api/MachineDsl {
+	public fun <init> ()V
+	public final fun machine (Ljava/lang/String;Ljava/lang/String;Lcom/gigasoft/api/MachineBehavior;)V
+}
+
+public final class com/gigasoft/api/MachineState {
+	public fun <init> (Ljava/lang/String;Ljava/util/Map;I)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/util/Map;IILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/util/Map;
+	public final fun component3 ()I
+	public final fun copy (Ljava/lang/String;Ljava/util/Map;I)Lcom/gigasoft/api/MachineState;
+	public static synthetic fun copy$default (Lcom/gigasoft/api/MachineState;Ljava/lang/String;Ljava/util/Map;IILjava/lang/Object;)Lcom/gigasoft/api/MachineState;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getMachineId ()Ljava/lang/String;
+	public final fun getMetadata ()Ljava/util/Map;
+	public final fun getProgressTicks ()I
+	public fun hashCode ()I
+	public final fun setProgressTicks (I)V
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class com/gigasoft/api/ModAdapter {
+	public abstract fun getCapabilities ()Ljava/util/Set;
+	public abstract fun getId ()Ljava/lang/String;
+	public abstract fun getName ()Ljava/lang/String;
+	public abstract fun getVersion ()Ljava/lang/String;
+	public abstract fun invoke (Lcom/gigasoft/api/AdapterInvocation;)Lcom/gigasoft/api/AdapterResponse;
+}
+
+public abstract interface class com/gigasoft/api/ModAdapterRegistry {
+	public abstract fun find (Ljava/lang/String;)Lcom/gigasoft/api/ModAdapter;
+	public abstract fun invoke (Ljava/lang/String;Lcom/gigasoft/api/AdapterInvocation;)Lcom/gigasoft/api/AdapterResponse;
+	public abstract fun list ()Ljava/util/List;
+	public abstract fun register (Lcom/gigasoft/api/ModAdapter;)V
+}
+
+public abstract interface class com/gigasoft/api/PersistentStore {
+	public abstract fun load ()Ljava/lang/Object;
+	public abstract fun migrate (ILkotlin/jvm/functions/Function1;)V
+	public abstract fun save (Ljava/lang/Object;)V
+}
+
+public abstract interface class com/gigasoft/api/PluginContext {
+	public abstract fun getAdapters ()Lcom/gigasoft/api/ModAdapterRegistry;
+	public abstract fun getCommands ()Lcom/gigasoft/api/CommandRegistry;
+	public abstract fun getEvents ()Lcom/gigasoft/api/EventBus;
+	public abstract fun getHost ()Lcom/gigasoft/api/HostAccess;
+	public abstract fun getLogger ()Lcom/gigasoft/api/GigaLogger;
+	public abstract fun getManifest ()Lcom/gigasoft/api/PluginManifest;
+	public abstract fun getRegistry ()Lcom/gigasoft/api/RegistryFacade;
+	public abstract fun getScheduler ()Lcom/gigasoft/api/Scheduler;
+	public abstract fun getStorage ()Lcom/gigasoft/api/StorageProvider;
+}
+
+public final class com/gigasoft/api/PluginContext$DefaultImpls {
+	public static fun getHost (Lcom/gigasoft/api/PluginContext;)Lcom/gigasoft/api/HostAccess;
+}
+
+public final class com/gigasoft/api/PluginManifest {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/util/List;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun component5 ()Ljava/lang/String;
+	public final fun component6 ()Ljava/util/List;
+	public final fun component7 ()Ljava/util/List;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/util/List;)Lcom/gigasoft/api/PluginManifest;
+	public static synthetic fun copy$default (Lcom/gigasoft/api/PluginManifest;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/util/List;ILjava/lang/Object;)Lcom/gigasoft/api/PluginManifest;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getApiVersion ()Ljava/lang/String;
+	public final fun getDependencies ()Ljava/util/List;
+	public final fun getId ()Ljava/lang/String;
+	public final fun getMain ()Ljava/lang/String;
+	public final fun getName ()Ljava/lang/String;
+	public final fun getPermissions ()Ljava/util/List;
+	public final fun getVersion ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/gigasoft/api/RecipeDefinition {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()I
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)Lcom/gigasoft/api/RecipeDefinition;
+	public static synthetic fun copy$default (Lcom/gigasoft/api/RecipeDefinition;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;IILjava/lang/Object;)Lcom/gigasoft/api/RecipeDefinition;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDurationTicks ()I
+	public final fun getId ()Ljava/lang/String;
+	public final fun getInput ()Ljava/lang/String;
+	public final fun getOutput ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/gigasoft/api/RecipeDsl {
+	public fun <init> ()V
+	public final fun recipe (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V
+}
+
+public abstract interface class com/gigasoft/api/RegistryFacade {
+	public abstract fun blocks ()Ljava/util/List;
+	public abstract fun items ()Ljava/util/List;
+	public abstract fun machines ()Ljava/util/List;
+	public abstract fun recipes ()Ljava/util/List;
+	public abstract fun registerBlock (Lcom/gigasoft/api/BlockDefinition;)V
+	public abstract fun registerItem (Lcom/gigasoft/api/ItemDefinition;)V
+	public abstract fun registerMachine (Lcom/gigasoft/api/MachineDefinition;)V
+	public abstract fun registerRecipe (Lcom/gigasoft/api/RecipeDefinition;)V
+	public abstract fun registerSystem (Ljava/lang/String;Lcom/gigasoft/api/TickSystem;)V
+	public abstract fun systems ()Ljava/util/Map;
+}
+
+public abstract interface class com/gigasoft/api/Scheduler {
+	public abstract fun cancel (Ljava/lang/String;)V
+	public abstract fun clear ()V
+	public abstract fun once (Ljava/lang/String;ILkotlin/jvm/functions/Function0;)V
+	public abstract fun repeating (Ljava/lang/String;ILkotlin/jvm/functions/Function0;)V
+}
+
+public abstract interface class com/gigasoft/api/StorageProvider {
+	public abstract fun store (Ljava/lang/String;Ljava/lang/Class;I)Lcom/gigasoft/api/PersistentStore;
+}
+
+public final class com/gigasoft/api/StorageProvider$DefaultImpls {
+	public static synthetic fun store$default (Lcom/gigasoft/api/StorageProvider;Ljava/lang/String;Ljava/lang/Class;IILjava/lang/Object;)Lcom/gigasoft/api/PersistentStore;
+}
+
+public final class com/gigasoft/api/SystemDsl {
+	public fun <init> ()V
+	public final fun system (Ljava/lang/String;Lkotlin/jvm/functions/Function1;)V
+}
+
+public abstract interface class com/gigasoft/api/TickSystem {
+	public abstract fun onTick (Lcom/gigasoft/api/PluginContext;)V
+}
+

@@ -14,7 +14,23 @@ class RuntimeCommandRegistry : CommandRegistry {
         description: String,
         action: (ctx: PluginContext, sender: String, args: List<String>) -> String
     ) {
-        handlers[command.lowercase()] = description to action
+        val key = normalizeCommand(command)
+        val previous = handlers.putIfAbsent(key, description to action)
+        require(previous == null) { "Duplicate command '$key'" }
+    }
+
+    override fun registerOrReplace(
+        command: String,
+        description: String,
+        action: (ctx: PluginContext, sender: String, args: List<String>) -> String
+    ) {
+        val key = normalizeCommand(command)
+        handlers[key] = description to action
+    }
+
+    override fun unregister(command: String): Boolean {
+        val key = normalizeCommand(command)
+        return handlers.remove(key) != null
     }
 
     fun execute(ctx: PluginContext, sender: String, commandLine: String): String {
@@ -27,6 +43,12 @@ class RuntimeCommandRegistry : CommandRegistry {
     }
 
     fun commands(): Map<String, String> = handlers.mapValues { it.value.first }
+
+    private fun normalizeCommand(command: String): String {
+        val key = command.trim().lowercase()
+        require(key.isNotEmpty()) { "Command name must not be blank" }
+        return key
+    }
 
     private fun tokenizeCommand(input: String): List<String> {
         val out = ArrayList<String>(8)
@@ -43,19 +65,35 @@ class RuntimeCommandRegistry : CommandRegistry {
     }
 }
 
-class RuntimeEventBus : EventBus {
+class RuntimeEventBus(
+    private val mode: EventDispatchMode = EventDispatchMode.EXACT
+) : EventBus {
     private val listeners = ConcurrentHashMap<Class<*>, CopyOnWriteArrayList<(Any) -> Unit>>()
     private val dispatchCache = ConcurrentHashMap<Class<*>, Array<(Any) -> Unit>>()
 
     @Suppress("UNCHECKED_CAST")
     override fun <T : Any> subscribe(eventType: Class<T>, listener: (T) -> Unit) {
         listeners.computeIfAbsent(eventType) { CopyOnWriteArrayList() }.add { event -> listener(event as T) }
-        dispatchCache.remove(eventType)
+        if (mode == EventDispatchMode.POLYMORPHIC) {
+            dispatchCache.clear()
+        } else {
+            dispatchCache.remove(eventType)
+        }
     }
 
     override fun publish(event: Any) {
-        val callbacks = dispatchCache.computeIfAbsent(event::class.java) {
-            listeners[it]?.toTypedArray() ?: emptyArray()
+        val eventType = event::class.java
+        val callbacks = dispatchCache.computeIfAbsent(eventType) {
+            if (mode == EventDispatchMode.POLYMORPHIC) {
+                val resolved = ArrayList<(Any) -> Unit>()
+                for ((listenerType, bucket) in listeners) {
+                    if (!listenerType.isAssignableFrom(eventType)) continue
+                    resolved.addAll(bucket)
+                }
+                resolved.toTypedArray()
+            } else {
+                listeners[eventType]?.toTypedArray() ?: emptyArray()
+            }
         }
         for (callback in callbacks) {
             callback(event)

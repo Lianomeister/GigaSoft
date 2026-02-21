@@ -1,8 +1,13 @@
-﻿.gradle/
+.gradle/
+.kotlin/
 build/
 **/build/
 .idea/
 *.iml
+*.tmp
+*.bak
 run/
 dev-runtime/plugins/*.jar
 dev-runtime/giga-plugins/*.jar
+dev-runtime/giga-data/runtime-cache/
+dev-runtime/giga-data/reload-checkpoints/

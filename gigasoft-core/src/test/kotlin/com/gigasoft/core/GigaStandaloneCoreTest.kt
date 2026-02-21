@@ -1,12 +1,17 @@
 package com.gigasoft.core
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import java.nio.file.Files
+import kotlin.test.assertFalse
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class GigaStandaloneCoreTest {
+    private val mapper = ObjectMapper().registerKotlinModule()
+
     @Test
     fun `persists and restores host state`() {
         val root = Files.createTempDirectory("gigasoft-core-test")
@@ -77,5 +82,134 @@ class GigaStandaloneCoreTest {
         val status = core.status()
         assertTrue(status.queuedMutations >= 0)
         core.stop()
+    }
+
+    @Test
+    fun `restore sanitizes inconsistent snapshot and keeps host state consistent`() {
+        val root = Files.createTempDirectory("gigasoft-core-test-restore-sanitize")
+        val plugins = root.resolve("plugins")
+        val data = root.resolve("data")
+        Files.createDirectories(data)
+        val stateFile = data.resolve("standalone-state.json")
+
+        val dirtySnapshot = StandaloneHostSnapshot(
+            worlds = listOf(
+                StandaloneWorld(name = "Alpha", seed = 1L, time = 5L),
+                StandaloneWorld(name = "alpha", seed = 99L, time = 6L),
+                StandaloneWorld(name = "   ", seed = 0L, time = 0L)
+            ),
+            players = listOf(
+                StandalonePlayer(uuid = "p1", name = "Alex", world = "Alpha", x = 1.0, y = 64.0, z = 1.0),
+                StandalonePlayer(uuid = "p2", name = "Bob", world = "MissingWorld", x = 2.0, y = 64.0, z = 2.0),
+                StandalonePlayer(uuid = " ", name = "NoUuid", world = "Alpha", x = 0.0, y = 0.0, z = 0.0)
+            ),
+            entities = listOf(
+                StandaloneEntity(uuid = "e1", type = "sheep", world = "MissingWorld", x = 0.0, y = 65.0, z = 0.0),
+                StandaloneEntity(uuid = "p1", type = "zombie", world = "Alpha", x = 99.0, y = 99.0, z = 99.0),
+                StandaloneEntity(uuid = " ", type = "cow", world = "Alpha", x = 0.0, y = 0.0, z = 0.0)
+            ),
+            inventories = mapOf(
+                "Alex" to mapOf(0 to "iron_ingot", 99 to "bad_slot", 1 to "air"),
+                "Ghost" to mapOf(0 to "stone")
+            )
+        )
+        val envelope = StandaloneStateEnvelope(schemaVersion = 1, snapshot = dirtySnapshot)
+        Files.newOutputStream(stateFile).use { mapper.writerWithDefaultPrettyPrinter().writeValue(it, envelope) }
+
+        val core = GigaStandaloneCore(
+            config = StandaloneCoreConfig(
+                pluginsDirectory = plugins,
+                dataDirectory = data,
+                tickPeriodMillis = 1000L,
+                autoSaveEveryTicks = 0L
+            ),
+            logger = {}
+        )
+        core.start()
+        try {
+            val worlds = core.worlds()
+            val players = core.players()
+            val entities = core.entities()
+
+            assertTrue(worlds.any { it.name.equals("Alpha", ignoreCase = true) })
+            assertTrue(worlds.any { it.name.equals("MissingWorld", ignoreCase = true) })
+            assertEquals(2, players.size)
+
+            players.forEach { player ->
+                assertTrue(worlds.any { it.name.equals(player.world, ignoreCase = true) })
+                val playerEntity = entities.find { it.uuid == player.uuid }
+                assertNotNull(playerEntity)
+                assertEquals("player", playerEntity.type.lowercase())
+                assertEquals(player.world, playerEntity.world)
+                assertEquals(player.x, playerEntity.x)
+                assertEquals(player.y, playerEntity.y)
+                assertEquals(player.z, playerEntity.z)
+            }
+
+            entities.forEach { entity ->
+                assertTrue(worlds.any { it.name.equals(entity.world, ignoreCase = true) })
+            }
+
+            val alexInv = core.inventory("Alex")
+            assertNotNull(alexInv)
+            assertEquals("iron_ingot", alexInv.slots[0])
+            assertFalse(alexInv.slots.containsKey(99))
+            assertEquals(null, core.inventory("Ghost"))
+        } finally {
+            core.stop()
+        }
+    }
+
+    @Test
+    fun `core views are deterministic and stable across save and restore`() {
+        val root = Files.createTempDirectory("gigasoft-core-test-deterministic")
+        val plugins = root.resolve("plugins")
+        val data = root.resolve("data")
+
+        val core1 = GigaStandaloneCore(
+            config = StandaloneCoreConfig(
+                pluginsDirectory = plugins,
+                dataDirectory = data,
+                tickPeriodMillis = 1000L,
+                autoSaveEveryTicks = 0L
+            ),
+            logger = {}
+        )
+        core1.start()
+        core1.joinPlayer("zoe", "Beta", 1.0, 64.0, 1.0)
+        core1.joinPlayer("Alex", "alpha", 2.0, 64.0, 2.0)
+        core1.spawnEntity("Zombie", "Beta", 3.0, 64.0, 3.0)
+        core1.spawnEntity("cow", "alpha", 4.0, 64.0, 4.0)
+        core1.saveState()
+        val worldsFirst = core1.worlds()
+        val playersFirst = core1.players()
+        val entitiesFirst = core1.entities()
+        val worldsSecond = core1.worlds()
+        val playersSecond = core1.players()
+        val entitiesSecond = core1.entities()
+        assertEquals(worldsFirst, worldsSecond)
+        assertEquals(playersFirst, playersSecond)
+        assertEquals(entitiesFirst, entitiesSecond)
+        assertEquals(worldsFirst.map { it.name.lowercase() }, worldsFirst.map { it.name.lowercase() }.sorted())
+        assertEquals(playersFirst.map { it.name.lowercase() }, playersFirst.map { it.name.lowercase() }.sorted())
+        core1.stop()
+
+        val core2 = GigaStandaloneCore(
+            config = StandaloneCoreConfig(
+                pluginsDirectory = plugins,
+                dataDirectory = data,
+                tickPeriodMillis = 1000L,
+                autoSaveEveryTicks = 0L
+            ),
+            logger = {}
+        )
+        core2.start()
+        try {
+            assertEquals(worldsFirst, core2.worlds())
+            assertEquals(playersFirst, core2.players())
+            assertEquals(entitiesFirst, core2.entities())
+        } finally {
+            core2.stop()
+        }
     }
 }

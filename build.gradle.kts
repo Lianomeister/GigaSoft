@@ -6,11 +6,12 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
     kotlin("jvm") version "2.1.10" apply false
     id("com.gradleup.shadow") version "8.3.6" apply false
+    id("org.jetbrains.kotlinx.binary-compatibility-validator") version "0.16.3" apply false
 }
 
 allprojects {
     group = "com.gigasoft"
-    version = "0.1.0-rc.2"
+    version = "1.0.0"
 
     repositories {
         mavenCentral()
@@ -77,6 +78,7 @@ tasks.register("standaloneReleaseCandidate") {
     group = "release"
     description = "Builds and verifies standalone release candidate artifacts"
     dependsOn(
+        ":gigasoft-api:apiCheck",
         ":gigasoft-api:test",
         ":gigasoft-host-api:test",
         ":gigasoft-net:test",
@@ -96,5 +98,20 @@ tasks.register("performanceBaseline") {
         ":gigasoft-runtime:performanceTest",
         ":gigasoft-core:performanceTest",
         ":gigasoft-standalone:performanceTest"
+    )
+}
+
+tasks.register("smokeTest") {
+    group = "verification"
+    description = "Runs smoke test pipeline for standalone operations"
+    dependsOn(":gigasoft-standalone:smokeTest")
+}
+
+tasks.register("soakTest") {
+    group = "verification"
+    description = "Runs soak test pipeline for runtime and standalone operations"
+    dependsOn(
+        ":gigasoft-runtime:soakTest",
+        ":gigasoft-standalone:soakTest"
     )
 }

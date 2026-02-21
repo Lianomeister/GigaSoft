@@ -1,6 +1,7 @@
 package com.gigasoft.core
 
 import java.util.UUID
+import java.util.TreeMap
 import java.util.concurrent.ConcurrentHashMap
 
 data class StandalonePlayer(
@@ -36,11 +37,39 @@ data class StandaloneInventory(
 class StandaloneHostState(
     defaultWorld: String = "world"
 ) {
-    private val worlds = ConcurrentHashMap<String, StandaloneWorld>()
-    private val entities = ConcurrentHashMap<String, StandaloneEntity>()
-    private val worldEntityCounts = ConcurrentHashMap<String, Int>()
-    private val playersByName = ConcurrentHashMap<String, StandalonePlayer>()
-    private val inventoriesByOwner = ConcurrentHashMap<String, MutableMap<Int, String>>()
+    companion object {
+        private val CASE_INSENSITIVE = String.CASE_INSENSITIVE_ORDER
+        private val WORLD_COMPARATOR = Comparator<StandaloneWorld> { a, b ->
+            CASE_INSENSITIVE.compare(a.name, b.name)
+        }
+        private val PLAYER_COMPARATOR = Comparator<StandalonePlayer> { a, b ->
+            CASE_INSENSITIVE.compare(a.name, b.name)
+        }
+        private val ENTITY_ALL_COMPARATOR = Comparator<StandaloneEntity> { a, b ->
+            val worldOrder = CASE_INSENSITIVE.compare(a.world, b.world)
+            if (worldOrder != 0) return@Comparator worldOrder
+            val typeOrder = CASE_INSENSITIVE.compare(a.type, b.type)
+            if (typeOrder != 0) return@Comparator typeOrder
+            a.uuid.compareTo(b.uuid)
+        }
+        private val ENTITY_WORLD_COMPARATOR = Comparator<StandaloneEntity> { a, b ->
+            val typeOrder = CASE_INSENSITIVE.compare(a.type, b.type)
+            if (typeOrder != 0) return@Comparator typeOrder
+            a.uuid.compareTo(b.uuid)
+        }
+    }
+
+    data class WorldCreateResult(
+        val world: StandaloneWorld,
+        val created: Boolean
+    )
+
+    private val stateLock = Any()
+    private val worlds = LinkedHashMap<String, StandaloneWorld>()
+    private val entities = LinkedHashMap<String, StandaloneEntity>()
+    private val worldEntityCounts = LinkedHashMap<String, Int>()
+    private val playersByName = LinkedHashMap<String, StandalonePlayer>()
+    private val inventoriesByOwner = LinkedHashMap<String, MutableMap<Int, String>>()
     @Volatile
     private var worldsCache: List<StandaloneWorld> = emptyList()
     @Volatile
@@ -59,55 +88,64 @@ class StandaloneHostState(
         createWorld(defaultWorld)
     }
 
-    fun worldCount(): Int = worlds.size
+    fun worldCount(): Int = synchronized(stateLock) { worlds.size }
 
     fun worlds(): List<StandaloneWorld> {
         if (!worldsDirty) return worldsCache
-        synchronized(this) {
+        synchronized(stateLock) {
             if (!worldsDirty) return worldsCache
-            worldsCache = worlds.values.sortedBy { it.name.lowercase() }
+            worldsCache = worlds.values.sortedWith(WORLD_COMPARATOR)
             worldsDirty = false
             return worldsCache
         }
     }
 
-    fun onlinePlayerCount(): Int = playersByName.size
+    fun onlinePlayerCount(): Int = synchronized(stateLock) { playersByName.size }
 
     fun players(): List<StandalonePlayer> {
         if (!playersDirty) return playersCache
-        synchronized(this) {
+        synchronized(stateLock) {
             if (!playersDirty) return playersCache
-            playersCache = playersByName.values.sortedBy { it.name.lowercase() }
+            playersCache = playersByName.values.sortedWith(PLAYER_COMPARATOR)
             playersDirty = false
             return playersCache
         }
     }
 
     fun entities(world: String? = null): List<StandaloneEntity> {
-        val all = entities.values
         return if (world.isNullOrBlank()) {
             if (!entitiesAllDirty) return entitiesAllCache
-            synchronized(this) {
+            synchronized(stateLock) {
                 if (!entitiesAllDirty) return entitiesAllCache
-                entitiesAllCache = all.sortedWith(compareBy({ it.world.lowercase() }, { it.type.lowercase() }, { it.uuid }))
+                entitiesAllCache = entities.values.sortedWith(ENTITY_ALL_COMPARATOR)
                 entitiesAllDirty = false
                 return entitiesAllCache
             }
         } else {
-            val key = world.lowercase()
+            val worldName = requiredText(world, "world")
+            val key = canonicalKey(worldName)
             entitiesWorldCache[key]?.let { return it }
-            val sorted = all.filter { it.world.equals(world, ignoreCase = true) }
-                .sortedWith(compareBy({ it.type.lowercase() }, { it.uuid }))
+            val sorted = synchronized(stateLock) {
+                entities.values.filter { it.world.equals(worldName, ignoreCase = true) }
+                    .sortedWith(ENTITY_WORLD_COMPARATOR)
+            }
             entitiesWorldCache[key] = sorted
             sorted
         }
     }
 
-    fun entityCount(): Int = entities.size
+    fun entityCount(): Int = synchronized(stateLock) { entities.size }
 
     fun entityCount(world: String): Int {
-        if (world.isBlank()) return 0
-        return worldEntityCounts[world.lowercase()] ?: 0
+        val worldName = world.trim()
+        if (worldName.isEmpty()) return 0
+        return synchronized(stateLock) { worldEntityCounts[canonicalKey(worldName)] ?: 0 }
+    }
+
+    fun hasWorld(name: String): Boolean {
+        val worldName = name.trim()
+        if (worldName.isEmpty()) return false
+        return synchronized(stateLock) { worlds.containsKey(canonicalKey(worldName)) }
     }
 
     fun joinPlayer(
@@ -117,47 +155,66 @@ class StandaloneHostState(
         y: Double,
         z: Double
     ): StandalonePlayer {
-        createWorld(world)
-        val player = StandalonePlayer(
-            uuid = UUID.randomUUID().toString(),
-            name = name,
-            world = world,
-            x = x,
-            y = y,
-            z = z
-        )
-        playersByName[name.lowercase()] = player
-        playersDirty = true
-        inventoriesByOwner.computeIfAbsent(name.lowercase()) { mutableMapOf() }
-        entities[player.uuid] = StandaloneEntity(
-            uuid = player.uuid,
-            type = "player",
-            world = world,
-            x = x,
-            y = y,
-            z = z
-        )
-        incrementWorldEntityCount(world)
-        entitiesAllDirty = true
-        entitiesWorldCache.remove(world.lowercase())
-        return player
+        val playerName = requiredText(name, "name")
+        return synchronized(stateLock) {
+            val worldResult = createWorldWithStatusUnsafe(world, seed = 0L)
+            val key = canonicalKey(playerName)
+            val previous = playersByName[key]
+            if (previous != null) {
+                val oldEntity = entities.remove(previous.uuid)
+                if (oldEntity != null) {
+                    decrementWorldEntityCountUnsafe(oldEntity.world)
+                    entitiesWorldCache.remove(canonicalKey(oldEntity.world))
+                }
+            }
+            val nextPlayer = StandalonePlayer(
+                uuid = previous?.uuid ?: UUID.randomUUID().toString(),
+                name = playerName,
+                world = worldResult.world.name,
+                x = x,
+                y = y,
+                z = z
+            )
+            playersByName[key] = nextPlayer
+            playersDirty = true
+            inventoriesByOwner.computeIfAbsent(key) { mutableMapOf() }
+            entities[nextPlayer.uuid] = StandaloneEntity(
+                uuid = nextPlayer.uuid,
+                type = "player",
+                world = nextPlayer.world,
+                x = x,
+                y = y,
+                z = z
+            )
+            incrementWorldEntityCountUnsafe(nextPlayer.world)
+            entitiesAllDirty = true
+            entitiesWorldCache.remove(canonicalKey(nextPlayer.world))
+            nextPlayer
+        }
     }
 
     fun leavePlayer(name: String): StandalonePlayer? {
-        val key = name.lowercase()
-        val player = playersByName.remove(key)
-        if (player != null) {
-            entities.remove(player.uuid)
-            decrementWorldEntityCount(player.world)
-            playersDirty = true
-            entitiesAllDirty = true
-            entitiesWorldCache.remove(player.world.lowercase())
+        val playerName = name.trim()
+        if (playerName.isEmpty()) return null
+        return synchronized(stateLock) {
+            val player = playersByName.remove(canonicalKey(playerName))
+            if (player != null) {
+                val removed = entities.remove(player.uuid)
+                if (removed != null) {
+                    decrementWorldEntityCountUnsafe(removed.world)
+                    entitiesWorldCache.remove(canonicalKey(removed.world))
+                }
+                playersDirty = true
+                entitiesAllDirty = true
+            }
+            player
         }
-        return player
     }
 
     fun findPlayer(name: String): StandalonePlayer? {
-        return playersByName[name.lowercase()]
+        val playerName = name.trim()
+        if (playerName.isEmpty()) return null
+        return synchronized(stateLock) { playersByName[canonicalKey(playerName)] }
     }
 
     fun movePlayer(
@@ -167,44 +224,64 @@ class StandaloneHostState(
         z: Double,
         world: String?
     ): StandalonePlayer? {
-        val key = name.lowercase()
-        val current = playersByName[key] ?: return null
-        val nextWorld = world ?: current.world
-        createWorld(nextWorld)
-        val moved = current.copy(world = nextWorld, x = x, y = y, z = z)
-        playersByName[key] = moved
-        playersDirty = true
-        entities[current.uuid]?.let { entity ->
-            entities[current.uuid] = entity.copy(world = nextWorld, x = x, y = y, z = z)
+        val playerName = name.trim()
+        if (playerName.isEmpty()) return null
+        return synchronized(stateLock) {
+            val key = canonicalKey(playerName)
+            val current = playersByName[key] ?: return@synchronized null
+            val nextWorld = if (world.isNullOrBlank()) {
+                current.world
+            } else {
+                createWorldWithStatusUnsafe(world, seed = 0L).world.name
+            }
+            val moved = current.copy(world = nextWorld, x = x, y = y, z = z)
+            playersByName[key] = moved
+            playersDirty = true
+            val previousEntity = entities[current.uuid]
+            if (previousEntity != null) {
+                if (!previousEntity.world.equals(nextWorld, ignoreCase = true)) {
+                    decrementWorldEntityCountUnsafe(previousEntity.world)
+                    incrementWorldEntityCountUnsafe(nextWorld)
+                    entitiesWorldCache.remove(canonicalKey(previousEntity.world))
+                    entitiesWorldCache.remove(canonicalKey(nextWorld))
+                } else {
+                    entitiesWorldCache.remove(canonicalKey(nextWorld))
+                }
+                entities[current.uuid] = previousEntity.copy(world = nextWorld, x = x, y = y, z = z)
+            } else {
+                entities[current.uuid] = StandaloneEntity(
+                    uuid = current.uuid,
+                    type = "player",
+                    world = nextWorld,
+                    x = x,
+                    y = y,
+                    z = z
+                )
+                incrementWorldEntityCountUnsafe(nextWorld)
+                entitiesWorldCache.remove(canonicalKey(nextWorld))
+            }
+            entitiesAllDirty = true
+            moved
         }
-        if (!current.world.equals(nextWorld, ignoreCase = true)) {
-            decrementWorldEntityCount(current.world)
-            incrementWorldEntityCount(nextWorld)
-            entitiesWorldCache.remove(current.world.lowercase())
-            entitiesWorldCache.remove(nextWorld.lowercase())
-        }
-        entitiesAllDirty = true
-        return moved
     }
 
     fun createWorld(name: String, seed: Long = 0L): StandaloneWorld {
-        val key = name.lowercase()
-        val existing = worlds[key]
-        val world = if (existing != null) {
-            existing
-        } else {
-            val created = StandaloneWorld(name = name, seed = seed, time = 0L)
-            val previous = worlds.putIfAbsent(key, created)
-            worldsDirty = true
-            previous ?: created
+        return createWorldWithStatus(name, seed).world
+    }
+
+    fun createWorldWithStatus(name: String, seed: Long = 0L): WorldCreateResult {
+        return synchronized(stateLock) {
+            createWorldWithStatusUnsafe(name, seed)
         }
-        worldEntityCounts.putIfAbsent(key, 0)
-        return world
     }
 
     fun tickWorlds() {
-        worlds.replaceAll { _, world -> world.copy(time = world.time + 1L) }
-        worldsDirty = true
+        synchronized(stateLock) {
+            for ((key, world) in worlds) {
+                worlds[key] = world.copy(time = world.time + 1L)
+            }
+            worldsDirty = true
+        }
     }
 
     fun spawnEntity(
@@ -214,96 +291,191 @@ class StandaloneHostState(
         y: Double,
         z: Double
     ): StandaloneEntity {
-        createWorld(world)
-        val entity = StandaloneEntity(
-            uuid = UUID.randomUUID().toString(),
-            type = type,
-            world = world,
-            x = x,
-            y = y,
-            z = z
-        )
-        entities[entity.uuid] = entity
-        incrementWorldEntityCount(world)
-        entitiesAllDirty = true
-        entitiesWorldCache.remove(world.lowercase())
-        return entity
+        val entityType = requiredText(type, "type")
+        return synchronized(stateLock) {
+            val worldResult = createWorldWithStatusUnsafe(world, seed = 0L)
+            val entity = StandaloneEntity(
+                uuid = UUID.randomUUID().toString(),
+                type = entityType,
+                world = worldResult.world.name,
+                x = x,
+                y = y,
+                z = z
+            )
+            val previous = entities.put(entity.uuid, entity)
+            if (previous != null) {
+                decrementWorldEntityCountUnsafe(previous.world)
+                entitiesWorldCache.remove(canonicalKey(previous.world))
+            }
+            incrementWorldEntityCountUnsafe(entity.world)
+            entitiesAllDirty = true
+            entitiesWorldCache.remove(canonicalKey(entity.world))
+            entity
+        }
     }
 
     fun inventory(owner: String): StandaloneInventory? {
-        val key = owner.lowercase()
-        val slots = inventoriesByOwner[key] ?: return null
-        return StandaloneInventory(
-            owner = owner,
-            size = 36,
-            slots = slots.toSortedMap()
-        )
+        val ownerName = owner.trim()
+        if (ownerName.isEmpty()) return null
+        return synchronized(stateLock) {
+            val key = canonicalKey(ownerName)
+            val slots = inventoriesByOwner[key] ?: return@synchronized null
+            val canonicalOwner = playersByName[key]?.name ?: ownerName
+            StandaloneInventory(
+                owner = canonicalOwner,
+                size = 36,
+                slots = slots.toSortedMap()
+            )
+        }
     }
 
     fun setInventoryItem(owner: String, slot: Int, itemId: String): Boolean {
         if (slot !in 0..35) return false
-        val key = owner.lowercase()
-        if (!playersByName.containsKey(key)) return false
-        val slots = inventoriesByOwner.computeIfAbsent(key) { mutableMapOf() }
-        if (itemId.equals("air", ignoreCase = true) || itemId.equals("empty", ignoreCase = true)) {
-            slots.remove(slot)
-        } else {
-            slots[slot] = itemId
+        val ownerName = owner.trim()
+        if (ownerName.isEmpty()) return false
+        val value = itemId.trim()
+        if (value.isEmpty()) return false
+        return synchronized(stateLock) {
+            val key = canonicalKey(ownerName)
+            if (!playersByName.containsKey(key)) return@synchronized false
+            val slots = inventoriesByOwner.computeIfAbsent(key) { mutableMapOf() }
+            if (value.equals("air", ignoreCase = true) || value.equals("empty", ignoreCase = true)) {
+                slots.remove(slot)
+            } else {
+                slots[slot] = value
+            }
+            true
         }
-        return true
     }
 
     fun snapshot(): StandaloneHostSnapshot {
-        return StandaloneHostSnapshot(
-            worlds = worlds(),
-            players = players(),
-            entities = entities(),
-            inventories = inventoriesByOwner.entries.associate { (owner, slots) ->
-                owner to slots.toMap()
-            }
-        )
+        return synchronized(stateLock) {
+            StandaloneHostSnapshot(
+                worlds = worlds.values.sortedWith(WORLD_COMPARATOR),
+                players = playersByName.values.sortedWith(PLAYER_COMPARATOR),
+                entities = entities.values.sortedWith(ENTITY_ALL_COMPARATOR),
+                inventories = inventoriesByOwner.toSortedMap().mapValues { (_, slots) -> slots.toSortedMap() }
+            )
+        }
     }
 
     fun restore(snapshot: StandaloneHostSnapshot) {
-        worlds.clear()
-        entities.clear()
-        worldEntityCounts.clear()
-        playersByName.clear()
-        inventoriesByOwner.clear()
+        synchronized(stateLock) {
+            worlds.clear()
+            entities.clear()
+            worldEntityCounts.clear()
+            playersByName.clear()
+            inventoriesByOwner.clear()
+
+            snapshot.worlds.forEach { world ->
+                val name = world.name.trim()
+                if (name.isNotEmpty()) {
+                    val key = canonicalKey(name)
+                    if (!worlds.containsKey(key)) {
+                        worlds[key] = world.copy(name = name)
+                    }
+                }
+            }
+
+            snapshot.players.forEach { player ->
+                val name = player.name.trim()
+                val uuid = player.uuid.trim()
+                if (name.isEmpty() || uuid.isEmpty()) return@forEach
+                val world = createWorldWithStatusUnsafe(player.world, seed = 0L).world.name
+                val key = canonicalKey(name)
+                if (!playersByName.containsKey(key)) {
+                    playersByName[key] = player.copy(name = name, uuid = uuid, world = world)
+                }
+            }
+
+            snapshot.entities.forEach { entity ->
+                val uuid = entity.uuid.trim()
+                val type = entity.type.trim()
+                if (uuid.isEmpty() || type.isEmpty()) return@forEach
+                if (entities.containsKey(uuid)) return@forEach
+                val world = createWorldWithStatusUnsafe(entity.world, seed = 0L).world.name
+                entities[uuid] = entity.copy(uuid = uuid, type = type, world = world)
+            }
+
+            playersByName.values.forEach { player ->
+                entities[player.uuid] = StandaloneEntity(
+                    uuid = player.uuid,
+                    type = "player",
+                    world = player.world,
+                    x = player.x,
+                    y = player.y,
+                    z = player.z
+                )
+            }
+
+            snapshot.inventories.forEach { (owner, slots) ->
+                val ownerName = owner.trim()
+                if (ownerName.isEmpty()) return@forEach
+                val ownerKey = canonicalKey(ownerName)
+                if (!playersByName.containsKey(ownerKey)) return@forEach
+                val sanitized = TreeMap<Int, String>()
+                slots.forEach { (slot, itemId) ->
+                    val value = itemId.trim()
+                    if (slot in 0..35 && value.isNotEmpty() && !value.equals("air", ignoreCase = true) && !value.equals("empty", ignoreCase = true)) {
+                        sanitized[slot] = value
+                    }
+                }
+                inventoriesByOwner[ownerKey] = sanitized.toMutableMap()
+            }
+
+            if (worlds.isEmpty()) {
+                createWorldWithStatusUnsafe("world", 0L)
+            }
+
+            rebuildWorldEntityCountsUnsafe()
+            worldsDirty = true
+            playersDirty = true
+            entitiesAllDirty = true
+            entitiesWorldCache.clear()
+        }
+    }
+
+    private fun createWorldWithStatusUnsafe(name: String, seed: Long): WorldCreateResult {
+        val worldName = requiredText(name, "world")
+        val key = canonicalKey(worldName)
+        val existing = worlds[key]
+        if (existing != null) {
+            worldEntityCounts.putIfAbsent(key, 0)
+            return WorldCreateResult(world = existing, created = false)
+        }
+        val created = StandaloneWorld(name = worldName, seed = seed, time = 0L)
+        worlds[key] = created
+        worldEntityCounts.putIfAbsent(key, 0)
         worldsDirty = true
-        playersDirty = true
-        entitiesAllDirty = true
-        entitiesWorldCache.clear()
+        return WorldCreateResult(world = created, created = true)
+    }
 
-        snapshot.worlds.forEach { world ->
-            worlds[world.name.lowercase()] = world
-        }
-        snapshot.players.forEach { player ->
-            playersByName[player.name.lowercase()] = player
-        }
-        snapshot.entities.forEach { entity ->
-            entities[entity.uuid] = entity
-            incrementWorldEntityCount(entity.world)
-        }
-        snapshot.inventories.forEach { (owner, slots) ->
-            inventoriesByOwner[owner.lowercase()] = slots.toMutableMap()
-        }
+    private fun incrementWorldEntityCountUnsafe(world: String) {
+        val key = canonicalKey(world)
+        val current = worldEntityCounts[key] ?: 0
+        worldEntityCounts[key] = current + 1
+    }
 
-        if (worlds.isEmpty()) {
-            createWorld("world")
+    private fun decrementWorldEntityCountUnsafe(world: String) {
+        val key = canonicalKey(world)
+        val current = worldEntityCounts[key] ?: 0
+        worldEntityCounts[key] = if (current <= 1) 0 else current - 1
+    }
+
+    private fun rebuildWorldEntityCountsUnsafe() {
+        worldEntityCounts.clear()
+        worlds.keys.forEach { worldEntityCounts[it] = 0 }
+        entities.values.forEach { entity ->
+            val key = canonicalKey(entity.world)
+            worldEntityCounts[key] = (worldEntityCounts[key] ?: 0) + 1
         }
     }
 
-    private fun incrementWorldEntityCount(world: String) {
-        val key = world.lowercase()
-        worldEntityCounts.compute(key) { _, current -> (current ?: 0) + 1 }
-    }
+    private fun canonicalKey(value: String): String = value.trim().lowercase()
 
-    private fun decrementWorldEntityCount(world: String) {
-        val key = world.lowercase()
-        worldEntityCounts.compute(key) { _, current ->
-            val next = (current ?: 0) - 1
-            if (next <= 0) 0 else next
-        }
+    private fun requiredText(value: String, field: String): String {
+        val trimmed = value.trim()
+        require(trimmed.isNotEmpty()) { "$field must not be blank" }
+        return trimmed
     }
 }

@@ -27,13 +27,21 @@ class DslGigaPlugin(
 fun gigaPlugin(
     id: String,
     name: String = id,
-    version: String = "0.1.0",
+    version: String = "1.0.0",
     apiVersion: String = "1",
+    dependencySpecs: List<DependencySpec> = emptyList(),
     dependencies: List<String> = emptyList(),
     permissions: List<String> = emptyList(),
     configure: GigaPluginDsl.() -> Unit
 ): DslGigaPlugin {
-    val dependencySpecs = dependencies.map(::parseDependencySpec)
+    require(dependencySpecs.isEmpty() || dependencies.isEmpty()) {
+        "Use either dependencySpecs or dependencies, not both"
+    }
+    val resolvedDependencySpecs = if (dependencySpecs.isNotEmpty()) {
+        dependencySpecs
+    } else {
+        dependencies.map(::dependencySpec)
+    }
     return DslGigaPlugin(
         manifestFactory = {
             PluginManifest(
@@ -42,7 +50,7 @@ fun gigaPlugin(
                 version = version,
                 main = "dsl:$id",
                 apiVersion = apiVersion,
-                dependencies = dependencySpecs,
+                dependencies = resolvedDependencySpecs,
                 permissions = permissions
             )
         },
@@ -50,14 +58,21 @@ fun gigaPlugin(
     )
 }
 
-private fun parseDependencySpec(raw: String): DependencySpec {
+fun dependency(id: String, versionRange: String? = null): DependencySpec {
+    val trimmedId = id.trim()
+    require(trimmedId.isNotEmpty()) { "Dependency id must not be empty" }
+    val range = versionRange?.trim()?.takeIf { it.isNotEmpty() }
+    return DependencySpec(id = trimmedId, versionRange = range)
+}
+
+fun dependencySpec(raw: String): DependencySpec {
     val trimmed = raw.trim()
     require(trimmed.isNotEmpty()) { "Dependency string must not be empty" }
     val match = Regex("^([A-Za-z0-9_.-]+)\\s*(.*)$").find(trimmed)
         ?: error("Invalid dependency format: '$raw'")
     val id = match.groupValues[1]
     val tail = match.groupValues[2].trim()
-    return if (tail.isBlank()) DependencySpec(id) else DependencySpec(id, tail)
+    return dependency(id, tail.ifBlank { null })
 }
 
 class GigaPluginDsl(private val ctx: PluginContext) {
@@ -103,7 +118,7 @@ class GigaPluginDsl(private val ctx: PluginContext) {
         recipeDefs.forEach(ctx.registry::registerRecipe)
         machineDefs.forEach(ctx.registry::registerMachine)
         systems.forEach(ctx.registry::registerSystem)
-        commandDefs.forEach { (cmd, description, action) -> ctx.commands.register(cmd, description, action) }
+        commandDefs.forEach { (cmd, description, action) -> ctx.commands.registerOrReplace(cmd, description, action) }
         adapterDefs.forEach(ctx.adapters::register)
     }
 }

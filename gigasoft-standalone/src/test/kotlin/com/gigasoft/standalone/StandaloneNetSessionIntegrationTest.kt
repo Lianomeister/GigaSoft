@@ -492,6 +492,49 @@ class StandaloneNetSessionIntegrationTest {
         }
     }
 
+    @Test
+    fun `text transport rejects oversize lines`() {
+        val root = Files.createTempDirectory("gigasoft-standalone-net-text-limit-it")
+        val core = GigaStandaloneCore(
+            config = StandaloneCoreConfig(
+                pluginsDirectory = root.resolve("plugins"),
+                dataDirectory = root.resolve("data"),
+                tickPeriodMillis = 1L,
+                autoSaveEveryTicks = 0L
+            ),
+            logger = {}
+        )
+        core.start()
+        val net = StandaloneNetServer(
+            config = StandaloneNetConfig(
+                host = "127.0.0.1",
+                port = 0,
+                authRequired = false,
+                maxTextLineBytes = 64
+            ),
+            logger = {},
+            handler = coreHandler(core)
+        )
+        net.start()
+        try {
+            val port = waitForPort(net)
+            Socket("127.0.0.1", port).use { socket ->
+                socket.soTimeout = 1_000
+                val reader = socket.getInputStream().bufferedReader()
+                val writer = socket.getOutputStream().bufferedWriter()
+
+                writer.write("Z".repeat(512))
+                writer.newLine()
+                writer.flush()
+
+                assertEquals(null, reader.readLine())
+            }
+        } finally {
+            net.stop()
+            core.stop()
+        }
+    }
+
     private fun coreHandler(core: GigaStandaloneCore): StandaloneSessionHandler {
         return object : StandaloneSessionHandler {
             override fun join(name: String, world: String, x: Double, y: Double, z: Double): SessionActionResult {

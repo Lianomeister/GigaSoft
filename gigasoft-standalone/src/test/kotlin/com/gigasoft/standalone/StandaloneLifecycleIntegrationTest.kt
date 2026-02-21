@@ -9,6 +9,7 @@ import java.util.jar.JarEntry
 import java.util.jar.JarOutputStream
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class StandaloneLifecycleIntegrationTest {
@@ -114,16 +115,68 @@ class StandaloneLifecycleIntegrationTest {
         }
     }
 
-    private fun writeDemoManifestJar(jarPath: Path, pluginId: String) {
-        val yaml = """
-            id: $pluginId
-            name: GigaSoft Demo
-            version: 0.1.0-rc.2
-            main: com.gigasoft.demo.DemoGigaPlugin
-            apiVersion: 1
-            dependencies: []
-            permissions: []
-        """.trimIndent()
+    @Test
+    fun `host access and bridge adapters are denied without permissions`() {
+        val root = Files.createTempDirectory("gigasoft-standalone-it-perms")
+        val pluginsDir = root.resolve("plugins")
+        val dataDir = root.resolve("data")
+        Files.createDirectories(pluginsDir)
+        Files.createDirectories(dataDir)
+
+        val core = GigaStandaloneCore(
+            config = StandaloneCoreConfig(
+                pluginsDirectory = pluginsDir,
+                dataDirectory = dataDir,
+                tickPeriodMillis = 1L,
+                autoSaveEveryTicks = 0L
+            ),
+            logger = {}
+        )
+        core.start()
+        try {
+            writeDemoManifestJar(
+                jarPath = pluginsDir.resolve("gigasoft-demo-it-perms.jar"),
+                pluginId = "gigasoft-demo",
+                permissions = emptyList()
+            )
+            assertEquals(1, core.loadNewPlugins())
+
+            val runResponse = core.run(
+                pluginId = "gigasoft-demo",
+                sender = "test",
+                commandLine = "demo-host"
+            )
+            assertEquals("Host access unavailable", runResponse)
+
+            val invoke = core.invokeAdapter(
+                pluginId = "gigasoft-demo",
+                adapterId = "bridge.host.server",
+                action = "server.info",
+                payload = emptyMap()
+            )
+            assertFalse(invoke.success)
+            assertTrue((invoke.message ?: "").contains("host.server.read"))
+        } finally {
+            core.stop()
+        }
+    }
+
+    private fun writeDemoManifestJar(jarPath: Path, pluginId: String, permissions: List<String> = listOf("host.server.read")) {
+        val lines = mutableListOf(
+            "id: $pluginId",
+            "name: GigaSoft Demo",
+            "version: 1.0.0",
+            "main: com.gigasoft.demo.DemoGigaPlugin",
+            "apiVersion: 1",
+            "dependencies: []"
+        )
+        if (permissions.isEmpty()) {
+            lines += "permissions: []"
+        } else {
+            lines += "permissions:"
+            permissions.forEach { lines += "  - $it" }
+        }
+        val yaml = lines.joinToString("\n")
         JarOutputStream(Files.newOutputStream(jarPath)).use { out ->
             out.putNextEntry(JarEntry("gigaplugin.yml"))
             out.write(yaml.toByteArray(Charsets.UTF_8))

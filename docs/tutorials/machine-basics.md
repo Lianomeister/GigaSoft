@@ -1,7 +1,15 @@
-﻿# Machine Basics
+# Machine Basics
 
-1. Register inputs/outputs in `items {}`.
-2. Register a process recipe in `recipes {}`.
-3. Implement `MachineBehavior` and register with `machines {}`.
-4. Use a `system("name")` tick handler to drive machine behavior.
-5. Persist production metrics with `ctx.storage.store(...)`.
+This tutorial now builds on the new guide stack:
+
+1. Start with `docs/tutorials/plugin-start.md`.
+2. Add recipes and machines via DSL (`recipes {}`, `machines {}`).
+3. Drive machine logic in `systems {}` tick handlers.
+4. Persist machine state using `ctx.storage` (see `docs/tutorials/persistence.md`).
+5. Validate reload behavior (see `docs/tutorials/reload-safe-coding.md`).
+
+Quick reminder:
+
+- keep tick logic cheap
+- avoid blocking IO in machine tick handlers
+- use deterministic IDs for machine systems

@@ -1,4 +1,40 @@
-﻿# Changelog
+# Changelog
+
+## 1.0.0 - 2026-02-20
+
+### Added
+- API freeze marker and constants in `gigasoft-api` (`GigaApiVersion`).
+- Versioned API documentation for frozen contracts:
+  - `docs/api/v1.0.0.md`
+  - `docs/migrations/v1.0.md`
+
+### Changed
+- DSL default plugin version updated to `1.0.0`.
+- `gigaPlugin(...)` now supports explicit `dependencySpecs: List<DependencySpec>` for stable dependency declarations.
+- Security hardening expanded:
+  - adapter SAFE/FAST policy behavior documented and enforced,
+  - adapter quotas/concurrency/audit logging improved,
+  - net DoS guardrails added (session caps, request rate caps, JSON payload limits),
+  - reproducible abuse/security matrix added in `docs/security/hardening-matrix.md`.
+- Command runtime hardened:
+  - duplicate command IDs are rejected by default,
+  - lifecycle-safe command operations added (`registerOrReplace`, `unregister`).
+- Event dispatch behavior is now configurable (`exact` vs `polymorphic`).
+- Storage durability improved:
+  - checksum files for persisted state,
+  - backup-based recovery when primary state is corrupted.
+- Performance hardening for prod:
+  - hotpath optimizations in adapter invoke path (token validation cache + zero-payload fast path),
+  - net hotpath reductions (fast JSON detection + prebuilt rate-limit response),
+  - explicit v1 performance target document (`docs/performance/targets-v1.md`),
+  - CI split with dedicated `performanceBaseline` gate step.
+- API compatibility gate added to release flow via `:gigasoft-api:apiCheck`.
+
+### Removed
+- `HostServerSnapshot.bukkitVersion` removed from API/host models.
+
+### Security
+- Host access and host bridge adapter actions now enforce manifest permissions.
 
 ## 0.1.0-rc.2 - 2026-02-20
 
@@ -37,3 +73,5 @@
 
 ### Build
 - New `releaseCandidate` task to run verification and collect RC artifacts.
+
+

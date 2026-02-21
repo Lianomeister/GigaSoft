@@ -1,8 +1,15 @@
 package com.gigasoft.runtime
 
 enum class AdapterExecutionMode {
+    // Full guardrails: payload validation, quotas, concurrency limits, timeout sandbox.
     SAFE,
+    // Low-latency mode: keeps input validation, but bypasses quotas/concurrency/timeout checks.
     FAST
+}
+
+enum class EventDispatchMode {
+    EXACT,
+    POLYMORPHIC
 }
 
 data class AdapterSecurityConfig(
@@ -11,7 +18,11 @@ data class AdapterSecurityConfig(
     val maxPayloadValueChars: Int = 512,
     val maxPayloadTotalChars: Int = 4096,
     val maxCallsPerMinute: Int = 180,
+    val maxCallsPerMinutePerPlugin: Int = 0,
+    val maxConcurrentInvocationsPerAdapter: Int = 0,
     val invocationTimeoutMillis: Long = 250L,
+    val auditLogEnabled: Boolean = true,
+    val auditLogSuccesses: Boolean = false,
     val executionMode: AdapterExecutionMode = AdapterExecutionMode.SAFE
 ) {
     init {
@@ -20,6 +31,8 @@ data class AdapterSecurityConfig(
         require(maxPayloadValueChars > 0) { "maxPayloadValueChars must be > 0" }
         require(maxPayloadTotalChars > 0) { "maxPayloadTotalChars must be > 0" }
         require(maxCallsPerMinute >= 0) { "maxCallsPerMinute must be >= 0" }
+        require(maxCallsPerMinutePerPlugin >= 0) { "maxCallsPerMinutePerPlugin must be >= 0" }
+        require(maxConcurrentInvocationsPerAdapter >= 0) { "maxConcurrentInvocationsPerAdapter must be >= 0" }
         require(invocationTimeoutMillis >= 0L) { "invocationTimeoutMillis must be >= 0" }
     }
 }

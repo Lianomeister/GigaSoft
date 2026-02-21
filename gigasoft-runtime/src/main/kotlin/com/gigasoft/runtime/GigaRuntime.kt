@@ -29,6 +29,7 @@ class GigaRuntime(
     private val pluginsDirectory: Path,
     private val dataDirectory: Path,
     private val adapterSecurity: AdapterSecurityConfig = AdapterSecurityConfig(),
+    private val eventDispatchMode: EventDispatchMode = EventDispatchMode.EXACT,
     private val hostAccess: HostAccess = HostAccess.unavailable(),
     private val rootLogger: GigaLogger = GigaLogger { println("[GigaRuntime] $it") }
 ) {
@@ -51,18 +52,18 @@ class GigaRuntime(
     }
 
     fun scanAndLoad(): List<LoadedPlugin> {
-        val jars = Files.list(normalizedPluginsDirectory).use { stream ->
+        val pluginEntries = Files.list(normalizedPluginsDirectory).use { stream ->
             stream
                 .filter { it.toString().endsWith(".jar") }
-                .map { assertPluginJarPath(it) }
                 .toList()
         }
 
-        val discovered = jars.mapNotNull { jar ->
+        val discovered = pluginEntries.mapNotNull { jarCandidate ->
             try {
+                val jar = assertPluginJarPath(jarCandidate)
                 PluginDescriptor(ManifestReader.readFromJar(jar), jar)
             } catch (t: Throwable) {
-                rootLogger.info("Skipped '$jar': ${t.message}")
+                rootLogger.info("Skipped '$jarCandidate': ${t.message}")
                 null
             }
         }
@@ -363,9 +364,15 @@ class GigaRuntime(
             )
             val registry = RuntimeRegistry(manifest.id)
             val commandRegistry = RuntimeCommandRegistry()
-            val eventBus = RuntimeEventBus()
+            val eventBus = RuntimeEventBus(mode = eventDispatchMode)
             val storage = JsonStorageProvider(dataDirectory.resolve(manifest.id))
             val pluginLogger = GigaLogger { rootLogger.info("[${manifest.id}] $it") }
+            val pluginHostAccess = RuntimeHostAccess(
+                delegate = hostAccess,
+                pluginId = manifest.id,
+                rawPermissions = manifest.permissions,
+                logger = pluginLogger
+            )
             val adapters = RuntimeModAdapterRegistry(
                 pluginId = manifest.id,
                 logger = pluginLogger,
@@ -383,7 +390,7 @@ class GigaRuntime(
                 storage,
                 commandRegistry,
                 eventBus,
-                hostAccess
+                pluginHostAccess
             )
 
             plugin.onEnable(context)

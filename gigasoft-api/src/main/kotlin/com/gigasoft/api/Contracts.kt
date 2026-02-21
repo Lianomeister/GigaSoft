@@ -43,6 +43,17 @@ interface HostAccess {
     }
 }
 
+object HostPermissions {
+    const val SERVER_READ = "host.server.read"
+    const val SERVER_BROADCAST = "host.server.broadcast"
+    const val WORLD_READ = "host.world.read"
+    const val ENTITY_READ = "host.entity.read"
+    const val ENTITY_SPAWN = "host.entity.spawn"
+    const val INVENTORY_READ = "host.inventory.read"
+    const val INVENTORY_WRITE = "host.inventory.write"
+    const val PLAYER_READ = "host.player.read"
+}
+
 data class HostLocationRef(
     val world: String,
     val x: Double,
@@ -76,7 +87,7 @@ data class HostInventorySnapshot(
 data class HostServerSnapshot(
     val name: String,
     val version: String,
-    val bukkitVersion: String? = null,
+    val platformVersion: String? = null,
     val onlinePlayers: Int,
     val maxPlayers: Int,
     val worldCount: Int
@@ -164,6 +175,16 @@ interface CommandRegistry {
         description: String = "",
         action: (ctx: PluginContext, sender: String, args: List<String>) -> String
     )
+
+    fun registerOrReplace(
+        command: String,
+        description: String = "",
+        action: (ctx: PluginContext, sender: String, args: List<String>) -> String
+    ) {
+        register(command, description, action)
+    }
+
+    fun unregister(command: String): Boolean = false
 }
 
 interface EventBus {

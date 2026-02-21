@@ -23,6 +23,17 @@ tasks.register<Test>("performanceTest") {
     }
 }
 
+tasks.register<Test>("soakTest") {
+    group = "verification"
+    description = "Runs runtime soak tests"
+    val testSourceSet = sourceSets["test"]
+    testClassesDirs = testSourceSet.output.classesDirs
+    classpath = testSourceSet.runtimeClasspath
+    useJUnitPlatform {
+        includeTags("soak")
+    }
+}
+
 tasks.named<Test>("test") {
     useJUnitPlatform {
         excludeTags("performance")

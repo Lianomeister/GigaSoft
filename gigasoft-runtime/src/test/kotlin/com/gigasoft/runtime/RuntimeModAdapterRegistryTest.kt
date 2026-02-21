@@ -3,6 +3,8 @@ package com.gigasoft.runtime
 import com.gigasoft.api.AdapterInvocation
 import com.gigasoft.api.AdapterResponse
 import com.gigasoft.api.ModAdapter
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -124,6 +126,85 @@ class RuntimeModAdapterRegistryTest {
         val second = registry.invoke("bridge", AdapterInvocation("ping"))
         assertFalse(second.success)
         assertTrue(second.message?.contains("rate limit exceeded") == true)
+    }
+
+    @Test
+    fun `security config applies per plugin quota across adapters`() {
+        val registry = RuntimeModAdapterRegistry(
+            pluginId = "demo",
+            logger = logger(),
+            securityConfig = AdapterSecurityConfig(
+                maxCallsPerMinute = 10,
+                maxCallsPerMinutePerPlugin = 1
+            )
+        )
+        registry.register(adapter("bridge-a"))
+        registry.register(adapter("bridge-b"))
+
+        assertTrue(registry.invoke("bridge-a", AdapterInvocation("ping")).success)
+        val second = registry.invoke("bridge-b", AdapterInvocation("ping"))
+        assertFalse(second.success)
+        assertTrue(second.message?.contains("rate limit exceeded") == true)
+    }
+
+    @Test
+    fun `security config enforces per adapter concurrency limit`() {
+        val begin = CountDownLatch(1)
+        val release = CountDownLatch(1)
+        val registry = RuntimeModAdapterRegistry(
+            pluginId = "demo",
+            logger = logger(),
+            securityConfig = AdapterSecurityConfig(
+                maxConcurrentInvocationsPerAdapter = 1,
+                invocationTimeoutMillis = 2_000L
+            )
+        )
+        registry.register(
+            adapter("slow") {
+                begin.countDown()
+                release.await()
+                AdapterResponse(success = true)
+            }
+        )
+
+        val t1 = Thread {
+            registry.invoke("slow", AdapterInvocation("ping"))
+        }
+        t1.start()
+        begin.await()
+        val second = registry.invoke("slow", AdapterInvocation("ping"))
+        assertFalse(second.success)
+        assertTrue(second.message?.contains("concurrency limit exceeded") == true)
+        release.countDown()
+        t1.join()
+    }
+
+    @Test
+    fun `audit logs are emitted for denied and timeout outcomes`() {
+        val logs = CopyOnWriteArrayList<String>()
+        val registry = RuntimeModAdapterRegistry(
+            pluginId = "demo",
+            logger = { msg -> logs += msg },
+            securityConfig = AdapterSecurityConfig(
+                maxCallsPerMinute = 1,
+                invocationTimeoutMillis = 20L,
+                auditLogEnabled = true
+            )
+        )
+        registry.register(
+            adapter("slow") {
+                Thread.sleep(120)
+                AdapterResponse(success = true)
+            }
+        )
+
+        val first = registry.invoke("slow", AdapterInvocation("ping"))
+        assertFalse(first.success)
+        val second = registry.invoke("slow", AdapterInvocation("ping"))
+        assertFalse(second.success)
+
+        assertTrue(logs.any { it.contains("[adapter-audit]") && it.contains("outcome=TIMEOUT") })
+        assertTrue(logs.any { it.contains("[adapter-audit]") && it.contains("outcome=DENIED") })
     }
 
     @Test

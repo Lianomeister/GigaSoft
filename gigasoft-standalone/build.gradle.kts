@@ -36,6 +36,30 @@ tasks.register<Test>("performanceTest") {
     }
 }
 
+tasks.register<Test>("smokeTest") {
+    group = "verification"
+    description = "Runs standalone smoke tests"
+    val testSourceSet = sourceSets["test"]
+    testClassesDirs = testSourceSet.output.classesDirs
+    classpath = testSourceSet.runtimeClasspath
+    useJUnitPlatform {
+        includeTags("smoke")
+    }
+    dependsOn(":gigasoft-demo-standalone:shadowJar")
+}
+
+tasks.register<Test>("soakTest") {
+    group = "verification"
+    description = "Runs standalone soak tests"
+    val testSourceSet = sourceSets["test"]
+    testClassesDirs = testSourceSet.output.classesDirs
+    classpath = testSourceSet.runtimeClasspath
+    useJUnitPlatform {
+        includeTags("soak")
+    }
+    dependsOn(":gigasoft-demo-standalone:shadowJar")
+}
+
 tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar") {
     archiveClassifier.set("")
     manifest {

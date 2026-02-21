@@ -20,6 +20,7 @@ import com.gigasoft.api.TickSystem
 import com.gigasoft.host.api.HostBridgeAdapters
 import com.gigasoft.host.api.asHostAccess
 import com.gigasoft.runtime.AdapterSecurityConfig
+import com.gigasoft.runtime.EventDispatchMode
 import com.gigasoft.runtime.GigaRuntime
 import com.gigasoft.runtime.PluginRuntimeProfile
 import com.gigasoft.runtime.ReloadReport
@@ -42,10 +43,11 @@ data class StandaloneCoreConfig(
     val dataDirectory: Path,
     val tickPeriodMillis: Long = 50L,
     val serverName: String = "GigaSoft Standalone",
-    val serverVersion: String = "0.1.0-rc.2",
+    val serverVersion: String = "1.0.0",
     val maxPlayers: Int = 0,
     val autoSaveEveryTicks: Long = 200L,
-    val adapterSecurity: AdapterSecurityConfig = AdapterSecurityConfig()
+    val adapterSecurity: AdapterSecurityConfig = AdapterSecurityConfig(),
+    val eventDispatchMode: EventDispatchMode = EventDispatchMode.EXACT
 )
 
 data class AdapterDescriptor(
@@ -132,6 +134,7 @@ class GigaStandaloneCore(
             pluginsDirectory = config.pluginsDirectory,
             dataDirectory = config.dataDirectory,
             adapterSecurity = config.adapterSecurity,
+            eventDispatchMode = config.eventDispatchMode,
             hostAccess = hostBridge.asHostAccess(),
             rootLogger = logger
         )
@@ -257,6 +260,7 @@ class GigaStandaloneCore(
         y: Double = 64.0,
         z: Double = 0.0
     ): StandalonePlayer = mutate {
+        ensureWorldExistsAndPublish(world, 0L)
         val player = hostState.joinPlayer(name, world, x, y, z)
         publishEvent(StandalonePlayerJoinEvent(player))
         publishEvent(GigaPlayerJoinEvent(player.toHostSnapshot()))
@@ -277,6 +281,9 @@ class GigaStandaloneCore(
         z: Double,
         world: String? = null
     ): StandalonePlayer? = mutate {
+        if (!world.isNullOrBlank()) {
+            ensureWorldExistsAndPublish(world, 0L)
+        }
         val previous = hostState.findPlayer(name) ?: return@mutate null
         val moved = hostState.movePlayer(name, x, y, z, world) ?: return@mutate null
         publishEvent(StandalonePlayerMoveEvent(previous, moved))
@@ -285,17 +292,7 @@ class GigaStandaloneCore(
     }
 
     fun createWorld(name: String, seed: Long = 0L): StandaloneWorld = mutate {
-        val world = hostState.createWorld(name, seed)
-        publishEvent(StandaloneWorldCreatedEvent(world))
-        publishEvent(
-            GigaWorldCreatedEvent(
-                HostWorldSnapshot(
-                    name = world.name,
-                    entityCount = hostState.entityCount(world.name)
-                )
-            )
-        )
-        world
+        ensureWorldExistsAndPublish(name, seed)
     }
 
     fun spawnEntity(
@@ -305,6 +302,7 @@ class GigaStandaloneCore(
         y: Double,
         z: Double
     ): StandaloneEntity = mutate {
+        ensureWorldExistsAndPublish(world, 0L)
         val entity = hostState.spawnEntity(type, world, x, y, z)
         publishEvent(StandaloneEntitySpawnEvent(entity))
         publishEvent(
@@ -425,16 +423,18 @@ class GigaStandaloneCore(
         if (tickFailure) {
             tickFailureCounter.incrementAndGet()
         }
-        if (config.autoSaveEveryTicks > 0L && tickCounter.get() % config.autoSaveEveryTicks == 0L) {
+        if (config.autoSaveEveryTicks > 0L && tick % config.autoSaveEveryTicks == 0L) {
             saveState()
         }
     }
 
     private fun publishTickEvents(tick: Long) {
         if (!this::runtime.isInitialized) return
+        val plugins = tickPlugins
+        if (plugins.isEmpty()) return
         val standaloneEvent = StandaloneTickEvent(tick)
         val apiEvent = GigaTickEvent(tick)
-        for (entry in tickPlugins) {
+        for (entry in plugins) {
             try {
                 entry.events.publish(standaloneEvent)
                 entry.events.publish(apiEvent)
@@ -457,7 +457,9 @@ class GigaStandaloneCore(
 
     private fun publishEvent(event: Any) {
         if (!this::runtime.isInitialized) return
-        for (entry in tickPlugins) {
+        val plugins = tickPlugins
+        if (plugins.isEmpty()) return
+        for (entry in plugins) {
             try {
                 entry.events.publish(event)
             } catch (_: Throwable) {
@@ -474,7 +476,8 @@ class GigaStandaloneCore(
                     registry = plugin.context.adapters,
                     hostBridge = hostBridge,
                     logger = logger,
-                    bridgeName = "Standalone"
+                    bridgeName = "Standalone",
+                    grantedPermissions = plugin.manifest.permissions.map { it.trim() }.filter { it.isNotEmpty() }.toSet()
                 )
             } catch (t: Throwable) {
                 logger.info("Failed installing standalone bridge adapters for ${plugin.manifest.id}: ${t.message}")
@@ -487,19 +490,22 @@ class GigaStandaloneCore(
     }
 
     private fun refreshTickPluginsSnapshot() {
-        tickPlugins = runtime.loadedPluginsView().map { plugin ->
-            val runtimeRegistry = plugin.context.registry as? RuntimeRegistry
-            val systems = runtimeRegistry?.systemsSnapshot()
-                ?: plugin.context.registry.systems().map { it.key to it.value }
-            TickPluginSnapshot(
-                pluginId = plugin.manifest.id,
-                context = plugin.context,
-                events = plugin.context.events,
-                runtimeRegistry = runtimeRegistry,
-                systemsVersion = runtimeRegistry?.systemsVersion() ?: -1L,
-                systems = systems
-            )
-        }
+        tickPlugins = runtime.loadedPluginsView()
+            .sortedBy { it.manifest.id.lowercase() }
+            .map { plugin ->
+                val runtimeRegistry = plugin.context.registry as? RuntimeRegistry
+                val systems = (runtimeRegistry?.systemsSnapshot()
+                    ?: plugin.context.registry.systems().map { it.key to it.value })
+                    .sortedBy { it.first.lowercase() }
+                TickPluginSnapshot(
+                    pluginId = plugin.manifest.id,
+                    context = plugin.context,
+                    events = plugin.context.events,
+                    runtimeRegistry = runtimeRegistry,
+                    systemsVersion = runtimeRegistry?.systemsVersion() ?: -1L,
+                    systems = systems
+                )
+            }
     }
 
     private fun maybeRefreshTickPluginsSnapshot() {
@@ -533,6 +539,22 @@ class GigaStandaloneCore(
         } catch (_: TimeoutException) {
             throw IllegalStateException("Timed out waiting for core mutation execution")
         }
+    }
+
+    private fun ensureWorldExistsAndPublish(name: String, seed: Long): StandaloneWorld {
+        val result = hostState.createWorldWithStatus(name, seed)
+        if (result.created) {
+            publishEvent(StandaloneWorldCreatedEvent(result.world))
+            publishEvent(
+                GigaWorldCreatedEvent(
+                    HostWorldSnapshot(
+                        name = result.world.name,
+                        entityCount = hostState.entityCount(result.world.name)
+                    )
+                )
+            )
+        }
+        return result.world
     }
 
     private fun StandalonePlayer.toHostSnapshot(): HostPlayerSnapshot {

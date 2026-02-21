@@ -5,8 +5,10 @@ import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.net.Socket
+import java.net.SocketException
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class StandaloneNetServerTest {
@@ -198,6 +200,180 @@ class StandaloneNetServerTest {
                 )
                 assertTrue(auth.success)
                 assertEquals("player", auth.payload["role"])
+            }
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun `invalid json request returns structured bad request`() {
+        val server = StandaloneNetServer(
+            config = StandaloneNetConfig(
+                host = "127.0.0.1",
+                port = 0,
+                authRequired = false
+            ),
+            logger = {},
+            handler = TestHandler()
+        )
+        server.start()
+        try {
+            val port = waitForPort(server)
+            Socket("127.0.0.1", port).use { socket ->
+                val reader = socket.getInputStream().bufferedReader()
+                val writer = socket.getOutputStream().bufferedWriter()
+
+                writer.write("{\"protocol\":\"gigasoft-standalone-net\",\"version\":1,\"action\":")
+                writer.newLine()
+                writer.flush()
+
+                val responseLine = reader.readLine()
+                val response = mapper.readValue(responseLine, SessionResponsePacket::class.java)
+                assertTrue(!response.success)
+                assertEquals("BAD_REQUEST", response.code)
+            }
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun `oversized text line closes client connection`() {
+        val server = StandaloneNetServer(
+            config = StandaloneNetConfig(
+                host = "127.0.0.1",
+                port = 0,
+                authRequired = false,
+                maxTextLineBytes = 256
+            ),
+            logger = {},
+            handler = TestHandler()
+        )
+        server.start()
+        try {
+            val port = waitForPort(server)
+            Socket("127.0.0.1", port).use { socket ->
+                socket.soTimeout = 1_000
+                val reader = socket.getInputStream().bufferedReader()
+                val writer = socket.getOutputStream().bufferedWriter()
+                writer.write("A".repeat(4096))
+                writer.newLine()
+                writer.flush()
+                assertNull(reader.readLine())
+            }
+
+            Socket("127.0.0.1", port).use { socket ->
+                val reader = socket.getInputStream().bufferedReader()
+                val writer = socket.getOutputStream().bufferedWriter()
+                val ping = sendJson(reader, writer, action = "ping", requestId = "p1")
+                assertTrue(ping.success)
+                assertEquals("PONG", ping.code)
+            }
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun `json payload limits reject abuse payload`() {
+        val server = StandaloneNetServer(
+            config = StandaloneNetConfig(
+                host = "127.0.0.1",
+                port = 0,
+                authRequired = false,
+                maxJsonPayloadEntries = 2
+            ),
+            logger = {},
+            handler = TestHandler()
+        )
+        server.start()
+        try {
+            val port = waitForPort(server)
+            Socket("127.0.0.1", port).use { socket ->
+                val reader = socket.getInputStream().bufferedReader()
+                val writer = socket.getOutputStream().bufferedWriter()
+                val payload = mapOf("a" to "1", "b" to "2", "c" to "3")
+                val response = sendJson(reader, writer, "ping", "abuse-1", payload)
+                assertTrue(!response.success)
+                assertEquals("PAYLOAD_LIMIT", response.code)
+            }
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun `per connection request limit throttles abuse burst`() {
+        val server = StandaloneNetServer(
+            config = StandaloneNetConfig(
+                host = "127.0.0.1",
+                port = 0,
+                authRequired = false,
+                maxRequestsPerMinutePerConnection = 3,
+                maxRequestsPerMinutePerIp = 1_000
+            ),
+            logger = {},
+            handler = TestHandler()
+        )
+        server.start()
+        try {
+            val port = waitForPort(server)
+            Socket("127.0.0.1", port).use { socket ->
+                val reader = socket.getInputStream().bufferedReader()
+                val writer = socket.getOutputStream().bufferedWriter()
+                repeat(3) { idx ->
+                    val ok = sendJson(reader, writer, "ping", "ok-$idx")
+                    assertTrue(ok.success)
+                }
+                val denied = sendJson(reader, writer, "ping", "deny")
+                assertTrue(!denied.success)
+                assertEquals("RATE_LIMIT", denied.code)
+                assertNull(reader.readLine())
+            }
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun `per ip concurrent session limit rejects excess clients`() {
+        val server = StandaloneNetServer(
+            config = StandaloneNetConfig(
+                host = "127.0.0.1",
+                port = 0,
+                authRequired = false,
+                maxConcurrentSessions = 8,
+                maxSessionsPerIp = 1
+            ),
+            logger = {},
+            handler = TestHandler()
+        )
+        server.start()
+        try {
+            val port = waitForPort(server)
+            Socket("127.0.0.1", port).use { socket1 ->
+                val reader1 = socket1.getInputStream().bufferedReader()
+                val writer1 = socket1.getOutputStream().bufferedWriter()
+                val ping1 = sendJson(reader1, writer1, "ping", "hold")
+                assertTrue(ping1.success)
+
+                Socket("127.0.0.1", port).use { socket2 ->
+                    socket2.soTimeout = 1_000
+                    val reader2 = socket2.getInputStream().bufferedReader()
+                    val writer2 = socket2.getOutputStream().bufferedWriter()
+                    val result = runCatching {
+                        writer2.write("""{"protocol":"gigasoft-standalone-net","version":1,"requestId":"x","action":"ping","payload":{}}""")
+                        writer2.newLine()
+                        writer2.flush()
+                        reader2.readLine()
+                    }
+                    if (result.isSuccess) {
+                        assertNull(result.getOrNull())
+                    } else {
+                        assertTrue(result.exceptionOrNull() is SocketException)
+                    }
+                }
             }
         } finally {
             server.stop()

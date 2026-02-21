@@ -1,18 +1,21 @@
 package com.gigasoft.net
 
 import com.gigasoft.api.GigaLogger
-import java.io.BufferedReader
 import java.io.BufferedWriter
 import java.io.DataInputStream
 import java.io.DataOutputStream
+import java.io.PushbackInputStream
 import java.net.InetSocketAddress
 import java.net.ServerSocket
 import java.net.Socket
+import java.net.SocketTimeoutException
+import java.util.ArrayDeque
 import java.util.HashMap
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 
 data class StandaloneNetConfig(
@@ -23,10 +26,31 @@ data class StandaloneNetConfig(
     val adminSecret: String? = null,
     val sessionTtlSeconds: Long = 1800L,
     val maxFrameBytes: Int = 1_048_576,
+    val maxTextLineBytes: Int = 16_384,
+    val readTimeoutMillis: Int = 30_000,
+    val maxConcurrentSessions: Int = 256,
+    val maxSessionsPerIp: Int = 32,
+    val maxRequestsPerMinutePerConnection: Int = 6_000,
+    val maxRequestsPerMinutePerIp: Int = 20_000,
+    val maxJsonPayloadEntries: Int = 64,
+    val maxJsonPayloadKeyChars: Int = 64,
+    val maxJsonPayloadValueChars: Int = 1_024,
+    val maxJsonPayloadTotalChars: Int = 8_192,
+    val auditLogEnabled: Boolean = true,
     val textFlushEveryResponses: Int = 1,
     val frameFlushEveryResponses: Int = 1
 ) {
     init {
+        require(maxTextLineBytes > 0) { "maxTextLineBytes must be > 0" }
+        require(readTimeoutMillis >= 0) { "readTimeoutMillis must be >= 0" }
+        require(maxConcurrentSessions > 0) { "maxConcurrentSessions must be > 0" }
+        require(maxSessionsPerIp > 0) { "maxSessionsPerIp must be > 0" }
+        require(maxRequestsPerMinutePerConnection > 0) { "maxRequestsPerMinutePerConnection must be > 0" }
+        require(maxRequestsPerMinutePerIp > 0) { "maxRequestsPerMinutePerIp must be > 0" }
+        require(maxJsonPayloadEntries > 0) { "maxJsonPayloadEntries must be > 0" }
+        require(maxJsonPayloadKeyChars > 0) { "maxJsonPayloadKeyChars must be > 0" }
+        require(maxJsonPayloadValueChars > 0) { "maxJsonPayloadValueChars must be > 0" }
+        require(maxJsonPayloadTotalChars > 0) { "maxJsonPayloadTotalChars must be > 0" }
         require(textFlushEveryResponses > 0) { "textFlushEveryResponses must be > 0" }
         require(frameFlushEveryResponses > 0) { "frameFlushEveryResponses must be > 0" }
     }
@@ -67,9 +91,19 @@ class StandaloneNetServer(
         "authMode" to if (config.sharedSecret.isNullOrBlank() && config.adminSecret.isNullOrBlank()) "none" else "secret",
         "sessionTtlSeconds" to config.sessionTtlSeconds.toString(),
         "maxFrameBytes" to config.maxFrameBytes.toString(),
+        "maxTextLineBytes" to config.maxTextLineBytes.toString(),
+        "maxRequestsPerMinutePerConnection" to config.maxRequestsPerMinutePerConnection.toString(),
+        "maxRequestsPerMinutePerIp" to config.maxRequestsPerMinutePerIp.toString(),
         "roles" to "guest,player,admin"
     )
     private val negotiatedPayload = mapOf("selectedVersion" to "1")
+    private val rateLimitJsonResponse = codec.encodeResponseParts(
+        requestId = null,
+        success = false,
+        code = "RATE_LIMIT",
+        message = "Rate limit exceeded",
+        payload = emptyMap()
+    )
     private val running = AtomicBoolean(false)
     private val totalRequests = AtomicLong(0)
     private val jsonRequests = AtomicLong(0)
@@ -77,10 +111,17 @@ class StandaloneNetServer(
     private val totalRequestNanos = AtomicLong(0)
     private val actionMetrics = ConcurrentHashMap<String, MutableActionMetric>()
     private val sessions = ConcurrentHashMap.newKeySet<Socket>()
+    private val sessionsPerIp = ConcurrentHashMap<String, AtomicInteger>()
+    private val requestsPerIp = ConcurrentHashMap<String, RateWindow>()
     private val pool = Executors.newCachedThreadPool()
     @Volatile
     private var boundPortValue: Int = -1
     private var serverSocket: ServerSocket? = null
+
+    private data class RateWindow(
+        val calls: ArrayDeque<Long> = ArrayDeque(),
+        var size: Int = 0
+    )
 
     fun start() {
         if (!running.compareAndSet(false, true)) return
@@ -92,8 +133,12 @@ class StandaloneNetServer(
         pool.submit {
             while (running.get()) {
                 val client = runCatching { socket.accept() }.getOrNull() ?: continue
+                val remoteIp = client.inetAddress?.hostAddress ?: "unknown"
+                if (!allowConnection(client, remoteIp)) {
+                    continue
+                }
                 sessions += client
-                pool.submit { handleClient(client) }
+                pool.submit { handleClient(client, remoteIp) }
             }
         }
     }
@@ -156,8 +201,11 @@ class StandaloneNetServer(
         fun worldOrNull(key: String): String? = payload[key]?.trim()?.takeIf { it.isNotEmpty() }
     }
 
-    private fun handleClient(socket: Socket) {
+    private fun handleClient(socket: Socket, remoteIp: String) {
         socket.tcpNoDelay = true
+        if (config.readTimeoutMillis > 0) {
+            socket.soTimeout = config.readTimeoutMillis
+        }
         var context = SessionContext(
             connectionId = UUID.randomUUID().toString(),
             sessionId = null,
@@ -168,27 +216,43 @@ class StandaloneNetServer(
             sessionExpiresAtMillis = null
         )
         val remote = socket.remoteSocketAddress.toString()
+        val connectionWindow = RateWindow()
         logger.info("Session connected: $remote")
-        runCatching {
+        try {
             val rawIn = socket.getInputStream()
             val rawOut = socket.getOutputStream()
             val first = rawIn.read()
-            if (first < 0) return@runCatching
+            if (first < 0) return
 
             val isText = first == '{'.code ||
                 (first in 'A'.code..'Z'.code) ||
                 (first in 'a'.code..'z'.code)
 
             if (isText) {
-                val input = java.io.PushbackInputStream(rawIn, 1)
+                val input = PushbackInputStream(rawIn, 1)
                 input.unread(first)
-                input.bufferedReader().use { reader ->
-                    rawOut.bufferedWriter().use { writer ->
-                        loop(reader, writer) { line ->
-                            val result = processLine(line, context)
-                            context = result.context
-                            result.response
+                rawOut.bufferedWriter().use { writer ->
+                    var pendingTextResponses = 0
+                    while (running.get()) {
+                        val line = readTextLine(input) ?: break
+                        if (line.oversize) {
+                            recordActionMetric("transport.text_oversize", 0L, false)
+                            audit("text_oversize", remoteIp, context.connectionId, "text request exceeded maxTextLineBytes")
+                            break
                         }
+                        if (!allowRequest(remoteIp, connectionWindow)) {
+                            val response = rateLimitResponse(line.value)
+                            writeLine(writer, response, true)
+                            audit("rate_limit", remoteIp, context.connectionId, "request rate limit exceeded")
+                            break
+                        }
+                        val result = processLine(line.value, context)
+                        context = result.context
+                        pendingTextResponses += 1
+                        val flushNow = result.response == "BYE" || pendingTextResponses >= config.textFlushEveryResponses
+                        writeLine(writer, result.response, flushNow)
+                        if (flushNow) pendingTextResponses = 0
+                        if (result.response == "BYE") break
                     }
                 }
             } else {
@@ -197,6 +261,12 @@ class StandaloneNetServer(
                 var pendingFrames = 0
                 var nextFrame = readFrame(dataIn, first)
                 while (running.get() && nextFrame != null) {
+                    if (!allowRequest(remoteIp, connectionWindow)) {
+                        val response = rateLimitResponse(nextFrame)
+                        writeFrame(dataOut, response, true)
+                        audit("rate_limit", remoteIp, context.connectionId, "request rate limit exceeded")
+                        break
+                    }
                     val result = processLine(nextFrame, context)
                     context = result.context
                     pendingFrames += 1
@@ -206,27 +276,20 @@ class StandaloneNetServer(
                     nextFrame = readFrame(dataIn, null)
                 }
             }
+        } catch (_: SocketTimeoutException) {
+            recordActionMetric("transport.timeout", 0L, false)
+            audit("timeout", remoteIp, context.connectionId, "socket timeout")
+        } catch (_: IllegalStateException) {
+            recordActionMetric("transport.invalid_frame", 0L, false)
+            audit("invalid_frame", remoteIp, context.connectionId, "invalid frame size")
+        } catch (_: Exception) {
+            recordActionMetric("transport.error", 0L, false)
+            audit("transport_error", remoteIp, context.connectionId, "unhandled transport exception")
         }
         sessions.remove(socket)
+        releaseConnection(remoteIp)
         runCatching { socket.close() }
         logger.info("Session disconnected: $remote")
-    }
-
-    private fun loop(
-        reader: BufferedReader,
-        writer: BufferedWriter,
-        process: (String) -> String
-    ) {
-        var pendingTextResponses = 0
-        while (running.get()) {
-            val line = reader.readLine() ?: break
-            val response = process(line)
-            pendingTextResponses += 1
-            val flushNow = response == "BYE" || pendingTextResponses >= config.textFlushEveryResponses
-            writeLine(writer, response, flushNow)
-            if (flushNow) pendingTextResponses = 0
-            if (response == "BYE") break
-        }
     }
 
     private data class SessionResult(
@@ -237,10 +300,24 @@ class StandaloneNetServer(
     private fun processLine(line: String, context: SessionContext): SessionResult {
         val started = System.nanoTime()
         totalRequests.incrementAndGet()
-        val packet = codec.tryDecodeRequest(line)
-        val result = if (packet != null) {
-            jsonRequests.incrementAndGet()
-            processPacket(packet, context)
+        val result = if (looksLikeJson(line)) {
+            val packet = codec.tryDecodeRequest(line)
+            if (packet == null) {
+                jsonRequests.incrementAndGet()
+                SessionResult(
+                    response = codec.encodeResponseParts(
+                        requestId = null,
+                        success = false,
+                        code = "BAD_REQUEST",
+                        message = "Invalid JSON request",
+                        payload = emptyMap()
+                    ),
+                    context = context
+                )
+            } else {
+                jsonRequests.incrementAndGet()
+                processPacket(packet, context)
+            }
         } else {
             legacyRequests.incrementAndGet()
             processLegacyLine(line, context)
@@ -259,6 +336,20 @@ class StandaloneNetServer(
                     success = false,
                     code = "BAD_PROTOCOL",
                     message = "Unsupported protocol/version",
+                    payload = emptyMap()
+                ),
+                context = context
+            )
+        }
+        val payloadValidationError = validateJsonPayload(packet.payload)
+        if (payloadValidationError != null) {
+            recordActionMetric("json.bad_payload", System.nanoTime() - started, false)
+            return SessionResult(
+                response = codec.encodeResponseParts(
+                    requestId = packet.requestId,
+                    success = false,
+                    code = "PAYLOAD_LIMIT",
+                    message = payloadValidationError,
                     payload = emptyMap()
                 ),
                 context = context
@@ -823,6 +914,116 @@ class StandaloneNetServer(
         actionMetrics.computeIfAbsent(action) { MutableActionMetric() }.record(durationNanos, success)
     }
 
+    private fun allowConnection(socket: Socket, remoteIp: String): Boolean {
+        if (sessions.size >= config.maxConcurrentSessions) {
+            recordActionMetric("transport.connection_limit", 0L, false)
+            audit("connection_limit", remoteIp, null, "maxConcurrentSessions reached")
+            runCatching { socket.close() }
+            return false
+        }
+        val counter = sessionsPerIp.computeIfAbsent(remoteIp) { AtomicInteger(0) }
+        val next = counter.incrementAndGet()
+        if (next > config.maxSessionsPerIp) {
+            counter.decrementAndGet()
+            recordActionMetric("transport.per_ip_connection_limit", 0L, false)
+            audit("per_ip_connection_limit", remoteIp, null, "maxSessionsPerIp reached")
+            runCatching { socket.close() }
+            return false
+        }
+        return true
+    }
+
+    private fun releaseConnection(remoteIp: String) {
+        val counter = sessionsPerIp[remoteIp] ?: return
+        val remaining = counter.decrementAndGet()
+        if (remaining <= 0) {
+            sessionsPerIp.remove(remoteIp, counter)
+        }
+    }
+
+    private fun allowRequest(remoteIp: String, connectionWindow: RateWindow): Boolean {
+        val now = System.currentTimeMillis()
+        if (!allowInWindow(connectionWindow, now, config.maxRequestsPerMinutePerConnection)) {
+            recordActionMetric("transport.connection_rate_limit", 0L, false)
+            return false
+        }
+        val ipWindow = requestsPerIp.computeIfAbsent(remoteIp) { RateWindow() }
+        if (!allowInWindow(ipWindow, now, config.maxRequestsPerMinutePerIp)) {
+            rollbackWindow(connectionWindow)
+            recordActionMetric("transport.ip_rate_limit", 0L, false)
+            return false
+        }
+        return true
+    }
+
+    private fun rollbackWindow(window: RateWindow) {
+        synchronized(window) {
+            if (window.size <= 0) return
+            if (window.calls.isNotEmpty()) {
+                window.calls.removeLast()
+            }
+            window.size = (window.size - 1).coerceAtLeast(0)
+        }
+    }
+
+    private fun allowInWindow(window: RateWindow, now: Long, limit: Int): Boolean {
+        val windowStart = now - 60_000L
+        synchronized(window) {
+            while (true) {
+                val head = window.calls.peekFirst() ?: break
+                if (head >= windowStart) break
+                window.calls.removeFirst()
+                window.size--
+            }
+            if (window.size >= limit) return false
+            window.calls.addLast(now)
+            window.size++
+            return true
+        }
+    }
+
+    private fun validateJsonPayload(payload: Map<String, String>): String? {
+        if (payload.size > config.maxJsonPayloadEntries) {
+            return "Payload exceeds ${config.maxJsonPayloadEntries} entries"
+        }
+        var totalChars = 0
+        for ((key, value) in payload) {
+            if (key.isBlank() || key.length > config.maxJsonPayloadKeyChars) {
+                return "Payload contains invalid key"
+            }
+            if (value.length > config.maxJsonPayloadValueChars) {
+                return "Payload contains oversized value"
+            }
+            totalChars += key.length + value.length
+            if (totalChars > config.maxJsonPayloadTotalChars) {
+                return "Payload exceeds ${config.maxJsonPayloadTotalChars} chars"
+            }
+        }
+        return null
+    }
+
+    private fun rateLimitResponse(line: String): String {
+        return if (looksLikeJson(line)) {
+            rateLimitJsonResponse
+        } else {
+            "ERR rate limit exceeded"
+        }
+    }
+
+    private fun looksLikeJson(input: String): Boolean {
+        if (input.isEmpty()) return false
+        val first = input[0]
+        if (first == '{') return true
+        if (!first.isWhitespace()) return false
+        return firstNonWhitespaceChar(input) == '{'
+    }
+
+    private fun audit(kind: String, remoteIp: String, connectionId: String?, detail: String) {
+        if (!config.auditLogEnabled) return
+        val cid = connectionId ?: "-"
+        logger.info("[net-audit] kind=$kind ip=$remoteIp connectionId=$cid detail=\"$detail\"")
+    }
+
     fun metrics(): StandaloneNetMetricsSnapshot {
         val total = totalRequests.get()
         return StandaloneNetMetricsSnapshot(
@@ -846,6 +1047,48 @@ class StandaloneNetServer(
             out.add(input.substring(start, i))
         }
         return out
+    }
+
+    private data class TextLineRead(
+        val value: String,
+        val oversize: Boolean
+    )
+
+    private fun readTextLine(input: PushbackInputStream): TextLineRead? {
+        val maxBytes = config.maxTextLineBytes
+        val bytes = ByteArray(maxBytes)
+        var count = 0
+        var sawAny = false
+        while (true) {
+            val next = input.read()
+            if (next < 0) {
+                if (!sawAny) return null
+                break
+            }
+            sawAny = true
+            if (next == '\n'.code) break
+            if (next == '\r'.code) continue
+            if (count >= maxBytes) {
+                while (true) {
+                    val drain = input.read()
+                    if (drain < 0 || drain == '\n'.code) break
+                }
+                return TextLineRead(value = "", oversize = true)
+            }
+            bytes[count] = next.toByte()
+            count += 1
+        }
+        return TextLineRead(
+            value = String(bytes, 0, count, Charsets.UTF_8),
+            oversize = false
+        )
+    }
+
+    private fun firstNonWhitespaceChar(input: String): Char? {
+        for (ch in input) {
+            if (!ch.isWhitespace()) return ch
+        }
+        return null
     }
 
     private fun writeLine(writer: BufferedWriter, text: String, flushNow: Boolean) {

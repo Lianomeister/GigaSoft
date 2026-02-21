@@ -1,17 +1,20 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>GigaSoft Docs | API Reference</title>
-  <meta name="description" content="GigaSoft Standalone API-Dokumentation: PluginContext, DSL, Events, Adapter, Lifecycle." />
+  <meta name="description" content="GigaSoft Standalone API documentation: PluginContext, DSL, events, adapters, lifecycle." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
+  <div class="scroll-progress" aria-hidden="true"></div>
   <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow-a" aria-hidden="true"></div>
+  <div class="bg-glow bg-glow-b" aria-hidden="true"></div>
 
   <header class="site-header reveal">
     <div class="brand">
@@ -30,30 +33,37 @@
   <main class="layout">
     <aside class="sidebar reveal">
       <label class="search-wrap" for="api-search">
-        <span>API Suche</span>
-        <input id="api-search" type="search" placeholder="z.B. ctx.host, adapter, event" />
+        <span>API Search</span>
+        <input id="api-search" type="search" placeholder="e.g. ctx.host, adapter, event" />
       </label>
       <nav id="docs-nav">
         <a href="#overview">Overview</a>
         <a href="#quickstart">Quickstart</a>
+        <a href="#versioning">Versioning</a>
+        <a href="#reference">Reference</a>
+        <a href="#tutorials">Tutorials</a>
+        <a href="#best-practices">Best Practices</a>
         <a href="#plugin-context">PluginContext</a>
         <a href="#dsl">DSL</a>
         <a href="#events">Events</a>
         <a href="#adapters">Adapters</a>
         <a href="#lifecycle">Lifecycle</a>
         <a href="#commands">Commands</a>
+        <a href="#debugging">Debugging</a>
+        <a href="#security-matrix">Security</a>
       </nav>
     </aside>
 
     <div class="content">
       <section id="overview" class="doc-section reveal" data-api-item="overview standalone runtime kotlin api">
         <p class="eyebrow">OVERVIEW</p>
-        <h1>GigaSoft API Dokumentation</h1>
+        <h1>GigaSoft API Documentation</h1>
         <p class="lead">
-          Diese Seite ist die schnelle Referenz für die Standalone-Runtime: wie du Plugins strukturierst,
-          den `PluginContext` nutzt, Events abonnierst und Adapter sicher aufrufst.
+          This page is a fast reference for the standalone runtime: how to structure plugins,
+          use `PluginContext`, subscribe to events, and invoke adapters safely.
         </p>
         <div class="pill-row">
+          <span class="pill">API v1.0 Frozen</span>
           <span class="pill">Kotlin DSL</span>
           <span class="pill">Host-neutral</span>
           <span class="pill">Hot Reload</span>
@@ -61,10 +71,27 @@
         </div>
       </section>
 
+      <section id="versioning" class="doc-section reveal" data-api-item="api version freeze 1.0 changelog migration">
+        <div class="section-head">
+          <p class="eyebrow">VERSIONING</p>
+          <h2>API v1.0 Freeze</h2>
+        </div>
+        <article class="api-card">
+          <p>
+            The public API is frozen for the 1.x line. Changes are additive; breaking changes only land in the next major.
+          </p>
+          <ul>
+            <li><a href="../docs/api/v1.0.0.md">API Contract v1.0.0</a></li>
+            <li><a href="../docs/migrations/v1.0.md">Migration Guide v1.0</a></li>
+            <li><a href="../CHANGELOG.md">Changelog</a></li>
+          </ul>
+        </article>
+      </section>
+
       <section id="quickstart" class="doc-section reveal" data-api-item="quickstart plugin skeleton kotlin">
         <div class="section-head">
           <p class="eyebrow">QUICKSTART</p>
-          <h2>Minimales Plugin</h2>
+          <h2>Minimal Plugin</h2>
         </div>
         <article class="api-card">
           <div class="api-card-head">
@@ -84,6 +111,73 @@
     override fun onDisable(ctx: PluginContext) = plugin.onDisable(ctx)
 }</code></pre>
         </article>
+        <article class="api-card">
+          <h3>Build, Load, Verify</h3>
+          <ol>
+            <li>Build your jar and place it into `dev-runtime/giga-plugins`</li>
+            <li>Start standalone</li>
+            <li>Run <code>scan</code></li>
+            <li>Check <code>plugins</code> and <code>run &lt;plugin&gt; &lt;command&gt;</code></li>
+            <li>Use <code>status --json</code> / <code>doctor --json</code> for diagnostics</li>
+          </ol>
+        </article>
+      </section>
+
+      <section id="reference" class="doc-section reveal" data-api-item="reference api classes interfaces plugincontext scheduler registry storage adapters hostaccess">
+        <div class="section-head">
+          <p class="eyebrow">REFERENCE</p>
+          <h2>Complete API Reference</h2>
+        </div>
+        <article class="api-card">
+          <ul>
+            <li><a href="../docs/api/v1.0.0.md">API Contract v1.0.0 (frozen)</a></li>
+            <li><a href="../docs/api/reference-v1.md">API Reference v1 (practical reference)</a></li>
+            <li><a href="../docs/migrations/v1.0.md">Migration Guide v1.0</a></li>
+          </ul>
+        </article>
+      </section>
+
+      <section id="tutorials" class="doc-section reveal" data-api-item="tutorial plugin start events adapters persistence reload safe coding">
+        <div class="section-head">
+          <p class="eyebrow">TUTORIALS</p>
+          <h2>Step-by-Step Guides</h2>
+        </div>
+        <div class="api-grid">
+          <article class="api-card">
+            <h3>Start & Basics</h3>
+            <ul>
+              <li><a href="../docs/tutorials/plugin-start.md">Plugin Start</a></li>
+              <li><a href="../docs/tutorials/hello-plugin.md">Hello Plugin</a></li>
+              <li><a href="../docs/tutorials/machine-basics.md">Machine Basics</a></li>
+            </ul>
+          </article>
+          <article class="api-card">
+            <h3>Advanced</h3>
+            <ul>
+              <li><a href="../docs/tutorials/events.md">Events</a></li>
+              <li><a href="../docs/tutorials/adapters.md">Adapters</a></li>
+              <li><a href="../docs/tutorials/persistence.md">Persistence</a></li>
+              <li><a href="../docs/tutorials/reload-safe-coding.md">Reload-safe Coding</a></li>
+              <li><a href="../docs/tutorials/reload-workflow.md">Reload Workflow</a></li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section id="best-practices" class="doc-section reveal" data-api-item="best practices performance security reload deterministic diagnostics">
+        <div class="section-head">
+          <p class="eyebrow">BEST PRACTICES</p>
+          <h2>What Matters in Production</h2>
+        </div>
+        <article class="api-card">
+          <ul>
+            <li>Keep tick/event handlers small and deterministic</li>
+            <li>Use stable scheduler task IDs and clean up in <code>onDisable</code></li>
+            <li>Document persistence versioning and migration paths</li>
+            <li>Use adapters in <code>SAFE</code> mode by default; use <code>FAST</code> only in trusted environments</li>
+            <li>For support, always include JSON diagnostics: <code>status --json</code>, <code>doctor --json</code>, <code>profile &lt;id&gt; --json</code></li>
+          </ul>
+        </article>
       </section>
 
       <section id="plugin-context" class="doc-section reveal" data-api-item="plugincontext ctx host logger scheduler registry storage commands events adapters">
@@ -93,22 +187,22 @@
         </div>
         <div class="api-grid">
           <article class="api-card">
-            <h3>Wichtige Felder</h3>
+            <h3>Key Fields</h3>
             <ul>
               <li><code>ctx.logger</code> Logging</li>
-              <li><code>ctx.scheduler</code> Tasks/Interval</li>
-              <li><code>ctx.registry</code> Items/Blocks/Systems</li>
-              <li><code>ctx.storage</code> Persistente JSON-Daten</li>
-              <li><code>ctx.commands</code> Plugin-Kommandos</li>
+              <li><code>ctx.scheduler</code> Tasks/intervals</li>
+              <li><code>ctx.registry</code> Items/blocks/systems</li>
+              <li><code>ctx.storage</code> Persistent JSON data</li>
+              <li><code>ctx.commands</code> Plugin commands</li>
               <li><code>ctx.events</code> EventBus</li>
               <li><code>ctx.adapters</code> ModAdapterRegistry</li>
-              <li><code>ctx.host</code> Host-neutraler Zugriff</li>
+              <li><code>ctx.host</code> Host-neutral access</li>
             </ul>
           </article>
 
           <article class="api-card">
             <div class="api-card-head">
-              <h3>Host Access Beispiel</h3>
+              <h3>Host Access Example</h3>
               <button class="copy-btn" data-copy-target="code-host-access">Copy</button>
             </div>
             <pre><code id="code-host-access">val info = ctx.host.serverInfo()
@@ -161,7 +255,7 @@ if (alex != null) {
         </div>
         <div class="api-grid">
           <article class="api-card">
-            <h3>Bekannte Events</h3>
+            <h3>Built-in Events</h3>
             <ul>
               <li><code>GigaTickEvent</code></li>
               <li><code>GigaPlayerJoinEvent</code></li>
@@ -175,7 +269,7 @@ if (alex != null) {
 
           <article class="api-card">
             <div class="api-card-head">
-              <h3>Subscribe Beispiel</h3>
+              <h3>Subscribe Example</h3>
               <button class="copy-btn" data-copy-target="code-events">Copy</button>
             </div>
             <pre><code id="code-events">ctx.events.subscribe(GigaPlayerJoinEvent::class.java) { event ->
@@ -197,11 +291,12 @@ if (alex != null) {
               <li><code>bridge.host.server</code> : <code>server.info</code>, <code>server.broadcast</code>, <code>world.list</code>, <code>entity.list</code></li>
               <li><code>bridge.host.player</code> : <code>player.lookup</code></li>
             </ul>
+            <p><strong>Policy:</strong> <code>SAFE</code> validates payload + quotas + timeout. <code>FAST</code> is low-latency and bypasses quotas/timeout.</p>
           </article>
 
           <article class="api-card">
             <div class="api-card-head">
-              <h3>Invoke Beispiel</h3>
+              <h3>Invoke Example</h3>
               <button class="copy-btn" data-copy-target="code-adapter">Copy</button>
             </div>
             <pre><code id="code-adapter">val response = ctx.adapters.invoke(
@@ -226,10 +321,10 @@ if (!response.success) {
         </div>
         <article class="api-card">
           <ul>
-            <li><code>reload &lt;plugin|all&gt;</code> mit transaktionalem Verhalten</li>
-            <li><code>doctor [--json]</code> für Dependency/API-Checks</li>
-            <li><code>profile &lt;plugin&gt; [--json]</code> für Laufzeitmetriken</li>
-            <li><code>status</code> inkl. Tick-Phasen und Net-Metriken</li>
+            <li><code>reload &lt;plugin|all&gt;</code> with transactional behavior</li>
+            <li><code>doctor [--json]</code> for dependency/API checks</li>
+            <li><code>profile &lt;plugin&gt; [--json]</code> for runtime metrics</li>
+            <li><code>status</code> including tick phases and net metrics</li>
           </ul>
         </article>
       </section>
@@ -241,7 +336,7 @@ if (!response.success) {
         </div>
         <article class="api-card">
           <pre><code>help
-status
+status [--json]
 scan
 reload &lt;id|all&gt;
 doctor [--json]
@@ -249,6 +344,33 @@ profile &lt;id&gt; [--json]
 run &lt;plugin&gt; &lt;command...&gt;
 adapters &lt;plugin&gt; [--json]
 adapter invoke &lt;plugin&gt; &lt;adapterId&gt; &lt;action&gt; [k=v ...] [--json]</code></pre>
+        </article>
+      </section>
+
+      <section id="debugging" class="doc-section reveal" data-api-item="debug troubleshooting doctor profile status playbook">
+        <div class="section-head">
+          <p class="eyebrow">DEBUGGING</p>
+          <h2>Plugin Debug Playbook</h2>
+        </div>
+        <article class="api-card">
+          <p>If a plugin does not load or behaves inconsistently, follow this checklist:</p>
+          <ul>
+            <li><a href="../docs/troubleshooting/plugin-debug-playbook.md">docs/troubleshooting/plugin-debug-playbook.md</a></li>
+            <li><a href="../docs/index.md">docs/index.md</a></li>
+          </ul>
+        </article>
+      </section>
+
+      <section id="security-matrix" class="doc-section reveal" data-api-item="security matrix abuse tests dos hardening">
+        <div class="section-head">
+          <p class="eyebrow">SECURITY</p>
+          <h2>Security Matrix & Abuse Tests</h2>
+        </div>
+        <article class="api-card">
+          <p>You can find the reproducible security test matrix, including abuse scenarios, here:</p>
+          <ul>
+            <li><a href="../docs/security/hardening-matrix.md">docs/security/hardening-matrix.md</a></li>
+          </ul>
         </article>
       </section>
     </div>

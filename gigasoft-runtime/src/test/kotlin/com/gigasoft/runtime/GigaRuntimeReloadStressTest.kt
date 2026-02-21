@@ -4,9 +4,11 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.util.jar.JarEntry
 import java.util.jar.JarOutputStream
+import org.junit.jupiter.api.Tag
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
+@Tag("soak")
 class GigaRuntimeReloadStressTest {
     @Test
     fun `repeated reload stays stable`() {

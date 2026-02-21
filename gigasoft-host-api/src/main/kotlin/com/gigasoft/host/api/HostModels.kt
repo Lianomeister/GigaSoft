@@ -46,7 +46,7 @@ data class HostPlayerSnapshot(
 data class HostServerSnapshot(
     val name: String,
     val version: String,
-    val bukkitVersion: String? = null,
+    val platformVersion: String? = null,
     val onlinePlayers: Int,
     val maxPlayers: Int,
     val worldCount: Int

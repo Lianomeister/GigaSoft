@@ -3,23 +3,48 @@ package com.gigasoft.host.api
 import com.gigasoft.api.AdapterInvocation
 import com.gigasoft.api.AdapterResponse
 import com.gigasoft.api.GigaLogger
+import com.gigasoft.api.HostPermissions
 import com.gigasoft.api.ModAdapter
 import com.gigasoft.api.ModAdapterRegistry
 import kotlin.math.roundToInt
 
 object HostBridgeAdapters {
+    object Permission {
+        const val HOST_SERVER_READ = HostPermissions.SERVER_READ
+        const val HOST_BROADCAST = HostPermissions.SERVER_BROADCAST
+        const val HOST_WORLD_READ = HostPermissions.WORLD_READ
+        const val HOST_ENTITY_READ = HostPermissions.ENTITY_READ
+        const val HOST_ENTITY_SPAWN = HostPermissions.ENTITY_SPAWN
+        const val HOST_INVENTORY_READ = HostPermissions.INVENTORY_READ
+        const val HOST_INVENTORY_WRITE = HostPermissions.INVENTORY_WRITE
+        const val HOST_PLAYER_READ = HostPermissions.PLAYER_READ
+    }
+
     fun registerDefaults(
         pluginId: String,
         registry: ModAdapterRegistry,
         hostBridge: HostBridgePort,
         logger: GigaLogger,
-        bridgeName: String
+        bridgeName: String,
+        grantedPermissions: Set<String> = emptySet()
     ) {
         registerIfMissing(registry, HostAdapterIds.SERVER) {
-            ServerBridgeAdapter(HostAdapterIds.SERVER, hostBridge, bridgeName)
+            ServerBridgeAdapter(
+                adapterId = HostAdapterIds.SERVER,
+                hostBridge = hostBridge,
+                bridgeName = bridgeName,
+                pluginId = pluginId,
+                grantedPermissions = grantedPermissions
+            )
         }
         registerIfMissing(registry, HostAdapterIds.PLAYER) {
-            PlayerBridgeAdapter(HostAdapterIds.PLAYER, hostBridge, bridgeName)
+            PlayerBridgeAdapter(
+                adapterId = HostAdapterIds.PLAYER,
+                hostBridge = hostBridge,
+                bridgeName = bridgeName,
+                pluginId = pluginId,
+                grantedPermissions = grantedPermissions
+            )
         }
         logger.info("Installed $bridgeName bridge adapters for $pluginId")
     }
@@ -33,7 +58,9 @@ object HostBridgeAdapters {
     private class ServerBridgeAdapter(
         private val adapterId: String,
         private val hostBridge: HostBridgePort,
-        private val bridgeName: String
+        private val bridgeName: String,
+        private val pluginId: String,
+        private val grantedPermissions: Set<String>
     ) : ModAdapter {
         override val id: String = adapterId
         override val name: String = "$bridgeName Server Bridge"
@@ -49,6 +76,12 @@ object HostBridgeAdapters {
         )
 
         override fun invoke(invocation: AdapterInvocation): AdapterResponse {
+            val permissionDenied = requirePermission(
+                pluginId = pluginId,
+                grantedPermissions = grantedPermissions,
+                required = requiredPermissionForServerAction(invocation.action)
+            )
+            if (permissionDenied != null) return permissionDenied
             return when (invocation.action) {
                 "server.info" -> {
                     val info = hostBridge.serverInfo()
@@ -57,7 +90,7 @@ object HostBridgeAdapters {
                         payload = mapOf(
                             "name" to info.name,
                             "version" to info.version,
-                            "bukkitVersion" to (info.bukkitVersion ?: ""),
+                            "platformVersion" to (info.platformVersion ?: ""),
                             "onlinePlayers" to info.onlinePlayers.toString(),
                             "maxPlayers" to info.maxPlayers.toString(),
                             "worldCount" to info.worldCount.toString()
@@ -160,7 +193,9 @@ object HostBridgeAdapters {
     private class PlayerBridgeAdapter(
         private val adapterId: String,
         private val hostBridge: HostBridgePort,
-        private val bridgeName: String
+        private val bridgeName: String,
+        private val pluginId: String,
+        private val grantedPermissions: Set<String>
     ) : ModAdapter {
         override val id: String = adapterId
         override val name: String = "$bridgeName Player Bridge"
@@ -168,6 +203,12 @@ object HostBridgeAdapters {
         override val capabilities: Set<String> = setOf("player.lookup")
 
         override fun invoke(invocation: AdapterInvocation): AdapterResponse {
+            val permissionDenied = requirePermission(
+                pluginId = pluginId,
+                grantedPermissions = grantedPermissions,
+                required = requiredPermissionForPlayerAction(invocation.action)
+            )
+            if (permissionDenied != null) return permissionDenied
             if (invocation.action != "player.lookup") {
                 return AdapterResponse(success = false, message = "Unsupported action '${invocation.action}'")
             }
@@ -190,5 +231,37 @@ object HostBridgeAdapters {
                 )
             )
         }
+    }
+
+    private fun requiredPermissionForServerAction(action: String): String? {
+        return when (action) {
+            "server.info" -> Permission.HOST_SERVER_READ
+            "server.broadcast" -> Permission.HOST_BROADCAST
+            "world.list" -> Permission.HOST_WORLD_READ
+            "entity.list" -> Permission.HOST_ENTITY_READ
+            "entity.spawn" -> Permission.HOST_ENTITY_SPAWN
+            "inventory.peek" -> Permission.HOST_INVENTORY_READ
+            "inventory.set" -> Permission.HOST_INVENTORY_WRITE
+            else -> null
+        }
+    }
+
+    private fun requiredPermissionForPlayerAction(action: String): String? {
+        return when (action) {
+            "player.lookup" -> Permission.HOST_PLAYER_READ
+            else -> null
+        }
+    }
+
+    private fun requirePermission(
+        pluginId: String,
+        grantedPermissions: Set<String>,
+        required: String?
+    ): AdapterResponse? {
+        if (required == null || required in grantedPermissions) return null
+        return AdapterResponse(
+            success = false,
+            message = "Permission '$required' is required for plugin '$pluginId'"
+        )
     }
 }

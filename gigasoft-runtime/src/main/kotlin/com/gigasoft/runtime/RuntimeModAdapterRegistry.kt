@@ -12,6 +12,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
+import java.util.concurrent.atomic.AtomicBoolean
 
 class RuntimeModAdapterRegistry(
     private val pluginId: String,
@@ -21,14 +22,16 @@ class RuntimeModAdapterRegistry(
 ) : ModAdapterRegistry {
     private val adapters = ConcurrentHashMap<String, ModAdapter>()
     private val callWindows = ConcurrentHashMap<String, RateWindow>()
-    private val adapterIdRegex = Regex("^[a-zA-Z0-9._:-]{1,64}$")
-    private val actionRegex = Regex("^[a-zA-Z0-9._:-]{1,64}$")
     private val maxPayloadEntries = securityConfig.maxPayloadEntries
     private val maxPayloadKeyChars = securityConfig.maxPayloadKeyChars
     private val maxPayloadValueChars = securityConfig.maxPayloadValueChars
     private val maxPayloadTotalChars = securityConfig.maxPayloadTotalChars
     private val maxCallsPerMinute = securityConfig.maxCallsPerMinute
+    private val maxCallsPerMinutePerPlugin = securityConfig.maxCallsPerMinutePerPlugin
+    private val maxConcurrentInvocationsPerAdapter = securityConfig.maxConcurrentInvocationsPerAdapter
     private val invocationTimeoutMillis = securityConfig.invocationTimeoutMillis
+    private val auditLogEnabled = securityConfig.auditLogEnabled
+    private val auditLogSuccesses = securityConfig.auditLogSuccesses
     private val fastMode = securityConfig.executionMode == AdapterExecutionMode.FAST
     private val threadCounter = AtomicInteger(0)
     private val directExecutor = java.util.concurrent.Executor { it.run() }
@@ -45,9 +48,12 @@ class RuntimeModAdapterRegistry(
     private var listCache: List<ModAdapter> = emptyList()
     @Volatile
     private var listDirty = true
+    private val validActionCache = ConcurrentHashMap.newKeySet<String>()
+    private val pluginWindow = RateWindow()
+    private val concurrentInvocations = ConcurrentHashMap<String, AtomicInteger>()
 
     override fun register(adapter: ModAdapter) {
-        require(adapter.id.matches(adapterIdRegex)) { "Adapter id '${adapter.id}' is invalid for plugin '$pluginId'" }
+        require(isValidToken(adapter.id)) { "Adapter id '${adapter.id}' is invalid for plugin '$pluginId'" }
         val previous = adapters.putIfAbsent(adapter.id, adapter)
         require(previous == null) { "Duplicate adapter id '${adapter.id}' in plugin '$pluginId'" }
         listDirty = true
@@ -70,32 +76,53 @@ class RuntimeModAdapterRegistry(
         val adapter = adapters[adapterId]
             ?: return denied(
                 adapterId,
+                invocation,
                 "Unknown adapter '$adapterId' in plugin '$pluginId'"
             )
 
         val validationError = validateInvocation(adapter, invocation)
         if (validationError != null) {
-            return denied(adapterId, validationError)
+            return denied(adapterId, invocation, validationError)
         }
 
         if (!rateLimit(adapterId)) {
             return denied(
                 adapterId,
+                invocation,
                 "Adapter '$adapterId' rate limit exceeded in plugin '$pluginId'"
             )
+        }
+
+        if (!tryAcquireConcurrentSlot(adapterId)) {
+            return denied(
+                adapterId,
+                invocation,
+                "Adapter '$adapterId' concurrency limit exceeded in plugin '$pluginId'"
+            )
+        }
+
+        val released = AtomicBoolean(false)
+        fun releaseOnce() {
+            if (!released.compareAndSet(false, true)) return
+            releaseConcurrentSlot(adapterId)
         }
 
         if (fastMode || invocationTimeoutMillis <= 0L) {
             return try {
                 val response = adapter.invoke(invocation)
                 invocationObserver(adapterId, AdapterInvocationOutcome.ACCEPTED)
+                audit(adapterId, invocation, "ACCEPTED", "Adapter invocation accepted")
                 response
             } catch (t: Throwable) {
                 invocationObserver(adapterId, AdapterInvocationOutcome.FAILED)
-                AdapterResponse(
+                val response = AdapterResponse(
                     success = false,
                     message = "Adapter '$adapterId' failed: ${t.message}"
                 )
+                audit(adapterId, invocation, "FAILED", response.message.orEmpty())
+                response
+            } finally {
+                releaseOnce()
             }
         }
 
@@ -103,34 +130,38 @@ class RuntimeModAdapterRegistry(
         return try {
             val response = future.get(invocationTimeoutMillis, TimeUnit.MILLISECONDS)
             invocationObserver(adapterId, AdapterInvocationOutcome.ACCEPTED)
+            audit(adapterId, invocation, "ACCEPTED", "Adapter invocation accepted")
             response
         } catch (_: TimeoutException) {
             // Best effort interruption of slow adapter work.
             future.cancel(true)
             invocationObserver(adapterId, AdapterInvocationOutcome.TIMEOUT)
-            AdapterResponse(
+            val response = AdapterResponse(
                 success = false,
                 message = "Adapter '$adapterId' timed out after ${invocationTimeoutMillis}ms"
             )
+            audit(adapterId, invocation, "TIMEOUT", response.message.orEmpty())
+            response
         } catch (t: Throwable) {
             invocationObserver(adapterId, AdapterInvocationOutcome.FAILED)
-            AdapterResponse(
+            val response = AdapterResponse(
                 success = false,
                 message = "Adapter '$adapterId' failed: ${t.message}"
             )
+            audit(adapterId, invocation, "FAILED", response.message.orEmpty())
+            response
+        } finally {
+            releaseOnce()
         }
     }
 
     private fun validateInvocation(adapter: ModAdapter, invocation: AdapterInvocation): String? {
-        if (!invocation.action.matches(actionRegex)) {
+        val action = invocation.action
+        if (!isValidAction(action)) {
             return "Invalid adapter action '${invocation.action}'"
         }
         val payload = invocation.payload
-        if (fastMode) {
-            val requiredCapability = payload["required_capability"]?.trim().orEmpty()
-            if (requiredCapability.isNotEmpty() && requiredCapability !in adapter.capabilities) {
-                return "Adapter '${adapter.id}' does not provide capability '$requiredCapability'"
-            }
+        if (payload.isEmpty()) {
             return null
         }
         if (payload.size > maxPayloadEntries) {
@@ -156,8 +187,9 @@ class RuntimeModAdapterRegistry(
         return null
     }
 
-    private fun denied(adapterId: String, message: String): AdapterResponse {
+    private fun denied(adapterId: String, invocation: AdapterInvocation, message: String): AdapterResponse {
         invocationObserver(adapterId, AdapterInvocationOutcome.DENIED)
+        audit(adapterId, invocation, "DENIED", message)
         return AdapterResponse(success = false, message = message)
     }
 
@@ -178,8 +210,68 @@ class RuntimeModAdapterRegistry(
             }
             window.calls.addLast(now)
             window.size++
+            if (maxCallsPerMinutePerPlugin > 0 && !pluginRateLimit(now, maxCallsPerMinutePerPlugin)) {
+                window.calls.removeLast()
+                window.size--
+                return false
+            }
             return true
         }
+    }
+
+    private fun pluginRateLimit(now: Long, limit: Int): Boolean {
+        val windowStart = now - 60_000L
+        synchronized(pluginWindow) {
+            while (true) {
+                val head = pluginWindow.calls.peekFirst() ?: break
+                if (head >= windowStart) break
+                pluginWindow.calls.removeFirst()
+                pluginWindow.size--
+            }
+            if (pluginWindow.size >= limit) return false
+            pluginWindow.calls.addLast(now)
+            pluginWindow.size++
+            return true
+        }
+    }
+
+    private fun tryAcquireConcurrentSlot(adapterId: String): Boolean {
+        if (fastMode || maxConcurrentInvocationsPerAdapter <= 0) return true
+        val counter = concurrentInvocations.computeIfAbsent(adapterId) { AtomicInteger(0) }
+        while (true) {
+            val current = counter.get()
+            if (current >= maxConcurrentInvocationsPerAdapter) return false
+            if (counter.compareAndSet(current, current + 1)) return true
+        }
+    }
+
+    private fun releaseConcurrentSlot(adapterId: String) {
+        if (fastMode || maxConcurrentInvocationsPerAdapter <= 0) return
+        val counter = concurrentInvocations[adapterId] ?: return
+        while (true) {
+            val current = counter.get()
+            if (current <= 0) return
+            if (counter.compareAndSet(current, current - 1)) return
+        }
+    }
+
+    private fun audit(adapterId: String, invocation: AdapterInvocation, outcome: String, detail: String) {
+        if (!auditLogEnabled) return
+        if (!auditLogSuccesses && outcome == "ACCEPTED") return
+        val payload = summarizePayload(invocation.payload)
+        logger.info(
+            "[adapter-audit] plugin=$pluginId adapter=$adapterId action=${invocation.action} " +
+                "outcome=$outcome detail=\"$detail\" payload=$payload mode=${securityConfig.executionMode}"
+        )
+    }
+
+    private fun summarizePayload(payload: Map<String, String>): String {
+        if (payload.isEmpty()) return "entries=0"
+        val keys = payload.keys
+            .sorted()
+            .take(8)
+            .joinToString(",")
+        return "entries=${payload.size} keys=[$keys]"
     }
 
     fun shutdown() {
@@ -190,4 +282,24 @@ class RuntimeModAdapterRegistry(
         val calls: ArrayDeque<Long> = ArrayDeque(),
         var size: Int = 0
     )
+
+    private fun isValidAction(action: String): Boolean {
+        if (validActionCache.contains(action)) return true
+        if (!isValidToken(action)) return false
+        validActionCache += action
+        return true
+    }
+
+    private fun isValidToken(value: String): Boolean {
+        val len = value.length
+        if (len == 0 || len > 64) return false
+        for (ch in value) {
+            val ok = ch in 'a'..'z' ||
+                ch in 'A'..'Z' ||
+                ch in '0'..'9' ||
+                ch == '.' || ch == '_' || ch == ':' || ch == '-'
+            if (!ok) return false
+        }
+        return true
+    }
 }

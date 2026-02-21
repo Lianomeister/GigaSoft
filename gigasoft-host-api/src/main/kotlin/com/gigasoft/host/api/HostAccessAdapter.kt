@@ -77,7 +77,7 @@ private fun HostServerSnapshot.toApi(): ApiHostServerSnapshot {
     return ApiHostServerSnapshot(
         name = name,
         version = version,
-        bukkitVersion = bukkitVersion,
+        platformVersion = platformVersion,
         onlinePlayers = onlinePlayers,
         maxPlayers = maxPlayers,
         worldCount = worldCount

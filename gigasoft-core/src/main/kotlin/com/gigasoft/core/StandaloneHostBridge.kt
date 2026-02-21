@@ -20,7 +20,7 @@ class StandaloneHostBridge(
         return HostServerSnapshot(
             name = serverName,
             version = serverVersion,
-            bukkitVersion = null,
+            platformVersion = serverVersion,
             onlinePlayers = hostState.onlinePlayerCount(),
             maxPlayers = maxPlayers,
             worldCount = hostState.worldCount()
