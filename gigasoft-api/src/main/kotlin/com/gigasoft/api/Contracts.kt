@@ -187,6 +187,22 @@ interface CommandRegistry {
     fun unregister(command: String): Boolean = false
 }
 
+data class CommandResult(
+    val success: Boolean,
+    val message: String,
+    val code: String? = null
+) {
+    companion object {
+        fun ok(message: String, code: String? = null): CommandResult {
+            return CommandResult(success = true, message = message, code = code)
+        }
+
+        fun error(message: String, code: String? = null): CommandResult {
+            return CommandResult(success = false, message = message, code = code)
+        }
+    }
+}
+
 interface EventBus {
     fun <T : Any> subscribe(eventType: Class<T>, listener: (T) -> Unit)
     fun publish(event: Any)

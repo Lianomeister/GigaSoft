@@ -149,6 +149,14 @@ Action signature:
 
 - `register(command, description) { sender, args -> ... }`
 - `registerOrReplace(command, description) { sender, args -> ... }`
+- `registerResult(command, description) { ... -> CommandResult }`
+- `registerOrReplaceResult(command, description) { ... -> CommandResult }`
+
+`CommandResult`:
+
+- `CommandResult.ok(message, code?)`
+- `CommandResult.error(message, code?)`
+- `render()` converts to legacy command string output (`[CODE] message` when code is set).
 
 ## Plugin Permission Helpers
 

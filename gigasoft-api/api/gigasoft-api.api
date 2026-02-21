@@ -72,6 +72,30 @@ public final class com/gigasoft/api/CommandRegistry$DefaultImpls {
 	public static fun unregister (Lcom/gigasoft/api/CommandRegistry;Ljava/lang/String;)Z
 }
 
+public final class com/gigasoft/api/CommandResult {
+	public static final field Companion Lcom/gigasoft/api/CommandResult$Companion;
+	public fun <init> (ZLjava/lang/String;Ljava/lang/String;)V
+	public synthetic fun <init> (ZLjava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Z
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun copy (ZLjava/lang/String;Ljava/lang/String;)Lcom/gigasoft/api/CommandResult;
+	public static synthetic fun copy$default (Lcom/gigasoft/api/CommandResult;ZLjava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/gigasoft/api/CommandResult;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCode ()Ljava/lang/String;
+	public final fun getMessage ()Ljava/lang/String;
+	public final fun getSuccess ()Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/gigasoft/api/CommandResult$Companion {
+	public final fun error (Ljava/lang/String;Ljava/lang/String;)Lcom/gigasoft/api/CommandResult;
+	public static synthetic fun error$default (Lcom/gigasoft/api/CommandResult$Companion;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/gigasoft/api/CommandResult;
+	public final fun ok (Ljava/lang/String;Ljava/lang/String;)Lcom/gigasoft/api/CommandResult;
+	public static synthetic fun ok$default (Lcom/gigasoft/api/CommandResult$Companion;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/gigasoft/api/CommandResult;
+}
+
 public final class com/gigasoft/api/DependencySpec {
 	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
 	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
@@ -459,6 +483,15 @@ public final class com/gigasoft/api/PluginApiExtensionsKt {
 	public static synthetic fun register$default (Lcom/gigasoft/api/CommandRegistry;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function2;ILjava/lang/Object;)V
 	public static final fun registerOrReplace (Lcom/gigasoft/api/CommandRegistry;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function2;)V
 	public static synthetic fun registerOrReplace$default (Lcom/gigasoft/api/CommandRegistry;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function2;ILjava/lang/Object;)V
+	public static final fun registerOrReplaceResult (Lcom/gigasoft/api/CommandRegistry;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function2;)V
+	public static final fun registerOrReplaceResult (Lcom/gigasoft/api/CommandRegistry;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function3;)V
+	public static synthetic fun registerOrReplaceResult$default (Lcom/gigasoft/api/CommandRegistry;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function2;ILjava/lang/Object;)V
+	public static synthetic fun registerOrReplaceResult$default (Lcom/gigasoft/api/CommandRegistry;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function3;ILjava/lang/Object;)V
+	public static final fun registerResult (Lcom/gigasoft/api/CommandRegistry;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function2;)V
+	public static final fun registerResult (Lcom/gigasoft/api/CommandRegistry;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function3;)V
+	public static synthetic fun registerResult$default (Lcom/gigasoft/api/CommandRegistry;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function2;ILjava/lang/Object;)V
+	public static synthetic fun registerResult$default (Lcom/gigasoft/api/CommandRegistry;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function3;ILjava/lang/Object;)V
+	public static final fun render (Lcom/gigasoft/api/CommandResult;)Ljava/lang/String;
 	public static final fun requirePermission (Lcom/gigasoft/api/PluginContext;Ljava/lang/String;)V
 }
 

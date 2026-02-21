@@ -42,6 +42,25 @@ class PluginApiExtensionsTest {
     }
 
     @Test
+    fun `command result helpers render typed responses`() {
+        val commands = RecordingCommandRegistry()
+        commands.registerResult("safe") { _, _ ->
+            CommandResult.ok("done", code = "OK")
+        }
+        commands.registerOrReplaceResult("safe") { _, _ ->
+            CommandResult.error("denied", code = "E_PERMISSION")
+        }
+
+        val response = commands.invoke("safe", sender = "alice", args = emptyList())
+        assertEquals("[E_PERMISSION] denied", response)
+    }
+
+    @Test
+    fun `command result render uses message when no code is set`() {
+        assertEquals("pong", CommandResult.ok("pong").render())
+    }
+
+    @Test
     fun `permission helpers evaluate declared permissions`() {
         val ctx = contextWithPermissions(listOf(HostPermissions.SERVER_READ, "x.y.z"))
         assertTrue(ctx.hasPermission("host.server.read"))
