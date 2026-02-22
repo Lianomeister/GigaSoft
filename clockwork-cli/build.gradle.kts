@@ -131,6 +131,7 @@ tasks.register("windowsCliExeInstaller") {
             jpackage.absolutePath,
             "--type", "exe",
             "--name", "ClockworkCli",
+            "--app-version", project.version.toString(),
             "--dest", outputDir.absolutePath,
             "--app-image", appImageDir.absolutePath,
             "--vendor", "Clockwork",

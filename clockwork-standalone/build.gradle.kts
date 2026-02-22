@@ -200,6 +200,7 @@ tasks.register("windowsServerExeInstaller") {
             jpackage.absolutePath,
             "--type", "exe",
             "--name", "ClockworkServer",
+            "--app-version", project.version.toString(),
             "--dest", outputDir.absolutePath,
             "--app-image", appImageDir.absolutePath,
             "--vendor", "Clockwork",
