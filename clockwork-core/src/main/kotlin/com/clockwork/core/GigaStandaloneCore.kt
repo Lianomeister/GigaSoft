@@ -86,7 +86,7 @@ data class StandaloneCoreConfig(
     val dataDirectory: Path,
     val tickPeriodMillis: Long = 50L,
     val serverName: String = "Clockwork Standalone",
-    val serverVersion: String = "1.8.2",
+    val serverVersion: String = "0.18.3",
     val defaultWorld: String = "world",
     val maxPlayers: Int = 0,
     val maxWorlds: Int = 0,

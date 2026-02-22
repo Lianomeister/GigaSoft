@@ -111,7 +111,18 @@ fun main(args: Array<String>) {
                 workerQueueCapacity = launchConfig.netWorkerQueueCapacity,
                 auditLogEnabled = launchConfig.netAuditLogEnabled,
                 textFlushEveryResponses = launchConfig.netTextFlushEveryResponses,
-                frameFlushEveryResponses = launchConfig.netFrameFlushEveryResponses
+                frameFlushEveryResponses = launchConfig.netFrameFlushEveryResponses,
+                minecraftBridgeEnabled = launchConfig.netMinecraftBridgeEnabled,
+                minecraftBridgeHost = launchConfig.netMinecraftBridgeHost,
+                minecraftBridgePort = launchConfig.netMinecraftBridgePort,
+                minecraftBridgeConnectTimeoutMillis = launchConfig.netMinecraftBridgeConnectTimeoutMillis,
+                minecraftBridgeStreamBufferBytes = launchConfig.netMinecraftBridgeStreamBufferBytes,
+                minecraftBridgeSocketBufferBytes = launchConfig.netMinecraftBridgeSocketBufferBytes,
+                minecraftMode = launchConfig.netMinecraftMode,
+                minecraftSupportedProtocolVersion = launchConfig.netMinecraftProtocolVersion,
+                minecraftStatusDescription = launchConfig.netMinecraftStatusDescription,
+                minecraftOnlineSessionServerUrl = launchConfig.netMinecraftOnlineSessionServerUrl,
+                minecraftOnlineAuthTimeoutMillis = launchConfig.netMinecraftOnlineAuthTimeoutMillis
             ),
             logger = { message ->
                 if (message.contains("listening on", ignoreCase = true)) {
@@ -307,6 +318,7 @@ fun main(args: Array<String>) {
           run <plugin> <command...>
           adapters <plugin> [--json]
           adapter invoke <plugin> <adapterId> <action> [k=v ...] [--json]
+          bridge status
           stop
     """.trimIndent()
     println(
@@ -319,7 +331,7 @@ fun main(args: Array<String>) {
         Limits: players=${launchConfig.maxPlayers}, worlds=${launchConfig.maxWorlds}, entities=${launchConfig.maxEntities}
         Tick: ${launchConfig.tickPeriodMillis}ms (autosave=${launchConfig.autoSaveEveryTicks} ticks)
         Runtime: schedulerThreads=${launchConfig.runtimeSchedulerWorkerThreads}, eventDispatch=${launchConfig.eventDispatchMode}
-        Network: ${if (netServer == null) "disabled" else "enabled (port=${launchConfig.netPort}, auth=${launchConfig.netAuthRequired})"}
+        Network: ${if (netServer == null) "disabled" else "enabled (port=${launchConfig.netPort}, auth=${launchConfig.netAuthRequired}, mcMode=${launchConfig.netMinecraftMode}, mcProtocol=${launchConfig.netMinecraftProtocolVersion}, mcBridge=${if (launchConfig.netMinecraftBridgeEnabled) "on:${launchConfig.netMinecraftBridgeHost}:${launchConfig.netMinecraftBridgePort}@${launchConfig.netMinecraftBridgeConnectTimeoutMillis}ms buf=${launchConfig.netMinecraftBridgeStreamBufferBytes}/${launchConfig.netMinecraftBridgeSocketBufferBytes}" else "off"})"}
         Adapter: schema=${launchConfig.securityConfigSchemaVersion}, mode=${launchConfig.adapterExecutionMode}, timeoutMs=${launchConfig.adapterTimeoutMillis}
         Fault Budget: maxFaults=${launchConfig.faultBudgetMaxFaultsPerWindow}, windowMs=${launchConfig.faultBudgetWindowMillis}, warn=${launchConfig.faultBudgetWarnUsageRatio}, throttle=${launchConfig.faultBudgetThrottleUsageRatio}, isolate=${launchConfig.faultBudgetIsolateUsageRatio}
         """.trimIndent()
@@ -364,6 +376,7 @@ fun main(args: Array<String>) {
                     if (netServer != null) {
                         val nm = netServer.metrics()
                         println("net req=${nm.totalRequests} json=${nm.jsonRequests} legacy=${nm.legacyRequests} avgReqNs=${nm.averageRequestNanos}")
+                        println("net.mcBridge handshakes=${nm.minecraftBridge.handshakesDetected} proxied=${nm.minecraftBridge.proxiedSessions} active=${nm.minecraftBridge.activeProxiedSessions} failConnect=${nm.minecraftBridge.connectFailures} upBytes=${nm.minecraftBridge.bytesClientToUpstream} downBytes=${nm.minecraftBridge.bytesUpstreamToClient} avgProxyNs=${nm.minecraftBridge.averageProxySessionNanos} maxProxyNs=${nm.minecraftBridge.maxProxySessionNanos} nativeLogins=${nm.minecraftBridge.nativeLoginAttempts} nativeRejected=${nm.minecraftBridge.nativeLoginRejected}")
                         val top = nm.actionMetrics.entries
                             .sortedByDescending { it.value.totalNanos }
                             .take(3)
@@ -953,6 +966,42 @@ fun main(args: Array<String>) {
                     response.payload.toSortedMap().forEach { (k, v) -> println("adapter.payload.$k=$v") }
                 }
             }
+            "bridge" -> {
+                if (parts.getOrNull(1)?.lowercase() != "status") {
+                    println("Usage: bridge status")
+                    continue
+                }
+                if (launchConfig.netMinecraftMode != "bridge") {
+                    println("bridge.status unavailable because --net-minecraft-mode=${launchConfig.netMinecraftMode}")
+                    continue
+                }
+                if (!launchConfig.netMinecraftBridgeEnabled) {
+                    println("bridge=disabled")
+                    continue
+                }
+                val started = System.nanoTime()
+                val reachable = runCatching {
+                    java.net.Socket().use { s ->
+                        s.connect(
+                            java.net.InetSocketAddress(
+                                launchConfig.netMinecraftBridgeHost,
+                                launchConfig.netMinecraftBridgePort
+                            ),
+                            launchConfig.netMinecraftBridgeConnectTimeoutMillis
+                        )
+                    }
+                    true
+                }.getOrElse { false }
+                val latencyMs = (System.nanoTime() - started) / 1_000_000
+                println(
+                    "bridge target=${launchConfig.netMinecraftBridgeHost}:${launchConfig.netMinecraftBridgePort} timeoutMs=${launchConfig.netMinecraftBridgeConnectTimeoutMillis} streamBuf=${launchConfig.netMinecraftBridgeStreamBufferBytes} socketBuf=${launchConfig.netMinecraftBridgeSocketBufferBytes} reachable=$reachable latencyMs=$latencyMs"
+                )
+                netServer?.metrics()?.let { nm ->
+                    println(
+                        "bridge metrics handshakes=${nm.minecraftBridge.handshakesDetected} proxied=${nm.minecraftBridge.proxiedSessions} active=${nm.minecraftBridge.activeProxiedSessions} failConnect=${nm.minecraftBridge.connectFailures} upBytes=${nm.minecraftBridge.bytesClientToUpstream} downBytes=${nm.minecraftBridge.bytesUpstreamToClient} avgProxyNs=${nm.minecraftBridge.averageProxySessionNanos} maxProxyNs=${nm.minecraftBridge.maxProxySessionNanos} nativeLogins=${nm.minecraftBridge.nativeLoginAttempts} nativeRejected=${nm.minecraftBridge.nativeLoginRejected}"
+                    )
+                }
+            }
             "stop", "exit", "quit" -> {
                 netServer?.stop()
                 core.stop()
@@ -1255,6 +1304,18 @@ internal fun statusView(
                 "jsonRequests" to net.jsonRequests,
                 "legacyRequests" to net.legacyRequests,
                 "averageRequestNanos" to net.averageRequestNanos,
+                "minecraftBridge" to linkedMapOf(
+                    "handshakesDetected" to net.minecraftBridge.handshakesDetected,
+                    "proxiedSessions" to net.minecraftBridge.proxiedSessions,
+                    "activeProxiedSessions" to net.minecraftBridge.activeProxiedSessions,
+                    "bytesClientToUpstream" to net.minecraftBridge.bytesClientToUpstream,
+                    "bytesUpstreamToClient" to net.minecraftBridge.bytesUpstreamToClient,
+                    "connectFailures" to net.minecraftBridge.connectFailures,
+                    "averageProxySessionNanos" to net.minecraftBridge.averageProxySessionNanos,
+                    "maxProxySessionNanos" to net.minecraftBridge.maxProxySessionNanos,
+                    "nativeLoginAttempts" to net.minecraftBridge.nativeLoginAttempts,
+                    "nativeLoginRejected" to net.minecraftBridge.nativeLoginRejected
+                ),
                 "topActions" to topNetActions
             )
         },

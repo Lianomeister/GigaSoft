@@ -42,6 +42,17 @@ data class StandaloneLaunchConfig(
     val netAuditLogEnabled: Boolean,
     val netTextFlushEveryResponses: Int,
     val netFrameFlushEveryResponses: Int,
+    val netMinecraftBridgeEnabled: Boolean,
+    val netMinecraftBridgeHost: String,
+    val netMinecraftBridgePort: Int,
+    val netMinecraftBridgeConnectTimeoutMillis: Int,
+    val netMinecraftBridgeStreamBufferBytes: Int,
+    val netMinecraftBridgeSocketBufferBytes: Int,
+    val netMinecraftMode: String,
+    val netMinecraftProtocolVersion: Int,
+    val netMinecraftStatusDescription: String,
+    val netMinecraftOnlineSessionServerUrl: String,
+    val netMinecraftOnlineAuthTimeoutMillis: Int,
     val adapterTimeoutMillis: Long,
     val adapterExecutionMode: String,
     val adapterRateLimitPerMinute: Int,
@@ -74,7 +85,7 @@ fun parseLaunchConfig(args: Array<String>): StandaloneLaunchConfig {
     val pluginsDir = stringOption(args, fileConfig, "--plugins", "plugins", "dev-runtime/giga-plugins")
     val dataDir = stringOption(args, fileConfig, "--data", "data", "dev-runtime/giga-data")
     val serverName = stringOption(args, fileConfig, "--name", "name", "Clockwork Standalone")
-    val serverVersion = stringOption(args, fileConfig, "--version", "version", "1.8.2")
+    val serverVersion = stringOption(args, fileConfig, "--version", "version", "0.18.3")
     val defaultWorld = stringOption(args, fileConfig, "--default-world", "defaultWorld", "world")
     val maxPlayers = intOption(args, fileConfig, "--max-players", "maxPlayers", 0).coerceAtLeast(0)
     val maxWorlds = intOption(args, fileConfig, "--max-worlds", "maxWorlds", 0).coerceAtLeast(0)
@@ -124,6 +135,86 @@ fun parseLaunchConfig(args: Array<String>): StandaloneLaunchConfig {
     val netAuditLogEnabled = boolOption(args, fileConfig, "--net-audit-log-enabled", "netAuditLogEnabled", true)
     val netTextFlushEveryResponses = intOption(args, fileConfig, "--net-text-flush-every", "netTextFlushEveryResponses", 1)
     val netFrameFlushEveryResponses = intOption(args, fileConfig, "--net-frame-flush-every", "netFrameFlushEveryResponses", 1)
+    val netMinecraftBridgeEnabled = boolOption(
+        args = args,
+        fileConfig = fileConfig,
+        argKey = "--net-minecraft-bridge-enabled",
+        configKey = "netMinecraftBridgeEnabled",
+        defaultValue = false
+    )
+    val netMinecraftBridgeHost = stringOption(
+        args = args,
+        fileConfig = fileConfig,
+        argKey = "--net-minecraft-bridge-host",
+        configKey = "netMinecraftBridgeHost",
+        defaultValue = "127.0.0.1"
+    ).ifBlank { "127.0.0.1" }
+    val netMinecraftBridgePort = intOption(
+        args = args,
+        fileConfig = fileConfig,
+        argKey = "--net-minecraft-bridge-port",
+        configKey = "netMinecraftBridgePort",
+        defaultValue = 25565
+    ).coerceIn(1, 65535)
+    val netMinecraftBridgeConnectTimeoutMillis = intOption(
+        args = args,
+        fileConfig = fileConfig,
+        argKey = "--net-minecraft-bridge-connect-timeout-ms",
+        configKey = "netMinecraftBridgeConnectTimeoutMillis",
+        defaultValue = 5_000
+    ).coerceIn(100, 60_000)
+    val netMinecraftBridgeStreamBufferBytes = intOption(
+        args = args,
+        fileConfig = fileConfig,
+        argKey = "--net-minecraft-bridge-stream-buffer-bytes",
+        configKey = "netMinecraftBridgeStreamBufferBytes",
+        defaultValue = 65_536
+    ).coerceIn(4_096, 1_048_576)
+    val netMinecraftBridgeSocketBufferBytes = intOption(
+        args = args,
+        fileConfig = fileConfig,
+        argKey = "--net-minecraft-bridge-socket-buffer-bytes",
+        configKey = "netMinecraftBridgeSocketBufferBytes",
+        defaultValue = 262_144
+    ).coerceIn(16_384, 4_194_304)
+    val netMinecraftMode = stringOption(
+        args = args,
+        fileConfig = fileConfig,
+        argKey = "--net-minecraft-mode",
+        configKey = "netMinecraftMode",
+        defaultValue = "native-offline"
+    ).lowercase()
+    require(netMinecraftMode in setOf("bridge", "native-offline", "native-online")) {
+        "--net-minecraft-mode must be one of bridge, native-offline, native-online"
+    }
+    val netMinecraftProtocolVersion = intOption(
+        args = args,
+        fileConfig = fileConfig,
+        argKey = "--net-minecraft-protocol-version",
+        configKey = "netMinecraftProtocolVersion",
+        defaultValue = 774
+    ).coerceAtLeast(1)
+    val netMinecraftStatusDescription = stringOption(
+        args = args,
+        fileConfig = fileConfig,
+        argKey = "--net-minecraft-status",
+        configKey = "netMinecraftStatusDescription",
+        defaultValue = "Clockwork Native 1.21.11"
+    ).ifBlank { "Clockwork Native 1.21.11" }
+    val netMinecraftOnlineSessionServerUrl = stringOption(
+        args = args,
+        fileConfig = fileConfig,
+        argKey = "--net-minecraft-online-session-url",
+        configKey = "netMinecraftOnlineSessionServerUrl",
+        defaultValue = "https://sessionserver.mojang.com/session/minecraft/hasJoined"
+    ).ifBlank { "https://sessionserver.mojang.com/session/minecraft/hasJoined" }
+    val netMinecraftOnlineAuthTimeoutMillis = intOption(
+        args = args,
+        fileConfig = fileConfig,
+        argKey = "--net-minecraft-online-auth-timeout-ms",
+        configKey = "netMinecraftOnlineAuthTimeoutMillis",
+        defaultValue = 7_000
+    ).coerceIn(500, 60_000)
     val adapterTimeoutMillis = longOption(args, fileConfig, "--adapter-timeout-ms", "adapterTimeoutMillis", 250L)
     val adapterExecutionMode = stringOption(args, fileConfig, "--adapter-mode", "adapterExecutionMode", "safe")
     val adapterRateLimitPerMinute = intOption(args, fileConfig, "--adapter-rate-limit-per-minute", "adapterRateLimitPerMinute", 180)
@@ -284,6 +375,17 @@ fun parseLaunchConfig(args: Array<String>): StandaloneLaunchConfig {
         netAuditLogEnabled = netAuditLogEnabled,
         netTextFlushEveryResponses = netTextFlushEveryResponses,
         netFrameFlushEveryResponses = netFrameFlushEveryResponses,
+        netMinecraftBridgeEnabled = netMinecraftBridgeEnabled,
+        netMinecraftBridgeHost = netMinecraftBridgeHost,
+        netMinecraftBridgePort = netMinecraftBridgePort,
+        netMinecraftBridgeConnectTimeoutMillis = netMinecraftBridgeConnectTimeoutMillis,
+        netMinecraftBridgeStreamBufferBytes = netMinecraftBridgeStreamBufferBytes,
+        netMinecraftBridgeSocketBufferBytes = netMinecraftBridgeSocketBufferBytes,
+        netMinecraftMode = netMinecraftMode,
+        netMinecraftProtocolVersion = netMinecraftProtocolVersion,
+        netMinecraftStatusDescription = netMinecraftStatusDescription,
+        netMinecraftOnlineSessionServerUrl = netMinecraftOnlineSessionServerUrl,
+        netMinecraftOnlineAuthTimeoutMillis = netMinecraftOnlineAuthTimeoutMillis,
         adapterTimeoutMillis = normalizedSecurity.adapter.invocationTimeoutMillis,
         adapterExecutionMode = normalizedSecurity.adapter.executionMode.name.lowercase(),
         adapterRateLimitPerMinute = normalizedSecurity.adapter.maxCallsPerMinute,

@@ -2,12 +2,27 @@ package com.clockwork.net
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
+import com.sun.net.httpserver.HttpServer
 import java.io.DataInputStream
 import java.io.DataOutputStream
+import java.io.File
+import java.net.ServerSocket
 import java.net.Socket
 import java.net.SocketException
+import java.net.InetSocketAddress
+import java.nio.charset.StandardCharsets
+import java.security.KeyFactory
+import java.security.spec.X509EncodedKeySpec
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import javax.crypto.Cipher
+import javax.crypto.CipherInputStream
+import javax.crypto.CipherOutputStream
+import javax.crypto.spec.IvParameterSpec
+import javax.crypto.spec.SecretKeySpec
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -476,6 +491,367 @@ class StandaloneNetServerTest {
         }
     }
 
+    @Test
+    fun `minecraft status gets api-port response when bridge is disabled`() {
+        val server = StandaloneNetServer(
+            config = StandaloneNetConfig(
+                host = "127.0.0.1",
+                port = 0,
+                minecraftBridgeEnabled = false
+            ),
+            logger = {},
+            handler = TestHandler()
+        )
+        server.start()
+        try {
+            val port = waitForPort(server)
+            Socket("127.0.0.1", port).use { socket ->
+                socket.soTimeout = 3_000
+                val input = DataInputStream(socket.getInputStream())
+                val output = DataOutputStream(socket.getOutputStream())
+                sendMcHandshake(output, host = "127.0.0.1", port = port, nextState = 1)
+                sendMcStatusRequest(output)
+                val packet = readMcPacket(input)
+                assertEquals(0, packet.packetId)
+                assertTrue(packet.stringPayload.contains("Clockwork"))
+            }
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun `minecraft status is proxied to upstream when bridge is enabled`() {
+        val upstream = ServerSocket(0)
+        val upstreamReady = CountDownLatch(1)
+        val upstreamDone = CountDownLatch(1)
+        val upstreamPort = upstream.localPort
+        var upstreamError: Throwable? = null
+        val upstreamThread = Thread({
+            try {
+                upstreamReady.countDown()
+                upstream.accept().use { client ->
+                    val inData = DataInputStream(client.getInputStream())
+                    val outData = DataOutputStream(client.getOutputStream())
+                    val handshake = readMcPacket(inData)
+                    assertEquals(0, handshake.packetId)
+                    val statusReq = readMcPacket(inData)
+                    assertEquals(0, statusReq.packetId)
+                    sendMcStatusResponse(outData, """{"description":{"text":"UPSTREAM_OK"}}""")
+                }
+            } catch (t: Throwable) {
+                upstreamError = t
+            } finally {
+                upstreamDone.countDown()
+            }
+        }, "test-upstream").apply { isDaemon = true }
+        upstreamThread.start()
+
+        val server = StandaloneNetServer(
+            config = StandaloneNetConfig(
+                host = "127.0.0.1",
+                port = 0,
+                minecraftBridgeEnabled = true,
+                minecraftBridgeHost = "127.0.0.1",
+                minecraftBridgePort = upstreamPort
+            ),
+            logger = {},
+            handler = TestHandler()
+        )
+        server.start()
+        try {
+            assertTrue(upstreamReady.await(2, TimeUnit.SECONDS))
+            val port = waitForPort(server)
+            Socket("127.0.0.1", port).use { socket ->
+                val input = DataInputStream(socket.getInputStream())
+                val output = DataOutputStream(socket.getOutputStream())
+                sendMcHandshake(output, host = "localhost", port = port, nextState = 1)
+                sendMcStatusRequest(output)
+                val packet = readMcPacket(input)
+                assertEquals(0, packet.packetId)
+                assertTrue(packet.stringPayload.contains("UPSTREAM_OK"))
+            }
+            assertTrue(upstreamDone.await(2, TimeUnit.SECONDS))
+            assertNull(upstreamError)
+        } finally {
+            server.stop()
+            runCatching { upstream.close() }
+        }
+    }
+
+    @Test
+    fun `minecraft login gets disconnect when bridge upstream is unavailable`() {
+        val unavailablePort = ServerSocket(0).use { it.localPort }
+        val server = StandaloneNetServer(
+            config = StandaloneNetConfig(
+                host = "127.0.0.1",
+                port = 0,
+                minecraftBridgeEnabled = true,
+                minecraftBridgeHost = "127.0.0.1",
+                minecraftBridgePort = unavailablePort
+            ),
+            logger = {},
+            handler = TestHandler()
+        )
+        server.start()
+        try {
+            val port = waitForPort(server)
+            Socket("127.0.0.1", port).use { socket ->
+                val input = DataInputStream(socket.getInputStream())
+                val output = DataOutputStream(socket.getOutputStream())
+                sendMcHandshake(output, host = "localhost", port = port, nextState = 2)
+                val packet = readMcPacket(input)
+                assertEquals(0, packet.packetId)
+                assertTrue(packet.stringPayload.contains("Minecraft bridge unavailable"))
+            }
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun `minecraft native offline mode emits login success`() {
+        val server = StandaloneNetServer(
+            config = StandaloneNetConfig(
+                host = "127.0.0.1",
+                port = 0,
+                minecraftMode = "native-offline",
+                minecraftBridgeEnabled = false,
+                minecraftSupportedProtocolVersion = 774
+            ),
+            logger = {},
+            handler = TestHandler()
+        )
+        server.start()
+        try {
+            val port = waitForPort(server)
+            Socket("127.0.0.1", port).use { socket ->
+                val input = DataInputStream(socket.getInputStream())
+                val output = DataOutputStream(socket.getOutputStream())
+                sendMcHandshake(output, host = "localhost", port = port, nextState = 2, protocolVersion = 774)
+                sendMcLoginStart(output, "Alex")
+                val loginSuccess = readMcPacket(input)
+                assertEquals(2, loginSuccess.packetId)
+            }
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun `minecraft native offline mode completes login configuration and enters play`() {
+        val server = StandaloneNetServer(
+            config = StandaloneNetConfig(
+                host = "127.0.0.1",
+                port = 0,
+                minecraftMode = "native-offline",
+                minecraftBridgeEnabled = false,
+                minecraftSupportedProtocolVersion = 774
+            ),
+            logger = {},
+            handler = TestHandler()
+        )
+        server.start()
+        try {
+            val port = waitForPort(server)
+            Socket("127.0.0.1", port).use { socket ->
+                socket.soTimeout = 4_000
+                val input = DataInputStream(socket.getInputStream())
+                val output = DataOutputStream(socket.getOutputStream())
+                sendMcHandshake(output, host = "localhost", port = port, nextState = 2, protocolVersion = 774)
+                sendMcLoginStart(output, "Alex")
+
+                val loginSuccess = readMcPacket(input)
+                assertEquals(0x02, loginSuccess.packetId)
+
+                sendMcPacketById(output, 0x03) // login acknowledged
+
+                val configPacketIds = mutableListOf<Int>()
+                while (true) {
+                    val packet = readMcPacket(input)
+                    configPacketIds += packet.packetId
+                    if (packet.packetId == 0x03) break // finish_configuration
+                }
+                assertTrue(configPacketIds.contains(0x0C)) // feature_flags
+                assertTrue(configPacketIds.contains(0x07)) // registry_data
+                assertTrue(configPacketIds.contains(0x0D)) // tags
+                assertEquals(0x03, configPacketIds.last())
+
+                sendMcPacketById(output, 0x03) // finish_configuration ack
+
+                val playPacketIds = mutableListOf<Int>()
+                repeat(5) {
+                    val packet = readMcPacket(input)
+                    playPacketIds += packet.packetId
+                }
+                assertTrue(playPacketIds.contains(0x30)) // play login
+                assertTrue(playPacketIds.contains(0x5C)) // update view position
+                assertTrue(playPacketIds.contains(0x5F)) // spawn position
+                assertTrue(playPacketIds.contains(0x3E)) // abilities
+                assertTrue(playPacketIds.contains(0x46)) // position
+            }
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun `minecraft native online mode completes encrypted login with local session verify`() {
+        val sessionServer = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
+        sessionServer.createContext("/session/minecraft/hasJoined") { exchange ->
+            val body = """{"id":"11111111111111111111111111111111","name":"Alex","properties":[]}"""
+            val bytes = body.toByteArray(StandardCharsets.UTF_8)
+            exchange.sendResponseHeaders(200, bytes.size.toLong())
+            exchange.responseBody.use { it.write(bytes) }
+        }
+        sessionServer.start()
+
+        val server = StandaloneNetServer(
+            config = StandaloneNetConfig(
+                host = "127.0.0.1",
+                port = 0,
+                minecraftMode = "native-online",
+                minecraftBridgeEnabled = false,
+                minecraftSupportedProtocolVersion = 774,
+                minecraftOnlineSessionServerUrl = "http://127.0.0.1:${sessionServer.address.port}/session/minecraft/hasJoined",
+                minecraftOnlineAuthTimeoutMillis = 3_000
+            ),
+            logger = {},
+            handler = TestHandler()
+        )
+        server.start()
+        try {
+            val port = waitForPort(server)
+            Socket("127.0.0.1", port).use { socket ->
+                socket.soTimeout = 4_000
+                val rawIn = DataInputStream(socket.getInputStream())
+                val rawOut = DataOutputStream(socket.getOutputStream())
+                sendMcHandshake(rawOut, host = "localhost", port = port, nextState = 2, protocolVersion = 774)
+                sendMcLoginStart(rawOut, "Alex")
+
+                val encryptionReq = readMcPacket(rawIn)
+                assertEquals(0x01, encryptionReq.packetId)
+                val parsedReq = parseMcEncryptionRequest(encryptionReq.payload)
+
+                val sharedSecret = ByteArray(16) { idx -> (idx + 1).toByte() }
+                val publicKey = KeyFactory.getInstance("RSA")
+                    .generatePublic(X509EncodedKeySpec(parsedReq.publicKey))
+                val rsa = Cipher.getInstance("RSA/ECB/PKCS1Padding").apply {
+                    init(Cipher.ENCRYPT_MODE, publicKey)
+                }
+                val encSecret = rsa.doFinal(sharedSecret)
+                val encToken = rsa.doFinal(parsedReq.verifyToken)
+                sendMcEncryptionResponse(rawOut, encSecret, encToken)
+
+                val decryptCipher = Cipher.getInstance("AES/CFB8/NoPadding").apply {
+                    init(Cipher.DECRYPT_MODE, SecretKeySpec(sharedSecret, "AES"), IvParameterSpec(sharedSecret))
+                }
+                val encryptCipher = Cipher.getInstance("AES/CFB8/NoPadding").apply {
+                    init(Cipher.ENCRYPT_MODE, SecretKeySpec(sharedSecret, "AES"), IvParameterSpec(sharedSecret))
+                }
+                val encIn = DataInputStream(CipherInputStream(socket.getInputStream(), decryptCipher))
+                val encOut = DataOutputStream(CipherOutputStream(socket.getOutputStream(), encryptCipher))
+
+                val loginSuccess = readMcPacket(encIn)
+                assertEquals(0x02, loginSuccess.packetId)
+                sendMcPacketById(encOut, 0x03) // login acknowledged
+            }
+        } finally {
+            server.stop()
+            sessionServer.stop(0)
+        }
+    }
+
+    @Test
+    fun `minecraft handshake session is cleaned up and does not block next connection`() {
+        val server = StandaloneNetServer(
+            config = StandaloneNetConfig(
+                host = "127.0.0.1",
+                port = 0,
+                minecraftBridgeEnabled = false,
+                maxConcurrentSessions = 8,
+                maxSessionsPerIp = 1
+            ),
+            logger = {},
+            handler = TestHandler()
+        )
+        server.start()
+        try {
+            val port = waitForPort(server)
+            Socket("127.0.0.1", port).use { socket ->
+                val input = DataInputStream(socket.getInputStream())
+                val output = DataOutputStream(socket.getOutputStream())
+                sendMcHandshake(output, host = "127.0.0.1", port = port, nextState = 1)
+                sendMcStatusRequest(output)
+                val packet = readMcPacket(input)
+                assertEquals(0, packet.packetId)
+                assertTrue(packet.stringPayload.contains("Clockwork"))
+            }
+
+            Socket("127.0.0.1", port).use { socket ->
+                val reader = socket.getInputStream().bufferedReader()
+                val writer = socket.getOutputStream().bufferedWriter()
+                val ping = sendJson(reader, writer, action = "ping", requestId = "after-mc")
+                assertTrue(ping.success)
+                assertEquals("PONG", ping.code)
+            }
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun `native offline vanilla-like probe reaches play bootstrap when enabled`() {
+        org.junit.jupiter.api.Assumptions.assumeTrue(
+            System.getenv("CLOCKWORK_RUN_VANILLA_PROBE") == "1",
+            "set CLOCKWORK_RUN_VANILLA_PROBE=1 to run this integration probe"
+        )
+        val server = StandaloneNetServer(
+            config = StandaloneNetConfig(
+                host = "127.0.0.1",
+                port = 0,
+                minecraftMode = "native-offline",
+                minecraftBridgeEnabled = false,
+                minecraftSupportedProtocolVersion = 774
+            ),
+            logger = {},
+            handler = TestHandler()
+        )
+        server.start()
+        try {
+            val port = waitForPort(server)
+            val cmd = listOf(
+                "npx",
+                "--yes",
+                "--package",
+                "minecraft-protocol",
+                "node",
+                "scripts/native_vanilla_probe.js",
+                "127.0.0.1",
+                port.toString(),
+                "1.21.11"
+            )
+            val process = try {
+                ProcessBuilder(cmd)
+                    .directory(File(System.getProperty("user.dir")))
+                    .redirectErrorStream(true)
+                    .start()
+            } catch (_: Exception) {
+                org.junit.jupiter.api.Assumptions.assumeTrue(false, "npx is not available on this machine")
+                return
+            }
+            val output = process.inputStream.bufferedReader().readText()
+            val finished = process.waitFor(90, TimeUnit.SECONDS)
+            if (!finished) {
+                process.destroyForcibly()
+            }
+            assertTrue(finished, "probe timed out")
+            assertEquals(0, process.exitValue(), "probe failed:\n$output")
+        } finally {
+            server.stop()
+        }
+    }
+
     private fun waitForPort(server: StandaloneNetServer): Int {
         repeat(100) {
             val port = server.boundPort()
@@ -519,6 +895,164 @@ class StandaloneNetServerTest {
         input.readFully(bytes)
         return mapper.readValue(bytes, SessionResponsePacket::class.java)
     }
+
+    private data class McPacket(
+        val packetId: Int,
+        val payload: ByteArray,
+        val stringPayload: String
+    )
+
+    private data class McEncryptionRequest(
+        val publicKey: ByteArray,
+        val verifyToken: ByteArray
+    )
+
+    private fun sendMcHandshake(output: DataOutputStream, host: String, port: Int, nextState: Int, protocolVersion: Int = 767) {
+        val payload = mutableListOf<Byte>()
+        payload += encodeVarInt(0).toList()
+        payload += encodeVarInt(protocolVersion).toList()
+        val hostBytes = host.toByteArray(Charsets.UTF_8)
+        payload += encodeVarInt(hostBytes.size).toList()
+        payload += hostBytes.toList()
+        payload += byteArrayOf(((port ushr 8) and 0xFF).toByte(), (port and 0xFF).toByte()).toList()
+        payload += encodeVarInt(nextState).toList()
+        writeMcRawPacket(output, payload.toByteArray())
+    }
+
+    private fun sendMcStatusRequest(output: DataOutputStream) {
+        writeMcRawPacket(output, encodeVarInt(0))
+    }
+
+    private fun sendMcLoginStart(output: DataOutputStream, playerName: String) {
+        val nameBytes = playerName.toByteArray(Charsets.UTF_8)
+        val payload = mutableListOf<Byte>()
+        payload += encodeVarInt(0).toList()
+        payload += encodeVarInt(nameBytes.size).toList()
+        payload += nameBytes.toList()
+        val uuid = java.util.UUID.nameUUIDFromBytes("OfflinePlayer:$playerName".toByteArray(Charsets.UTF_8))
+        val uuidBytes = ByteArray(16)
+        var msb = uuid.mostSignificantBits
+        var lsb = uuid.leastSignificantBits
+        for (i in 7 downTo 0) {
+            uuidBytes[i] = (msb and 0xFFL).toByte()
+            msb = msb ushr 8
+        }
+        for (i in 15 downTo 8) {
+            uuidBytes[i] = (lsb and 0xFFL).toByte()
+            lsb = lsb ushr 8
+        }
+        payload += uuidBytes.toList()
+        writeMcRawPacket(output, payload.toByteArray())
+    }
+
+    private fun sendMcPacketById(output: DataOutputStream, packetId: Int) {
+        writeMcRawPacket(output, encodeVarInt(packetId))
+    }
+
+    private fun sendMcEncryptionResponse(output: DataOutputStream, encryptedSecret: ByteArray, encryptedVerifyToken: ByteArray) {
+        val payload = mutableListOf<Byte>()
+        payload += encodeVarInt(0x01).toList()
+        payload += encodeVarInt(encryptedSecret.size).toList()
+        payload += encryptedSecret.toList()
+        payload += encodeVarInt(encryptedVerifyToken.size).toList()
+        payload += encryptedVerifyToken.toList()
+        writeMcRawPacket(output, payload.toByteArray())
+    }
+
+    private fun sendMcStatusResponse(output: DataOutputStream, json: String) {
+        val jsonBytes = json.toByteArray(Charsets.UTF_8)
+        val payload = mutableListOf<Byte>()
+        payload += encodeVarInt(0).toList()
+        payload += encodeVarInt(jsonBytes.size).toList()
+        payload += jsonBytes.toList()
+        writeMcRawPacket(output, payload.toByteArray())
+    }
+
+    private fun writeMcRawPacket(output: DataOutputStream, payload: ByteArray) {
+        output.write(encodeVarInt(payload.size))
+        output.write(payload)
+        output.flush()
+    }
+
+    private fun readMcPacket(input: DataInputStream): McPacket {
+        val frameLen = readVarInt(input)
+        val frame = ByteArray(frameLen)
+        input.readFully(frame)
+        val frameIn = DataInputStream(frame.inputStream())
+        val packetId = readVarInt(frameIn)
+        val payload = frame.copyOfRange(varIntSize(packetId), frame.size)
+        val payloadIn = DataInputStream(payload.inputStream())
+        val stringPayload = runCatching {
+            val strLen = readVarInt(payloadIn)
+            val strBytes = ByteArray(strLen)
+            payloadIn.readFully(strBytes)
+            String(strBytes, Charsets.UTF_8)
+        }.getOrDefault("")
+        return McPacket(packetId = packetId, payload = payload, stringPayload = stringPayload)
+    }
+
+    private fun parseMcEncryptionRequest(payload: ByteArray): McEncryptionRequest {
+        var idx = 0
+        fun readVarInt(): Int {
+            var numRead = 0
+            var result = 0
+            while (numRead < 5) {
+                val raw = payload[idx].toInt() and 0xFF
+                idx += 1
+                val value = raw and 0x7F
+                result = result or (value shl (7 * numRead))
+                numRead++
+                if ((raw and 0x80) == 0) return result
+            }
+            error("invalid varint in encryption request")
+        }
+        fun readString(): String {
+            val len = readVarInt()
+            val out = String(payload, idx, len, StandardCharsets.UTF_8)
+            idx += len
+            return out
+        }
+        fun readByteArray(): ByteArray {
+            val len = readVarInt()
+            val out = payload.copyOfRange(idx, idx + len)
+            idx += len
+            return out
+        }
+
+        readString() // serverId
+        val publicKey = readByteArray()
+        val verifyToken = readByteArray()
+        // shouldAuthenticate bool
+        return McEncryptionRequest(publicKey = publicKey, verifyToken = verifyToken)
+    }
+
+    private fun readVarInt(input: DataInputStream): Int {
+        var numRead = 0
+        var result = 0
+        while (numRead < 5) {
+            val read = input.read()
+            require(read >= 0) { "Unexpected EOF while reading VarInt" }
+            val value = read and 0x7F
+            result = result or (value shl (7 * numRead))
+            numRead++
+            if ((read and 0x80) == 0) return result
+        }
+        error("VarInt too big")
+    }
+
+    private fun encodeVarInt(value: Int): ByteArray {
+        var current = value
+        val out = ArrayList<Byte>(5)
+        do {
+            var temp = current and 0x7F
+            current = current ushr 7
+            if (current != 0) temp = temp or 0x80
+            out += temp.toByte()
+        } while (current != 0)
+        return out.toByteArray()
+    }
+
+    private fun varIntSize(value: Int): Int = encodeVarInt(value).size
 
     private class TestHandler : StandaloneSessionHandler {
         var worldCreateCalls: Int = 0
